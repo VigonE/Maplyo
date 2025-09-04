@@ -67,6 +67,7 @@ function initializeDatabase() {
       revenue REAL DEFAULT 0,
       notes TEXT,
       tab_id TEXT DEFAULT 'default',
+      display_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -83,6 +84,15 @@ function initializeDatabase() {
         console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
       } else if (!err) {
         console.log('✅ Migration applied: added tab_id column');
+      }
+    });
+    
+    // Migration pour ajouter display_order aux bases de données existantes
+    db.run(`ALTER TABLE prospects ADD COLUMN display_order INTEGER DEFAULT 0`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
+      } else if (!err) {
+        console.log('✅ Migration applied: added display_order column');
       }
     });
     
@@ -273,7 +283,7 @@ app.get('/api/profile', authenticateToken, (req, res) => {
 // Obtenir tous les prospects
 app.get('/api/prospects', authenticateToken, (req, res) => {
   db.all(
-    'SELECT * FROM prospects WHERE user_id = ? ORDER BY created_at DESC',
+    'SELECT * FROM prospects WHERE user_id = ? ORDER BY display_order ASC, created_at DESC',
     [req.user.userId],
     (err, prospects) => {
       if (err) {
@@ -317,39 +327,104 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
       }
     }
 
+    // Décaler tous les prospects existants de l'utilisateur vers le bas
     db.run(
-      `INSERT INTO prospects 
-       (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes, tab_id) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        req.user.userId, name, email || '', phone || '', company || '', 
-        position || '', address || '', latitude, longitude, status || 'cold', 
-        revenue || 0, notes || '', tabId || 'default'
-      ],
-      function(err) {
-        if (err) {
-          console.error('Error creating prospect:', err);
+      'UPDATE prospects SET display_order = display_order + 1 WHERE user_id = ?',
+      [req.user.userId],
+      function(updateErr) {
+        if (updateErr) {
+          console.error('Error updating display orders:', updateErr);
           return res.status(500).json({ error: 'Database error' });
         }
 
-        // Récupérer le prospect créé
-        db.get(
-          'SELECT * FROM prospects WHERE id = ?',
-          [this.lastID],
-          (err, prospect) => {
+        // Insérer le nouveau prospect en position 0
+        db.run(
+          `INSERT INTO prospects 
+           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes, tab_id, display_order) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            req.user.userId, name, email || '', phone || '', company || '', 
+            position || '', address || '', latitude, longitude, status || 'cold', 
+            revenue || 0, notes || '', tabId || 'default', 0 // Nouveau prospect en haut
+          ],
+          function(err) {
             if (err) {
-              console.error('Error retrieving created prospect:', err);
+              console.error('Error creating prospect:', err);
               return res.status(500).json({ error: 'Database error' });
             }
 
-            console.log('✅ Prospect created successfully:', prospect.name);
-            res.status(201).json(prospect);
+            // Récupérer le prospect créé
+            db.get(
+              'SELECT * FROM prospects WHERE id = ?',
+              [this.lastID],
+              (err, prospect) => {
+                if (err) {
+                  console.error('Error retrieving created prospect:', err);
+                  return res.status(500).json({ error: 'Database error' });
+                }
+
+                console.log('✅ Prospect created successfully:', prospect.name);
+                res.status(201).json(prospect);
+              }
+            );
           }
         );
       }
     );
   } catch (error) {
     console.error('Error creating prospect:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Réordonner les prospects (DOIT ÊTRE AVANT la route :id)
+app.put('/api/prospects/reorder', authenticateToken, (req, res) => {
+  try {
+    const { order } = req.body;
+    
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ error: 'Order array is required' });
+    }
+
+    console.log('🔄 Reordering prospects for user:', req.user.userId);
+    console.log('📋 New order:', order);
+
+    // Préparer les requêtes de mise à jour
+    const updatePromises = order.map((prospectId, index) => {
+      return new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE prospects SET display_order = ? WHERE id = ? AND user_id = ?',
+          [index, prospectId, req.user.userId],
+          function(err) {
+            if (err) {
+              console.error(`Error updating prospect ${prospectId}:`, err);
+              reject(err);
+            } else {
+              resolve(this.changes);
+            }
+          }
+        );
+      });
+    });
+
+    // Exécuter toutes les mises à jour
+    Promise.all(updatePromises)
+      .then((results) => {
+        const totalUpdated = results.reduce((sum, changes) => sum + changes, 0);
+        console.log(`✅ Updated ${totalUpdated} prospects order`);
+        
+        res.json({ 
+          message: 'Prospects reordered successfully',
+          updated: totalUpdated
+        });
+      })
+      .catch((error) => {
+        console.error('Error in reorder transaction:', error);
+        res.status(500).json({ error: 'Failed to reorder prospects' });
+      });
+
+  } catch (error) {
+    console.error('Error reordering prospects:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

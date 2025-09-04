@@ -79,14 +79,20 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   async function reorderProspects(newOrder) {
     try {
-      await api.put('/prospects/reorder', { order: newOrder })
+      console.log('📋 Reordering prospects:', newOrder);
+      const response = await api.put('/prospects/reorder', { order: newOrder })
+      
       // Update local order
       prospects.value.sort((a, b) => {
         return newOrder.indexOf(a.id) - newOrder.indexOf(b.id)
       })
+      
+      console.log('✅ Prospects reordered successfully');
       return { success: true }
     } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Reordering error' }
+      console.error('❌ Error reordering prospects:', error);
+      console.error('Response data:', error.response?.data);
+      return { success: false, error: error.response?.data?.error || 'Reordering error' }
     }
   }
 
