@@ -102,16 +102,17 @@
           >
             <draggable
               :model-value="getProspectsByStatus(status)"
-              @update:model-value="updateProspectsForStatus(status, $event)"
               :group="{ name: 'prospects', pull: true, put: true }"
               item-key="id"
               @end="onStatusChange"
-              @change="onProspectMove"
               @dragover.prevent="isDragOverCategory = status"
               @dragleave="isDragOverCategory = null"
               @drop="isDragOverCategory = null"
               handle=".drag-handle"
               class="space-y-2"
+              :animation="200"
+              ghost-class="opacity-50"
+              chosen-class="dragging"
             >
               <template #item="{ element: prospect }">
                 <div
@@ -183,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 
@@ -205,6 +206,7 @@ const prospectsStore = useProspectsStore()
 const localProspects = ref([])
 const isDragOverCategory = ref(null)
 const revenueFilter = ref(0)
+const forceRerender = ref(0) // Trigger pour forcer le re-render
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
 const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
@@ -315,7 +317,11 @@ watch(() => props.tabId, () => {
 
 // Obtenir les prospects par statut (après filtrage par revenu)
 function getProspectsByStatus(status) {
-  return visibleProspectsAfterFilter.value.filter(p => p.status === status)
+  // Utiliser forceRerender pour déclencher la réactivité si nécessaire
+  const _ = forceRerender.value
+  const prospects = visibleProspectsAfterFilter.value.filter(p => p.status === status)
+  console.log(`🔍 getProspectsByStatus(${status}):`, prospects.map(p => ({ id: p.id, name: p.name, display_order: p.display_order })))
+  return prospects
 }
 
 // Calculer le revenu par catégorie
@@ -327,16 +333,67 @@ function getCategoryRevenue(status) {
   return formatCurrency(total)
 }
 
-// Mettre à jour les prospects pour un statut donné
-function updateProspectsForStatus(status, newProspects) {
-  // Cette fonction est appelée quand on réorganise dans une catégorie
-  // Pas besoin de faire quelque chose ici car le drag & drop est géré par onStatusChange
-}
-
 // Gestion du changement de statut par drag & drop
 async function onStatusChange(evt) {
   console.log('🎯 onStatusChange triggered', evt)
   
+  // Gérer le réordonnement au sein de la même catégorie
+  if (evt.to === evt.from) {
+    console.log('🔄 Reordering within same category')
+    const targetCategory = evt.to.closest('[data-status]')
+    const status = targetCategory?.dataset.status
+    
+    if (status) {
+      console.log('📍 Drag event details:', {
+        oldIndex: evt.oldIndex,
+        newIndex: evt.newIndex,
+        status: status
+      })
+      
+      // Si l'index n'a pas changé, pas besoin de réorganiser
+      if (evt.oldIndex === evt.newIndex) {
+        console.log('📍 Same position, no reorder needed')
+        return
+      }
+      
+      // Récupérer la liste actuelle des prospects de cette catégorie
+      const categoryProspects = getProspectsByStatus(status)
+      console.log('📋 Current category prospects:', categoryProspects.map(p => ({ id: p.id, name: p.name })))
+      
+      // Créer le nouvel ordre en déplaçant l'élément
+      const newOrder = [...categoryProspects]
+      const [movedProspect] = newOrder.splice(evt.oldIndex, 1)
+      newOrder.splice(evt.newIndex, 0, movedProspect)
+      
+      const newCategoryOrder = newOrder.map(p => p.id)
+      console.log('📋 New order for category', status, ':', newCategoryOrder)
+      
+      // Au lieu de créer un ordre global complexe, envoyons juste l'ordre de cette catégorie
+      // avec le statut pour que le serveur puisse gérer l'ordre par catégorie
+      try {
+        const result = await prospectsStore.reorderProspectsInCategory(status, newCategoryOrder)
+        if (result.success) {
+          console.log(`✅ Prospects reordered successfully within ${status}`)
+          // Attendre un peu plus longtemps pour que la base de données soit bien mise à jour
+          await new Promise(resolve => setTimeout(resolve, 300))
+          // Recharger les données pour avoir l'ordre correct
+          await prospectsStore.fetchProspects()
+          console.log('🔄 Data refreshed after reorder')
+          
+          // Forcer une mise à jour de Vue après rechargement des données
+          await nextTick()
+          forceRerender.value++ // Forcer le re-render des composants
+          console.log('🔄 Vue updated after reorder')
+        } else {
+          console.error('❌ Failed to reorder prospects:', result.error)
+        }
+      } catch (error) {
+        console.error('❌ Error reordering prospects:', error)
+      }
+    }
+    return
+  }
+
   // Ne traiter que les mouvements entre containers différents
   if (evt.to !== evt.from) {
     const targetCategory = evt.to.closest('[data-status]')
@@ -377,50 +434,6 @@ async function onStatusChange(evt) {
         } catch (error) {
           console.error('❌ Error updating prospect status:', error)
         }
-      }
-    }
-  }
-}
-
-// Gestion du mouvement des prospects
-async function onProspectMove(evt) {
-  console.log('🚚 onProspectMove triggered', evt)
-  
-  if (evt.added) {
-    // Un prospect a été ajouté à cette catégorie
-    const prospect = evt.added.element
-    const targetContainer = evt.added.newIndex !== undefined ? evt.to : null
-    const targetCategory = targetContainer?.closest('[data-status]')
-    const targetStatus = targetCategory?.dataset.status
-    
-    console.log('➕ Prospect added to category:', targetStatus)
-    
-    if (targetStatus && prospect.status !== targetStatus) {
-      try {
-        // Créer un objet avec toutes les propriétés nécessaires du prospect
-        const updateData = {
-          name: prospect.name,
-          email: prospect.email || '',
-          phone: prospect.phone || '',
-          company: prospect.company || '',
-          position: prospect.position || '',
-          address: prospect.address || '',
-          status: targetStatus,
-          revenue: prospect.revenue || 0,
-          notes: prospect.notes || '',
-          tabId: prospect.tabId || prospect.tab_id || 'default'
-        }
-        
-        console.log('📝 Update data:', updateData)
-        
-        const result = await prospectsStore.updateProspect(prospect.id, updateData)
-        if (result.success) {
-          console.log(`✅ Prospect ${prospect.id} status changed to ${targetStatus}`)
-        } else {
-          console.error('❌ Failed to update prospect:', result.error)
-        }
-      } catch (error) {
-        console.error('❌ Error updating prospect status:', error)
       }
     }
   }
@@ -544,5 +557,12 @@ function formatCurrency(amount) {
 
 .revenue-slider:focus::-webkit-slider-thumb {
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Style pour l'élément en cours de drag */
+.dragging {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 2px solid #3b82f6;
 }
 </style>

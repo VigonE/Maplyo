@@ -282,13 +282,38 @@ app.get('/api/profile', authenticateToken, (req, res) => {
 
 // Obtenir tous les prospects
 app.get('/api/prospects', authenticateToken, (req, res) => {
+  console.log('📋 Fetching prospects for user:', req.user.userId);
   db.all(
-    'SELECT * FROM prospects WHERE user_id = ? ORDER BY display_order ASC, created_at DESC',
+    `SELECT * FROM prospects WHERE user_id = ? 
+     ORDER BY 
+       CASE status 
+         WHEN 'hot' THEN 1 
+         WHEN 'warm' THEN 2 
+         WHEN 'cold' THEN 3 
+         WHEN 'won' THEN 4 
+         WHEN 'lost' THEN 5 
+         ELSE 6 
+       END,
+       display_order ASC, 
+       created_at DESC`,
     [req.user.userId],
     (err, prospects) => {
       if (err) {
         console.error('Error retrieving prospects:', err);
         return res.status(500).json({ error: 'Database error' });
+      }
+
+      console.log(`📊 Found ${prospects.length} prospects`);
+      // Log des premiers prospects pour vérifier l'ordre
+      if (prospects.length > 0) {
+        const firstFive = prospects.slice(0, 5);
+        console.log('🔍 First 5 prospects order:', firstFive.map(p => ({ id: p.id, name: p.name, display_order: p.display_order, status: p.status })));
+        
+        // Log des prospects HOT spécifiquement
+        const hotProspects = prospects.filter(p => p.status === 'hot').slice(0, 5);
+        if (hotProspects.length > 0) {
+          console.log('🔥 HOT prospects order:', hotProspects.map(p => ({ id: p.id, name: p.name, display_order: p.display_order })));
+        }
       }
 
       res.json(prospects);
@@ -377,6 +402,60 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   }
 });
 
+// Réordonner les prospects dans une catégorie spécifique
+app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
+  try {
+    const { status, order } = req.body;
+    
+    if (!status || !Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({ error: 'Status and order array are required' });
+    }
+
+    console.log('🔄 Reordering prospects in category:', status, 'for user:', req.user.userId);
+    console.log('📋 New order for category:', order);
+
+    // Mettre à jour l'ordre des prospects dans cette catégorie spécifique
+    const updatePromises = order.map((prospectId, index) => {
+      return new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE prospects SET display_order = ? WHERE id = ? AND user_id = ? AND status = ?',
+          [index, prospectId, req.user.userId, status],
+          function(err) {
+            if (err) {
+              console.error(`Error updating prospect ${prospectId}:`, err);
+              reject(err);
+            } else {
+              console.log(`✅ Updated prospect ${prospectId} to position ${index} in category ${status}`);
+              resolve(this.changes);
+            }
+          }
+        );
+      });
+    });
+
+    // Exécuter toutes les mises à jour
+    Promise.all(updatePromises)
+      .then((results) => {
+        const totalUpdated = results.reduce((sum, changes) => sum + changes, 0);
+        console.log(`✅ Updated ${totalUpdated} prospects order in category ${status}`);
+        
+        res.json({ 
+          message: `Prospects reordered successfully in category ${status}`,
+          updated: totalUpdated,
+          category: status
+        });
+      })
+      .catch((error) => {
+        console.error('Error in category reorder transaction:', error);
+        res.status(500).json({ error: 'Failed to reorder prospects in category' });
+      });
+
+  } catch (error) {
+    console.error('Error reordering prospects in category:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Réordonner les prospects (DOIT ÊTRE AVANT la route :id)
 app.put('/api/prospects/reorder', authenticateToken, (req, res) => {
   try {
@@ -389,39 +468,66 @@ app.put('/api/prospects/reorder', authenticateToken, (req, res) => {
     console.log('🔄 Reordering prospects for user:', req.user.userId);
     console.log('📋 New order:', order);
 
-    // Préparer les requêtes de mise à jour
-    const updatePromises = order.map((prospectId, index) => {
-      return new Promise((resolve, reject) => {
-        db.run(
-          'UPDATE prospects SET display_order = ? WHERE id = ? AND user_id = ?',
-          [index, prospectId, req.user.userId],
-          function(err) {
-            if (err) {
-              console.error(`Error updating prospect ${prospectId}:`, err);
-              reject(err);
-            } else {
-              resolve(this.changes);
-            }
-          }
-        );
-      });
-    });
+    // D'abord, récupérer tous les prospects de l'utilisateur
+    db.all(
+      'SELECT id FROM prospects WHERE user_id = ? ORDER BY display_order ASC, created_at DESC',
+      [req.user.userId],
+      (err, allProspects) => {
+        if (err) {
+          console.error('Error fetching prospects for reorder:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
 
-    // Exécuter toutes les mises à jour
-    Promise.all(updatePromises)
-      .then((results) => {
-        const totalUpdated = results.reduce((sum, changes) => sum + changes, 0);
-        console.log(`✅ Updated ${totalUpdated} prospects order`);
+        // Créer l'ordre complet : prospects dans l'ordre fourni + prospects non inclus
+        const allProspectIds = allProspects.map(p => p.id);
+        const reorderedIds = [...order];
         
-        res.json({ 
-          message: 'Prospects reordered successfully',
-          updated: totalUpdated
+        // Ajouter les prospects non inclus dans l'ordre à la fin
+        allProspectIds.forEach(id => {
+          if (!reorderedIds.includes(id)) {
+            reorderedIds.push(id);
+          }
         });
-      })
-      .catch((error) => {
-        console.error('Error in reorder transaction:', error);
-        res.status(500).json({ error: 'Failed to reorder prospects' });
-      });
+
+        console.log('📋 Complete reorder with all prospects:', reorderedIds);
+
+        // Préparer les requêtes de mise à jour pour tous les prospects
+        const updatePromises = reorderedIds.map((prospectId, index) => {
+          return new Promise((resolve, reject) => {
+            db.run(
+              'UPDATE prospects SET display_order = ? WHERE id = ? AND user_id = ?',
+              [index, prospectId, req.user.userId],
+              function(err) {
+                if (err) {
+                  console.error(`Error updating prospect ${prospectId}:`, err);
+                  reject(err);
+                } else {
+                  console.log(`✅ Updated prospect ${prospectId} to position ${index}`);
+                  resolve(this.changes);
+                }
+              }
+            );
+          });
+        });
+
+        // Exécuter toutes les mises à jour
+        Promise.all(updatePromises)
+          .then((results) => {
+            const totalUpdated = results.reduce((sum, changes) => sum + changes, 0);
+            console.log(`✅ Updated ${totalUpdated} prospects order`);
+            
+            res.json({ 
+              message: 'Prospects reordered successfully',
+              updated: totalUpdated,
+              totalProspects: reorderedIds.length
+            });
+          })
+          .catch((error) => {
+            console.error('Error in reorder transaction:', error);
+            res.status(500).json({ error: 'Failed to reorder prospects' });
+          });
+      }
+    );
 
   } catch (error) {
     console.error('Error reordering prospects:', error);
@@ -608,11 +714,30 @@ process.on('SIGINT', () => {
 
 // DEBUG: Endpoint temporaire pour voir les données
 app.get('/debug/prospects', (req, res) => {
-  const sql = 'SELECT * FROM prospects';
+  const sql = 'SELECT id, name, status, display_order FROM prospects ORDER BY display_order ASC, created_at DESC';
   db.all(sql, [], (err, rows) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    console.log('🔍 DEBUG - All prospects with display_order:');
+    rows.slice(0, 20).forEach(p => {
+      console.log(`ID: ${p.id}, Name: ${p.name}, Status: ${p.status}, Display Order: ${p.display_order}`);
+    });
+    res.json(rows);
+  });
+});
+
+// DEBUG: Endpoint pour voir les prospects HOT uniquement
+app.get('/debug/prospects/hot', (req, res) => {
+  const sql = "SELECT id, name, status, display_order FROM prospects WHERE status = 'hot' ORDER BY display_order ASC";
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    console.log('🔥 DEBUG - HOT prospects with display_order:');
+    rows.forEach(p => {
+      console.log(`ID: ${p.id}, Name: ${p.name}, Display Order: ${p.display_order}`);
+    });
     res.json(rows);
   });
 });

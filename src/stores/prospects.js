@@ -77,15 +77,27 @@ export const useProspectsStore = defineStore('prospects', () => {
     }
   }
 
+  async function reorderProspectsInCategory(status, newOrder) {
+    try {
+      console.log('📋 Reordering prospects in category:', status, 'with order:', newOrder);
+      const response = await api.put('/prospects/reorder-category', { status, order: newOrder })
+      
+      console.log('✅ Prospects reordered successfully in category');
+      return { success: true }
+    } catch (error) {
+      console.error('❌ Error reordering prospects in category:', error);
+      console.error('Response data:', error.response?.data);
+      return { success: false, error: error.response?.data?.error || 'Reordering error' }
+    }
+  }
+
   async function reorderProspects(newOrder) {
     try {
       console.log('📋 Reordering prospects:', newOrder);
       const response = await api.put('/prospects/reorder', { order: newOrder })
       
-      // Update local order
-      prospects.value.sort((a, b) => {
-        return newOrder.indexOf(a.id) - newOrder.indexOf(b.id)
-      })
+      // Ne pas modifier l'ordre local ici pour éviter les conflits
+      // Laisser le composant gérer l'affichage et recharger les données si nécessaire
       
       console.log('✅ Prospects reordered successfully');
       return { success: true }
@@ -104,6 +116,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     updateProspect,
     deleteProspect,
     reorderProspects,
+    reorderProspectsInCategory,
     assignProspectToTab,
     getProspectsByTab
   }
