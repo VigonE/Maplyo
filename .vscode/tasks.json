@@ -1,0 +1,71 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "🧹 Stop All Processes",
+			"type": "shell",
+			"command": "Stop-Process -Name node -Force -ErrorAction SilentlyContinue; Stop-Process -Name vite -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2",
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "silent",
+				"panel": "shared"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "🔧 Start Backend",
+			"type": "shell",
+			"command": "npm run server:dev",
+			"group": "build",
+			"isBackground": true,
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"panel": "new",
+				"group": "servers"
+			},
+			"dependsOn": "🧹 Stop All Processes",
+			"problemMatcher": []
+		},
+		{
+			"label": "🎨 Start Frontend",
+			"type": "shell",
+			"command": "npm run dev",
+			"group": "build",
+			"isBackground": true,
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"panel": "new",
+				"group": "servers"
+			},
+			"dependsOn": "🧹 Stop All Processes",
+			"problemMatcher": []
+		},
+		{
+			"label": "🚀 Start Maplyo Full Stack",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"🧹 Stop All Processes",
+				"🔧 Start Backend",
+				"🎨 Start Frontend"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"panel": "shared"
+			}
+		},
+		{
+			"label": "Build",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build"
+		}
+	]
+}

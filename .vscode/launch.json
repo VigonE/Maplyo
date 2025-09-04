@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": " Backend Seulement",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/index.cjs",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "preLaunchTask": "🧹 Stop All Processes",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🚀 Maplyo - Full Stack",
+      "configurations": [],
+      "preLaunchTask": "🚀 Start Maplyo Full Stack",
+      "stopAll": true
+    }
+  ]
+}
