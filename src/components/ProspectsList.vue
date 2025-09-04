@@ -33,17 +33,18 @@
           </div>
         </div>
         <div class="relative">
+          <!-- Slider -->
           <input
-            v-model="revenueFilter"
+            v-model.number="revenueFilter"
             type="range"
-            :min="0"
-            :max="100"
+            :min="minRevenue"
+            :max="maxRevenue"
             :step="1"
             class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer revenue-slider"
             :style="{ background: sliderBackground }"
           />
           <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{{ formatCurrency(0) }}</span>
+            <span>{{ formatCurrency(minRevenue) }}</span>
             <span>{{ formatCurrency(maxRevenue) }}</span>
           </div>
         </div>
@@ -205,7 +206,7 @@ const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect',
 const prospectsStore = useProspectsStore()
 const localProspects = ref([])
 const isDragOverCategory = ref(null)
-const revenueFilter = ref(0)
+const revenueFilter = ref(0) // Sera mis à jour avec minRevenue quand disponible
 const forceRerender = ref(0) // Trigger pour forcer le re-render
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
@@ -284,11 +285,8 @@ const maxRevenue = computed(() => revenueStats.value.maxRevenue)
 const minRevenue = computed(() => revenueStats.value.minRevenue)
 const prospectsAboveSmoothedMax = computed(() => revenueStats.value.prospectsAboveSmoothed)
 
-// Convertir le pourcentage du slider en valeur de revenu réelle
-const actualRevenueFilter = computed(() => {
-  const percentage = revenueFilter.value / 100
-  return minRevenue.value + (maxRevenue.value - minRevenue.value) * percentage
-})
+// Le filtre de revenu utilise maintenant directement la valeur du slider
+const actualRevenueFilter = computed(() => revenueFilter.value)
 
 // Prospects filtrés par revenu ET par onglet
 const visibleProspectsAfterFilter = computed(() => {
@@ -303,14 +301,22 @@ watch(visibleProspectsAfterFilter, (filteredProspects) => {
   emit('filtered-prospects', filteredProspects)
 }, { immediate: true })
 
+// Initialiser le filtre de revenu avec la valeur minimale
+watch(minRevenue, (newMinRevenue) => {
+  if (revenueFilter.value === 0 && newMinRevenue > 0) {
+    revenueFilter.value = newMinRevenue
+  }
+}, { immediate: true })
+
 // Background du slider avec gradient coloré
 const sliderBackground = computed(() => {
-  const percentage = revenueFilter.value
+  const range = maxRevenue.value - minRevenue.value
+  const position = range > 0 ? ((revenueFilter.value - minRevenue.value) / range) * 100 : 0
   return `linear-gradient(to right, 
     #ef4444 0%, 
-    #f59e0b ${percentage/2}%, 
-    #10b981 ${percentage}%, 
-    #e5e7eb ${percentage}%, 
+    #f59e0b ${position/2}%, 
+    #10b981 ${position}%, 
+    #e5e7eb ${position}%, 
     #e5e7eb 100%)`
 })
 
@@ -501,7 +507,7 @@ function getStatusColor(status) {
 
 // Réinitialiser le filtre de revenu
 function resetRevenueFilter() {
-  revenueFilter.value = 0
+  revenueFilter.value = minRevenue.value
 }
 
 // Formater les devises
