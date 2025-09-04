@@ -165,6 +165,9 @@ export default {
     const saveTabs = () => {
       localStorage.setItem('maplyo_tabs', JSON.stringify(tabs.value))
       localStorage.setItem('maplyo_active_tab', activeTabId.value)
+      
+      // Émettre un événement pour notifier les autres composants
+      window.dispatchEvent(new CustomEvent('tabsChanged'))
     }
 
     // Sélectionner un onglet

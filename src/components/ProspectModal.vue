@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProspectsStore } from '@/stores/prospects'
 
 const props = defineProps({
@@ -199,15 +199,27 @@ const emit = defineEmits(['close', 'save'])
 
 const loading = ref(false)
 const error = ref('')
+const availableTabsRef = ref([])
 
-// Récupérer les onglets disponibles depuis le localStorage
-const availableTabs = computed(() => {
+// Fonction pour charger les onglets
+const loadAvailableTabs = () => {
   const savedTabs = localStorage.getItem('maplyo_tabs')
   if (savedTabs) {
-    return JSON.parse(savedTabs).filter(tab => tab.id !== 'default')
+    availableTabsRef.value = JSON.parse(savedTabs).filter(tab => tab.id !== 'default')
+  } else {
+    availableTabsRef.value = []
   }
-  return []
-})
+}
+
+// Écouter les changements dans localStorage
+const handleStorageChange = (event) => {
+  if (event.key === 'maplyo_tabs') {
+    loadAvailableTabs()
+  }
+}
+
+// Computed pour les onglets disponibles
+const availableTabs = computed(() => availableTabsRef.value)
 
 const form = reactive({
   name: '',
@@ -220,6 +232,19 @@ const form = reactive({
   status: 'cold',
   tabId: 'default',
   notes: ''
+})
+
+// Lifecycle hooks
+onMounted(() => {
+  loadAvailableTabs()
+  window.addEventListener('storage', handleStorageChange)
+  // Écouter aussi les événements customEvent pour les changements dans la même page
+  window.addEventListener('tabsChanged', loadAvailableTabs)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('tabsChanged', loadAvailableTabs)
 })
 
 watch(() => props.prospect, (newProspect) => {

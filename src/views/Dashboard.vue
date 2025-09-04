@@ -93,6 +93,7 @@
       :show="showAddModal || showEditModal"
       :prospect="editingProspect"
       :current-tab-id="currentTabId"
+      :key="modalKey"
       @close="closeModal"
     />
 
@@ -158,6 +159,7 @@ const filteredProspectsForMap = ref([])
 const showMapOnMobile = ref(false)
 const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
+const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
@@ -231,6 +233,8 @@ function onTabChanged(tabId) {
   console.log('Onglet changé vers:', tabId) // Debug
   // Réinitialiser la carte avec tous les prospects du nouvel onglet
   filteredProspectsForMap.value = visibleProspects.value
+  // Forcer le re-rendu du modal pour mettre à jour les onglets disponibles
+  modalKey.value++
 }
 
 onMounted(async () => {
@@ -283,6 +287,9 @@ function closeModal() {
   
   // Recharger les prospects pour mettre à jour l'affichage
   prospectsStore.fetchProspects()
+  
+  // Forcer le re-rendu du modal pour la prochaine ouverture
+  modalKey.value++
 }
 
 // Fonctions pour l'import CSV
