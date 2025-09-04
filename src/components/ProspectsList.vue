@@ -231,9 +231,10 @@
                             @keydown="handleNotesKeydown($event, prospect)"
                             @blur="saveNotes(prospect)"
                             @click.stop
-                            class="w-full text-xs border-none resize-none focus:outline-none focus:ring-0 min-h-[60px]"
+                            class="w-full text-xs border-none resize-y focus:outline-none focus:ring-0 min-h-[60px] max-h-[200px]"
                             placeholder="Ajoutez vos notes ici... (Ctrl+Entrée pour sauvegarder, Échap pour annuler)"
                             rows="3"
+                            style="resize: vertical;"
                           ></textarea>
                           <div class="flex justify-end gap-1 mt-1">
                             <button
@@ -804,5 +805,22 @@ function formatCurrency(amount) {
   transform: scale(1.05);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   border: 2px solid #3b82f6;
+}
+
+/* Styles pour le redimensionnement des notes */
+.resize-y {
+  resize: vertical !important;
+}
+
+.resize-y::-webkit-resizer {
+  background: linear-gradient(-45deg, transparent 0px, transparent 2px, #cbd5e1 2px, #cbd5e1 4px, transparent 4px, transparent 6px, #cbd5e1 6px, #cbd5e1 8px, transparent 8px);
+  border-radius: 0 0 4px 0;
+}
+
+/* Améliorer l'apparence du redimensionnement sur Firefox */
+@-moz-document url-prefix() {
+  .resize-y {
+    resize: vertical;
+  }
 }
 </style>
