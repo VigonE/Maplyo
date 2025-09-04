@@ -285,9 +285,6 @@ function closeModal() {
   showEditModal.value = false
   editingProspect.value = null
   
-  // Recharger les prospects pour mettre à jour l'affichage
-  prospectsStore.fetchProspects()
-  
   // Forcer le re-rendu du modal pour la prochaine ouverture
   modalKey.value++
 }

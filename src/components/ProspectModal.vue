@@ -319,8 +319,6 @@ async function handleSubmit() {
     }
 
     if (result.success) {
-      // Rafraîchir la liste
-      await prospectsStore.fetchProspects()
       emit('close')
     } else {
       error.value = result.error

@@ -21,7 +21,8 @@ export const useProspectsStore = defineStore('prospects', () => {
   async function createProspect(prospectData) {
     try {
       const response = await api.post('/prospects', prospectData)
-      prospects.value.push(response.data)
+      // Recharger toute la liste pour assurer la cohérence
+      await fetchProspects()
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error creating prospect:', error)
@@ -32,10 +33,8 @@ export const useProspectsStore = defineStore('prospects', () => {
   async function updateProspect(id, prospectData) {
     try {
       const response = await api.put(`/prospects/${id}`, prospectData)
-      const index = prospects.value.findIndex(p => p.id === id)
-      if (index !== -1) {
-        prospects.value[index] = response.data
-      }
+      // Recharger toute la liste pour assurer la cohérence
+      await fetchProspects()
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error updating prospect:', error)
@@ -69,7 +68,8 @@ export const useProspectsStore = defineStore('prospects', () => {
   async function deleteProspect(id) {
     try {
       await api.delete(`/prospects/${id}`)
-      prospects.value = prospects.value.filter(p => p.id !== id)
+      // Recharger toute la liste pour assurer la cohérence
+      await fetchProspects()
       return { success: true }
     } catch (error) {
       console.error('Error deleting prospect:', error)
