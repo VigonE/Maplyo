@@ -171,8 +171,8 @@ const prospectsStore = useProspectsStore()
 const localProspects = ref([])
 const isDragOverCategory = ref(null)
 
-// Ordre des statuts dans le funnel (du plus chaud au plus froid)
-const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
+// Ordre des statuts dans le funnel
+const statusOrder = ['cold', 'warm', 'hot', 'won', 'lost']
 
 // Filtrer les prospects selon l'onglet
 const filteredProspects = computed(() => {
@@ -231,48 +231,17 @@ function updateProspectsForStatus(status, newProspects) {
 
 // Gestion du changement de statut par drag & drop
 async function onStatusChange(evt) {
-  console.log('🎯 onStatusChange triggered', evt)
-  
-  // Ne traiter que les mouvements entre containers différents
-  if (evt.to !== evt.from) {
+  if (evt.to && evt.from && evt.item) {
     const targetCategory = evt.to.closest('[data-status]')
-    const sourceCategory = evt.from.closest('[data-status]')
     const newStatus = targetCategory?.dataset.status
-    const oldStatus = sourceCategory?.dataset.status
     const prospectId = parseInt(evt.item.dataset.prospectId)
     
-    console.log('🔄 Moving prospect', prospectId, 'from', oldStatus, 'to', newStatus)
-    
-    if (newStatus && prospectId && newStatus !== oldStatus) {
-      // Trouver le prospect dans notre liste locale
-      const prospect = filteredProspects.value.find(p => p.id === prospectId)
-      if (prospect) {
-        try {
-          // Créer un objet avec toutes les propriétés nécessaires du prospect
-          const updateData = {
-            name: prospect.name,
-            email: prospect.email || '',
-            phone: prospect.phone || '',
-            company: prospect.company || '',
-            position: prospect.position || '',
-            address: prospect.address || '',
-            status: newStatus,
-            revenue: prospect.revenue || 0,
-            notes: prospect.notes || '',
-            tabId: prospect.tabId || prospect.tab_id || 'default'
-          }
-          
-          console.log('📝 Update data:', updateData)
-          
-          const result = await prospectsStore.updateProspect(prospectId, updateData)
-          if (result.success) {
-            console.log(`✅ Prospect ${prospectId} moved to ${newStatus}`)
-          } else {
-            console.error('❌ Failed to update prospect:', result.error)
-          }
-        } catch (error) {
-          console.error('❌ Error updating prospect status:', error)
-        }
+    if (newStatus && prospectId) {
+      try {
+        await prospectsStore.updateProspect(prospectId, { status: newStatus })
+        console.log(`Prospect ${prospectId} moved to ${newStatus}`)
+      } catch (error) {
+        console.error('Error updating prospect status:', error)
       }
     }
   }
@@ -280,43 +249,17 @@ async function onStatusChange(evt) {
 
 // Gestion du mouvement des prospects
 async function onProspectMove(evt) {
-  console.log('🚚 onProspectMove triggered', evt)
-  
   if (evt.added) {
     // Un prospect a été ajouté à cette catégorie
     const prospect = evt.added.element
-    const targetContainer = evt.added.newIndex !== undefined ? evt.to : null
-    const targetCategory = targetContainer?.closest('[data-status]')
-    const targetStatus = targetCategory?.dataset.status
-    
-    console.log('➕ Prospect added to category:', targetStatus)
+    const targetStatus = evt.to?.closest('[data-status]')?.dataset.status
     
     if (targetStatus && prospect.status !== targetStatus) {
       try {
-        // Créer un objet avec toutes les propriétés nécessaires du prospect
-        const updateData = {
-          name: prospect.name,
-          email: prospect.email || '',
-          phone: prospect.phone || '',
-          company: prospect.company || '',
-          position: prospect.position || '',
-          address: prospect.address || '',
-          status: targetStatus,
-          revenue: prospect.revenue || 0,
-          notes: prospect.notes || '',
-          tabId: prospect.tabId || prospect.tab_id || 'default'
-        }
-        
-        console.log('📝 Update data:', updateData)
-        
-        const result = await prospectsStore.updateProspect(prospect.id, updateData)
-        if (result.success) {
-          console.log(`✅ Prospect ${prospect.id} status changed to ${targetStatus}`)
-        } else {
-          console.error('❌ Failed to update prospect:', result.error)
-        }
+        await prospectsStore.updateProspect(prospect.id, { status: targetStatus })
+        console.log(`Prospect ${prospect.id} status changed to ${targetStatus}`)
       } catch (error) {
-        console.error('❌ Error updating prospect status:', error)
+        console.error('Error updating prospect status:', error)
       }
     }
   }
