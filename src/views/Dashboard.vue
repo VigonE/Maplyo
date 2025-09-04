@@ -1,7 +1,10 @@
 <template>
   <div class="h-screen flex">
     <!-- Sidebar avec onglets -->
-    <div class="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+    <div 
+      class="bg-white border-r border-gray-200 flex flex-col flex-shrink-0"
+      :style="`width: ${sidebarWidth}px`"
+    >
       <!-- Header -->
       <div class="p-4 border-b border-gray-200">
         <div class="flex justify-between items-center">
@@ -68,8 +71,16 @@
       </div>
     </div>
 
+    <!-- Séparateur redimensionnable -->
+    <div 
+      class="w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize relative group flex-shrink-0"
+      @mousedown="startResize"
+    >
+      <div class="absolute inset-y-0 left-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    </div>
+
     <!-- Map -->
-    <div class="flex-1">
+    <div class="flex-1 min-h-0">
       <MapView
         :prospects="filteredProspectsForMap"
         :selected-prospect="selectedProspect"
@@ -96,6 +107,34 @@
   </div>
 </template>
 
+<style scoped>
+/* Styles pour le curseur de redimensionnement */
+.cursor-col-resize {
+  cursor: col-resize;
+}
+
+/* Désactiver la sélection pendant le redimensionnement */
+.select-none {
+  user-select: none;
+}
+
+/* Améliorer l'indicateur de redimensionnement */
+.resize-handle {
+  transition: all 0.2s ease;
+}
+
+.resize-handle:hover {
+  background-color: #3b82f6;
+}
+
+/* Responsive breakpoints personnalisés si nécessaire */
+@media (max-width: 768px) {
+  .mobile-toggle {
+    display: flex;
+  }
+}
+</style>
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
@@ -116,6 +155,9 @@ const currentTabId = ref('default')
 const showSettingsMenu = ref(false)
 const fileInput = ref(null)
 const filteredProspectsForMap = ref([])
+const showMapOnMobile = ref(false)
+const sidebarWidth = ref(400) // Largeur par défaut du sidebar
+const isResizing = ref(false)
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
@@ -129,6 +171,41 @@ const visibleProspects = computed(() => {
 // Gérer les prospects filtrés depuis ProspectsList
 function onFilteredProspects(filteredProspects) {
   filteredProspectsForMap.value = filteredProspects
+}
+
+// Basculer entre carte et prospects sur mobile
+function toggleMobileView() {
+  showMapOnMobile.value = !showMapOnMobile.value
+}
+
+// Gestion du redimensionnement du sidebar
+function startResize(event) {
+  isResizing.value = true
+  document.addEventListener('mousemove', doResize)
+  document.addEventListener('mouseup', stopResize)
+  event.preventDefault()
+}
+
+function doResize(event) {
+  if (!isResizing.value) return
+  
+  const newWidth = event.clientX
+  // Limiter la largeur entre 300px et 70% de l'écran
+  const minWidth = 300
+  const maxWidth = window.innerWidth * 0.7
+  
+  if (newWidth >= minWidth && newWidth <= maxWidth) {
+    sidebarWidth.value = newWidth
+  }
+}
+
+function stopResize() {
+  isResizing.value = false
+  document.removeEventListener('mousemove', doResize)
+  document.removeEventListener('mouseup', stopResize)
+  
+  // Sauvegarder la largeur dans localStorage
+  localStorage.setItem('maplyo_sidebar_width', sidebarWidth.value.toString())
 }
 
 // Surveiller les changements d'onglet actif
@@ -166,6 +243,18 @@ onMounted(async () => {
   
   // Initialiser la carte avec tous les prospects
   filteredProspectsForMap.value = visibleProspects.value
+  
+  // Charger la largeur du sidebar depuis localStorage
+  const savedWidth = localStorage.getItem('maplyo_sidebar_width')
+  if (savedWidth) {
+    sidebarWidth.value = parseInt(savedWidth)
+  }
+})
+
+onUnmounted(() => {
+  // Nettoyer les event listeners
+  document.removeEventListener('mousemove', doResize)
+  document.removeEventListener('mouseup', stopResize)
 })
 
 function selectProspect(prospect) {
