@@ -142,8 +142,120 @@
                         📍 {{ prospect.address || 'Aucune adresse' }}
                       </p>
                       
-                      <div class="text-sm font-semibold text-green-600">
-                        💰 {{ formatCurrency(prospect.revenue || 0) }}
+                      <div class="flex items-center justify-between">
+                        <div v-if="!editingRevenue[prospect.id]" class="flex items-center gap-2">
+                          <span class="text-sm font-semibold text-green-600">
+                            💰 {{ formatCurrency(prospect.revenue || 0) }}
+                          </span>
+                          <button
+                            @click.stop="startEditingRevenue(prospect)"
+                            class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                            title="Modifier le montant"
+                          >
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        </div>
+                        
+                        <div v-else class="flex items-center gap-2 w-full">
+                          <span class="text-sm">💰</span>
+                          <input
+                            v-model.number="tempRevenue[prospect.id]"
+                            type="number"
+                            min="0"
+                            step="1"
+                            :data-prospect-id="prospect.id"
+                            @keydown="handleRevenueKeydown($event, prospect)"
+                            @blur="saveRevenue(prospect)"
+                            @click.stop
+                            class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Montant"
+                          />
+                          <button
+                            @click.stop="saveRevenue(prospect)"
+                            class="text-green-600 hover:text-green-700 p-1"
+                            title="Valider"
+                          >
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                          <button
+                            @click.stop="cancelEditingRevenue(prospect.id)"
+                            class="text-red-600 hover:text-red-700 p-1"
+                            title="Annuler"
+                          >
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <!-- Section des notes -->
+                      <div class="mt-2">
+                        <div v-if="!editingNotes[prospect.id]" class="relative">
+                          <div 
+                            class="bg-gray-50 border border-gray-200 rounded-md p-2 min-h-[40px] cursor-pointer hover:bg-gray-100 transition-colors"
+                            @click.stop="startEditingNotes(prospect)"
+                            title="Cliquer pour modifier les notes"
+                          >
+                            <div class="flex items-start justify-between">
+                              <div class="flex-1">
+                                <div v-if="prospect.notes && prospect.notes.trim()" 
+                                     class="text-xs text-gray-700 leading-relaxed break-words">
+                                  {{ prospect.notes }}
+                                </div>
+                                <div v-else class="text-xs text-gray-400 italic">
+                                  Cliquer pour ajouter des notes...
+                                </div>
+                              </div>
+                              <button
+                                @click.stop="startEditingNotes(prospect)"
+                                class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 ml-1 flex-shrink-0"
+                                title="Modifier les notes"
+                              >
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div v-else class="bg-white border-2 border-blue-300 rounded-md p-2">
+                          <textarea
+                            v-model="tempNotes[prospect.id]"
+                            :data-prospect-notes-id="prospect.id"
+                            @keydown="handleNotesKeydown($event, prospect)"
+                            @blur="saveNotes(prospect)"
+                            @click.stop
+                            class="w-full text-xs border-none resize-none focus:outline-none focus:ring-0 min-h-[60px]"
+                            placeholder="Ajoutez vos notes ici... (Ctrl+Entrée pour sauvegarder, Échap pour annuler)"
+                            rows="3"
+                          ></textarea>
+                          <div class="flex justify-end gap-1 mt-1">
+                            <button
+                              @click.stop="saveNotes(prospect)"
+                              class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50"
+                              title="Valider (Ctrl+Entrée)"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              @click.stop="cancelEditingNotes(prospect.id)"
+                              class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                              title="Annuler (Échap)"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                     
@@ -185,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 
@@ -208,6 +320,14 @@ const localProspects = ref([])
 const isDragOverCategory = ref(null)
 const revenueFilter = ref(0) // Sera mis à jour avec minRevenue quand disponible
 const forceRerender = ref(0) // Trigger pour forcer le re-render
+
+// Variables pour l'édition du montant directement sur la carte
+const editingRevenue = ref({}) // { prospectId: true/false }
+const tempRevenue = ref({}) // { prospectId: newAmount }
+
+// Variables pour l'édition des notes directement sur la carte
+const editingNotes = ref({}) // { prospectId: true/false }
+const tempNotes = ref({}) // { prospectId: newNotes }
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
 const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
@@ -503,6 +623,109 @@ function getStatusColor(status) {
     'lost': '#374151'     // dark gray
   }
   return colors[status] || '#3b82f6' // default blue
+}
+
+// Fonctions pour l'édition du montant directement sur la carte
+function startEditingRevenue(prospect) {
+  editingRevenue.value[prospect.id] = true
+  tempRevenue.value[prospect.id] = prospect.revenue || 0
+  
+  // Auto-focus sur le champ input
+  nextTick(() => {
+    const input = document.querySelector(`input[data-prospect-id="${prospect.id}"]`)
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+function cancelEditingRevenue(prospectId) {
+  editingRevenue.value[prospectId] = false
+  delete tempRevenue.value[prospectId]
+}
+
+async function saveRevenue(prospect) {
+  const newRevenue = tempRevenue.value[prospect.id]
+  if (newRevenue !== undefined && newRevenue !== prospect.revenue) {
+    try {
+      const result = await prospectsStore.updateProspect(prospect.id, {
+        ...prospect,
+        revenue: newRevenue
+      })
+      
+      if (result.success) {
+        console.log(`✅ Revenue updated for prospect ${prospect.id}`)
+      } else {
+        console.error('❌ Failed to update revenue:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error updating revenue:', error)
+    }
+  }
+  
+  editingRevenue.value[prospect.id] = false
+  delete tempRevenue.value[prospect.id]
+}
+
+function handleRevenueKeydown(event, prospect) {
+  if (event.key === 'Enter') {
+    saveRevenue(prospect)
+  } else if (event.key === 'Escape') {
+    cancelEditingRevenue(prospect.id)
+  }
+}
+
+// Fonctions pour l'édition des notes directement sur la carte
+function startEditingNotes(prospect) {
+  editingNotes.value[prospect.id] = true
+  tempNotes.value[prospect.id] = prospect.notes || ''
+  
+  // Auto-focus sur le champ textarea
+  nextTick(() => {
+    const textarea = document.querySelector(`textarea[data-prospect-notes-id="${prospect.id}"]`)
+    if (textarea) {
+      textarea.focus()
+      textarea.select()
+    }
+  })
+}
+
+function cancelEditingNotes(prospectId) {
+  editingNotes.value[prospectId] = false
+  delete tempNotes.value[prospectId]
+}
+
+async function saveNotes(prospect) {
+  const newNotes = tempNotes.value[prospect.id]
+  if (newNotes !== undefined && newNotes !== prospect.notes) {
+    try {
+      const result = await prospectsStore.updateProspect(prospect.id, {
+        ...prospect,
+        notes: newNotes
+      })
+      
+      if (result.success) {
+        console.log(`✅ Notes updated for prospect ${prospect.id}`)
+      } else {
+        console.error('❌ Failed to update notes:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error updating notes:', error)
+    }
+  }
+  
+  editingNotes.value[prospect.id] = false
+  delete tempNotes.value[prospect.id]
+}
+
+function handleNotesKeydown(event, prospect) {
+  if (event.key === 'Enter' && event.ctrlKey) {
+    // Ctrl+Enter pour sauvegarder
+    saveNotes(prospect)
+  } else if (event.key === 'Escape') {
+    cancelEditingNotes(prospect.id)
+  }
 }
 
 // Réinitialiser le filtre de revenu
