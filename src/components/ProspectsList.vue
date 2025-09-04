@@ -237,41 +237,52 @@ const totalRevenue = computed(() => {
 // Prospects dans cet onglet (avant filtrage par revenu)
 const totalProspectsInTab = computed(() => filteredProspects.value.length)
 
-// Revenu maximum et minimum des prospects dans cet onglet (avec lissage)
-const maxRevenue = computed(() => {
-  if (filteredProspects.value.length === 0) return 100000
+// Calcul du revenu maximum avec mise en cache - seulement recalculé quand les prospects changent
+const revenueStats = computed(() => {
+  if (filteredProspects.value.length === 0) {
+    return {
+      maxRevenue: 100000,
+      minRevenue: 0,
+      prospectsAboveSmoothed: 0,
+      smoothedMax: 100000
+    }
+  }
+
   const revenues = filteredProspects.value.map(p => p.revenue || 0).sort((a, b) => a - b)
+  const minRevenue = Math.min(...revenues)
+  const actualMaxRevenue = Math.max(...revenues)
   
-  // Si on a moins de 5 prospects, utiliser le max normal
-  if (revenues.length <= 5) {
-    return Math.max(...revenues)
+  let smoothedMax = actualMaxRevenue
+  let prospectsAboveSmoothed = 0
+  
+  // Si on a plus de 5 prospects, utiliser le 90e percentile pour éviter les valeurs extrêmes isolées
+  if (revenues.length > 5) {
+    const percentile90Index = Math.floor(revenues.length * 0.9)
+    smoothedMax = revenues[percentile90Index]
+    prospectsAboveSmoothed = revenues.filter(r => r > smoothedMax).length
   }
   
-  // Utiliser le 90e percentile pour éviter les valeurs extrêmes isolées
-  const percentile90Index = Math.floor(revenues.length * 0.9)
-  const smoothedMax = revenues[percentile90Index]
-  
-  console.log('🔍 Smoothed max revenue calculation:', {
+  // Log seulement lors du premier calcul ou si les données ont vraiment changé
+  console.log('� Revenue stats calculated:', {
     prospects: filteredProspects.value.length,
-    revenues: revenues,
-    percentile90: smoothedMax,
-    actualMax: Math.max(...revenues)
+    minRevenue,
+    maxRevenue: actualMaxRevenue, // Le vrai maximum utilisé pour le slider
+    smoothedMax,
+    prospectsAboveSmoothed
   })
   
-  return smoothedMax
+  return {
+    maxRevenue: actualMaxRevenue, // Utiliser le vrai maximum pour le slider
+    minRevenue,
+    prospectsAboveSmoothed,
+    smoothedMax
+  }
 })
 
-// Compter les prospects au-dessus du seuil lissé
-const prospectsAboveSmoothedMax = computed(() => {
-  if (filteredProspects.value.length <= 5) return 0
-  return filteredProspects.value.filter(p => (p.revenue || 0) > maxRevenue.value).length
-})
-
-const minRevenue = computed(() => {
-  if (filteredProspects.value.length === 0) return 0
-  const revenues = filteredProspects.value.map(p => p.revenue || 0)
-  return Math.min(...revenues)
-})
+// Accès simplifié aux statistiques
+const maxRevenue = computed(() => revenueStats.value.maxRevenue)
+const minRevenue = computed(() => revenueStats.value.minRevenue)
+const prospectsAboveSmoothedMax = computed(() => revenueStats.value.prospectsAboveSmoothed)
 
 // Convertir le pourcentage du slider en valeur de revenu réelle
 const actualRevenueFilter = computed(() => {
