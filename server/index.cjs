@@ -66,6 +66,7 @@ function initializeDatabase() {
       status TEXT DEFAULT 'cold',
       revenue REAL DEFAULT 0,
       notes TEXT,
+      tab_id TEXT DEFAULT 'default',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -75,6 +76,16 @@ function initializeDatabase() {
   db.serialize(() => {
     db.run(createUsersTable);
     db.run(createProspectsTable);
+    
+    // Migration pour ajouter tab_id aux bases de données existantes
+    db.run(`ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
+      } else if (!err) {
+        console.log('✅ Migration applied: added tab_id column');
+      }
+    });
+    
     console.log('✅ SQLite database initialized successfully');
   });
 }
@@ -278,8 +289,11 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
 // Créer un nouveau prospect
 app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
-    const { name, email, phone, company, position, address, status, revenue, notes } = req.body;
-    console.log('📝 Creating prospect:', name);
+    console.log('=== SERVER PROSPECT CREATION ===')
+    console.log('Received request body:', req.body)
+    const { name, email, phone, company, position, address, status, revenue, notes, tabId } = req.body;
+    console.log('Extracted tabId:', tabId)
+    console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -305,12 +319,12 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 
     db.run(
       `INSERT INTO prospects 
-       (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes, tab_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.userId, name, email || '', phone || '', company || '', 
         position || '', address || '', latitude, longitude, status || 'cold', 
-        revenue || 0, notes || ''
+        revenue || 0, notes || '', tabId || 'default'
       ],
       function(err) {
         if (err) {
@@ -344,7 +358,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, position, address, status, revenue, notes } = req.body;
+    const { name, email, phone, company, position, address, status, revenue, notes, tabId } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -384,12 +398,12 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, position = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
-           notes = ?, updated_at = CURRENT_TIMESTAMP
+           notes = ?, tab_id = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', position || '',
             address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, notes || '', prospectId, req.user.userId
+            revenue || 0, notes || '', tabId || 'default', prospectId, req.user.userId
           ],
           function(err) {
             if (err) {
@@ -514,6 +528,17 @@ process.on('SIGINT', () => {
       console.log('✅ Base de données fermée.');
     }
     process.exit(0);
+  });
+});
+
+// DEBUG: Endpoint temporaire pour voir les données
+app.get('/debug/prospects', (req, res) => {
+  const sql = 'SELECT * FROM prospects';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
   });
 });
 

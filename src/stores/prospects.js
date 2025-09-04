@@ -43,6 +43,29 @@ export const useProspectsStore = defineStore('prospects', () => {
     }
   }
 
+  // Assigner un prospect à un onglet
+  async function assignProspectToTab(prospectId, tabId) {
+    try {
+      const prospect = prospects.value.find(p => p.id === prospectId)
+      if (prospect) {
+        const updatedData = { ...prospect, tabId }
+        const response = await updateProspect(prospectId, updatedData)
+        return response
+      }
+    } catch (error) {
+      console.error('Error assigning prospect to tab:', error)
+      return { success: false, error: 'Assignment error' }
+    }
+  }
+
+  // Obtenir les prospects d'un onglet spécifique
+  function getProspectsByTab(tabId) {
+    if (tabId === 'default') {
+      return prospects.value
+    }
+    return prospects.value.filter(p => p.tabId === tabId)
+  }
+
   async function deleteProspect(id) {
     try {
       await api.delete(`/prospects/${id}`)
@@ -74,6 +97,8 @@ export const useProspectsStore = defineStore('prospects', () => {
     createProspect,
     updateProspect,
     deleteProspect,
-    reorderProspects
+    reorderProspects,
+    assignProspectToTab,
+    getProspectsByTab
   }
 })

@@ -125,6 +125,25 @@
           </div>
 
           <div>
+            <label for="tab" class="block text-sm font-medium text-gray-700 mb-1">
+              Onglet
+            </label>
+            <select
+              id="tab"
+              v-model="form.tabId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="default">Tous les prospects</option>
+              <option v-for="tab in availableTabs" :key="tab.id" :value="tab.id">
+                {{ tab.name }}
+              </option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              Choisissez dans quel onglet afficher ce prospect
+            </p>
+          </div>
+
+          <div>
             <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
               Notes
             </label>
@@ -164,18 +183,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { useProspectsStore } from '@/stores/prospects'
 
 const props = defineProps({
   show: Boolean,
-  prospect: Object
+  prospect: Object,
+  currentTabId: {
+    type: String,
+    default: 'default'
+  }
 })
 
 const emit = defineEmits(['close', 'save'])
 
 const loading = ref(false)
 const error = ref('')
+
+// Récupérer les onglets disponibles depuis le localStorage
+const availableTabs = computed(() => {
+  const savedTabs = localStorage.getItem('maplyo_tabs')
+  if (savedTabs) {
+    return JSON.parse(savedTabs).filter(tab => tab.id !== 'default')
+  }
+  return []
+})
 
 const form = reactive({
   name: '',
@@ -186,6 +218,7 @@ const form = reactive({
   address: '',
   revenue: 0,
   status: 'cold',
+  tabId: 'default',
   notes: ''
 })
 
@@ -200,6 +233,7 @@ watch(() => props.prospect, (newProspect) => {
       address: newProspect.address || '',
       revenue: newProspect.revenue || 0,
       status: newProspect.status || 'cold',
+      tabId: newProspect.tabId || props.currentTabId || 'default',
       notes: newProspect.notes || ''
     })
   } else {
@@ -213,10 +247,20 @@ watch(() => props.prospect, (newProspect) => {
       address: '',
       revenue: 0,
       status: 'cold',
+      tabId: props.currentTabId || 'default',
       notes: ''
     })
   }
 }, { immediate: true })
+
+// Watch pour currentTabId
+watch(() => props.currentTabId, (newTabId) => {
+  if (!props.prospect && newTabId) {
+    // Pour un nouveau prospect, mettre à jour le tabId
+    form.tabId = newTabId
+    console.log('Updated form tabId to:', newTabId)
+  }
+})
 
 function closeModal() {
   error.value = ''
@@ -228,6 +272,10 @@ async function handleSubmit() {
   error.value = ''
 
   try {
+    // Debug: vérifier les valeurs
+    console.log('Form data:', { ...form })
+    console.log('Current tab ID:', props.currentTabId)
+    
     // Utilisons le store directement dans le modal
     const prospectsStore = useProspectsStore()
     
@@ -237,7 +285,12 @@ async function handleSubmit() {
       result = await prospectsStore.updateProspect(props.prospect.id, { ...form })
     } else {
       // Mode création
-      result = await prospectsStore.createProspect({ ...form })
+      const prospectData = { 
+        ...form,
+        tabId: form.tabId || props.currentTabId || 'default'
+      }
+      console.log('Creating prospect with data:', prospectData)
+      result = await prospectsStore.createProspect(prospectData)
     }
 
     if (result.success) {

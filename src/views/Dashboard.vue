@@ -1,14 +1,15 @@
 <template>
   <div class="h-screen flex">
-    <!-- Sidebar -->
+    <!-- Sidebar avec onglets -->
     <div class="w-1/3 bg-white border-r border-gray-200 flex flex-col">
       <!-- Header -->
       <div class="p-4 border-b border-gray-200">
         <div class="flex justify-between items-center">
-          <h1 class="text-2xl font-bold text-primary-600">          Maplyo CRM</h1>
+          <h1 class="text-2xl font-bold text-blue-600">Maplyo CRM</h1>
           <button
             @click="authStore.logout"
             class="text-gray-500 hover:text-gray-700"
+            title="Déconnexion"
           >
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -17,28 +18,16 @@
         </div>
       </div>
 
-      <!-- Add Prospect Button -->
-      <div class="p-4 border-b border-gray-200">
-        <button
-          @click="showAddModal = true"
-          class="w-full bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center justify-center gap-2"
-        >
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Prospect
-        </button>
-      </div>
-
-      <!-- Prospects List -->
-      <div class="flex-1 overflow-y-auto">
-        <ProspectsList
-          :prospects="prospectsStore.prospects"
-          :loading="prospectsStore.loading"
-          @edit="editProspect"
-          @delete="deleteProspect"
-          @reorder="reorderProspects"
-          @select="selectProspect"
+      <!-- Gestionnaire d'onglets avec listes -->
+      <div class="flex-1 overflow-hidden">
+        <TabsManager
+          ref="tabsManager"
+          @add-prospect="showAddModal = true"
+          @edit-prospect="editProspect"
+          @delete-prospect="deleteProspect"
+          @select-prospect="selectProspect"
+          @reorder-prospects="reorderProspects"
+          @tab-changed="onTabChanged"
         />
       </div>
     </div>
@@ -46,7 +35,7 @@
     <!-- Map -->
     <div class="flex-1">
       <MapView
-        :prospects="prospectsStore.prospects"
+        :prospects="visibleProspects"
         :selected-prospect="selectedProspect"
         @select-prospect="selectProspect"
       />
@@ -56,16 +45,17 @@
     <ProspectModal
       :show="showAddModal || showEditModal"
       :prospect="editingProspect"
+      :current-tab-id="currentTabId"
       @close="closeModal"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
-import ProspectsList from '@/components/ProspectsList.vue'
+import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import ProspectModal from '@/components/ProspectModal.vue'
 
@@ -76,10 +66,42 @@ const showAddModal = ref(false)
 const showEditModal = ref(false)
 const editingProspect = ref(null)
 const selectedProspect = ref(null)
+const tabsManager = ref(null)
+const currentTabId = ref('default')
 
-onMounted(() => {
-  prospectsStore.fetchProspects()
+// Prospects visibles selon l'onglet actuel
+const visibleProspects = computed(() => {
+  if (currentTabId.value === 'default') {
+    return prospectsStore.prospects
+  } else {
+    return prospectsStore.prospects.filter(p => p.tabId === currentTabId.value)
+  }
 })
+
+// Surveiller les changements d'onglet actif
+watch(() => tabsManager.value?.activeTabId, (newTabId) => {
+  if (newTabId) {
+    currentTabId.value = newTabId
+  }
+})
+
+function onTabChanged(tabId) {
+  currentTabId.value = tabId
+  console.log('Onglet changé vers:', tabId) // Debug
+}
+
+onMounted(async () => {
+  await prospectsStore.fetchProspects()
+  
+  // Écouter les événements des onglets
+  if (tabsManager.value) {
+    currentTabId.value = tabsManager.value.activeTabId || 'default'
+  }
+})
+
+function selectProspect(prospect) {
+  selectedProspect.value = prospect
+}
 
 function editProspect(prospect) {
   editingProspect.value = { ...prospect }
@@ -87,7 +109,7 @@ function editProspect(prospect) {
 }
 
 async function deleteProspect(prospect) {
-  if (confirm('Are you sure you want to delete this prospect?')) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce prospect ?')) {
     await prospectsStore.deleteProspect(prospect.id)
   }
 }
@@ -96,13 +118,12 @@ async function reorderProspects(newOrder) {
   await prospectsStore.reorderProspects(newOrder)
 }
 
-function selectProspect(prospect) {
-  selectedProspect.value = prospect
-}
-
 function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editingProspect.value = null
+  
+  // Recharger les prospects pour mettre à jour l'affichage
+  prospectsStore.fetchProspects()
 }
 </script>
