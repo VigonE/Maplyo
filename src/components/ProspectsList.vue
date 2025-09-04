@@ -204,8 +204,8 @@
                             <div class="flex items-start justify-between">
                               <div class="flex-1">
                                 <div v-if="prospect.notes && prospect.notes.trim()" 
-                                     class="text-xs text-gray-700 leading-relaxed break-words">
-                                  {{ prospect.notes }}
+                                     class="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-line">
+                                  {{ getPlainTextFromHtml(prospect.notes) }}
                                 </div>
                                 <div v-else class="text-xs text-gray-400 italic">
                                   Cliquer pour ajouter des notes...
@@ -225,22 +225,21 @@
                         </div>
                         
                         <div v-else class="bg-white border-2 border-blue-300 rounded-md p-2">
-                          <textarea
-                            v-model="tempNotes[prospect.id]"
-                            :data-prospect-notes-id="prospect.id"
-                            @keydown="handleNotesKeydown($event, prospect)"
+                          <!-- Éditeur de texte riche Quill -->
+                          <QuillEditor
+                            v-model:content="tempNotes[prospect.id]"
+                            contentType="html"
+                            :options="quillOptions"
                             @blur="saveNotes(prospect)"
-                            @click.stop
-                            class="w-full text-xs border-none resize-y focus:outline-none focus:ring-0 min-h-[60px] max-h-[200px]"
-                            placeholder="Ajoutez vos notes ici... (Ctrl+Entrée pour sauvegarder, Échap pour annuler)"
-                            rows="3"
-                            style="resize: vertical;"
-                          ></textarea>
-                          <div class="flex justify-end gap-1 mt-1">
+                            @keydown="handleNotesKeydown($event, prospect)"
+                            style="min-height: 120px; max-height: 300px;"
+                            class="quill-editor-compact"
+                          />
+                          <div class="flex justify-end gap-1 mt-2">
                             <button
                               @click.stop="saveNotes(prospect)"
                               class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50"
-                              title="Valider (Ctrl+Entrée)"
+                              title="Valider"
                             >
                               <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -249,7 +248,7 @@
                             <button
                               @click.stop="cancelEditingNotes(prospect.id)"
                               class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50"
-                              title="Annuler (Échap)"
+                              title="Annuler"
                             >
                               <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -301,6 +300,8 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 const props = defineProps({
   tabId: {
@@ -329,6 +330,21 @@ const tempRevenue = ref({}) // { prospectId: newAmount }
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
 const tempNotes = ref({}) // { prospectId: newNotes }
+
+// Configuration pour QuillEditor
+const quillOptions = {
+  theme: 'snow',
+  modules: {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ]
+  },
+  placeholder: 'Ajoutez vos notes ici... (Échap pour annuler)',
+  formats: ['bold', 'italic', 'underline', 'list', 'bullet', 'link']
+}
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
 const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
@@ -721,12 +737,43 @@ async function saveNotes(prospect) {
 }
 
 function handleNotesKeydown(event, prospect) {
-  if (event.key === 'Enter' && event.ctrlKey) {
-    // Ctrl+Enter pour sauvegarder
-    saveNotes(prospect)
-  } else if (event.key === 'Escape') {
+  if (event.key === 'Escape') {
     cancelEditingNotes(prospect.id)
   }
+}
+
+// Fonction pour nettoyer le HTML et obtenir le texte brut pour l'affichage
+function getPlainTextFromHtml(html) {
+  if (!html) return ''
+  
+  // Créer un élément temporaire pour parser le HTML
+  const div = document.createElement('div')
+  div.innerHTML = html
+  
+  // Remplacer les balises par des équivalents texte
+  // Remplacer les <br> par des retours à la ligne
+  div.innerHTML = div.innerHTML.replace(/<br\s*\/?>/gi, '\n')
+  
+  // Remplacer les </p> par des retours à la ligne
+  div.innerHTML = div.innerHTML.replace(/<\/p>/gi, '\n')
+  
+  // Remplacer les <li> par des puces
+  div.innerHTML = div.innerHTML.replace(/<li>/gi, '• ')
+  div.innerHTML = div.innerHTML.replace(/<\/li>/gi, '\n')
+  
+  // Obtenir le texte brut
+  let text = div.textContent || div.innerText || ''
+  
+  // Nettoyer les retours à la ligne multiples
+  text = text.replace(/\n\s*\n/g, '\n').trim()
+  
+  return text
+}
+
+// Fonction pour vérifier si les notes contiennent du HTML
+function hasHtmlContent(notes) {
+  if (!notes) return false
+  return /<[^>]*>/g.test(notes)
 }
 
 // Réinitialiser le filtre de revenu
@@ -822,5 +869,76 @@ function formatCurrency(amount) {
   .resize-y {
     resize: vertical;
   }
+}
+
+/* Styles pour QuillEditor compact */
+.quill-editor-compact :deep(.ql-toolbar) {
+  border: 1px solid #d1d5db;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  padding: 4px;
+  background: #f9fafb;
+}
+
+.quill-editor-compact :deep(.ql-container) {
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.quill-editor-compact :deep(.ql-editor) {
+  min-height: 60px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.quill-editor-compact :deep(.ql-toolbar button) {
+  width: 24px;
+  height: 24px;
+  padding: 2px;
+  margin: 1px;
+}
+
+.quill-editor-compact :deep(.ql-toolbar button svg) {
+  width: 14px;
+  height: 14px;
+}
+
+.quill-editor-compact :deep(.ql-editor p) {
+  margin: 0 0 4px 0;
+}
+
+.quill-editor-compact :deep(.ql-editor p:last-child) {
+  margin-bottom: 0;
+}
+
+.quill-editor-compact :deep(.ql-editor ul), 
+.quill-editor-compact :deep(.ql-editor ol) {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
+.quill-editor-compact :deep(.ql-editor li) {
+  margin-bottom: 2px;
+}
+
+.quill-editor-compact :deep(.ql-editor strong) {
+  font-weight: 600;
+}
+
+.quill-editor-compact :deep(.ql-editor em) {
+  font-style: italic;
+}
+
+.quill-editor-compact :deep(.ql-editor a) {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.quill-editor-compact :deep(.ql-editor a:hover) {
+  color: #1d4ed8;
 }
 </style>
