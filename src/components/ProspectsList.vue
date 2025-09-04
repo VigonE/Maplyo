@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">{{ tabName }}</h2>
-          <p class="text-sm text-gray-500">{{ filteredProspects.length }} prospect(s) • {{ totalRevenue }}</p>
+          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} prospect(s) • Total: {{ totalRevenue }}</p>
         </div>
         <button
           @click="$emit('add-prospect')"
@@ -13,6 +13,40 @@
         >
           Ajouter
         </button>
+      </div>
+      
+      <!-- Slider de filtrage par revenu -->
+      <div class="px-4 pb-3">
+        <div class="mb-2">
+          <label class="block text-xs font-medium text-gray-600 mb-1">
+            Filtrer par revenu minimum 
+            <span v-if="prospectsAboveSmoothedMax > 0" class="text-purple-600">
+              (Lissé sur 90%)
+            </span>
+          </label>
+          <div class="text-xs text-gray-500 mb-2">
+            Filtre: {{ formatCurrency(actualRevenueFilter) }} - {{ formatCurrency(maxRevenue) }} 
+            ({{ visibleProspectsCount }}/{{ totalProspectsInTab }} prospects)
+            <span v-if="prospectsAboveSmoothedMax > 0" class="text-blue-600">
+              • {{ prospectsAboveSmoothedMax }} prospect(s) premium au-dessus
+            </span>
+          </div>
+        </div>
+        <div class="relative">
+          <input
+            v-model="revenueFilter"
+            type="range"
+            :min="0"
+            :max="100"
+            :step="1"
+            class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer revenue-slider"
+            :style="{ background: sliderBackground }"
+          />
+          <div class="flex justify-between text-xs text-gray-500 mt-1">
+            <span>{{ formatCurrency(0) }}</span>
+            <span>{{ formatCurrency(maxRevenue) }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -23,12 +57,12 @@
         <p class="mt-2 text-gray-500">Chargement...</p>
       </div>
       
-      <div v-else-if="filteredProspects.length === 0" class="text-center py-8">
+      <div v-else-if="visibleProspectsAfterFilter.length === 0" class="text-center py-8">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <p class="mt-2 text-gray-500">Aucun prospect dans cet onglet</p>
-        <p class="text-sm text-gray-400">Cliquez sur "Ajouter" pour commencer</p>
+        <p class="mt-2 text-gray-500">Aucun prospect dans cette plage de revenus</p>
+        <p class="text-sm text-gray-400">Ajustez le slider ou ajoutez des prospects</p>
       </div>
 
       <!-- Catégories du funnel verticales -->
@@ -165,11 +199,12 @@ const props = defineProps({
   selectedProspect: Object
 })
 
-const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect'])
+const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects'])
 
 const prospectsStore = useProspectsStore()
 const localProspects = ref([])
 const isDragOverCategory = ref(null)
+const revenueFilter = ref(0)
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
 const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
@@ -191,10 +226,79 @@ const filteredProspects = computed(() => {
 
 // Calculer le revenu total
 const totalRevenue = computed(() => {
-  const total = filteredProspects.value.reduce((sum, prospect) => {
+  const total = visibleProspectsAfterFilter.value.reduce((sum, prospect) => {
     return sum + (prospect.revenue || 0)
   }, 0)
   return formatCurrency(total)
+})
+
+// Prospects dans cet onglet (avant filtrage par revenu)
+const totalProspectsInTab = computed(() => filteredProspects.value.length)
+
+// Revenu maximum et minimum des prospects dans cet onglet (avec lissage)
+const maxRevenue = computed(() => {
+  if (filteredProspects.value.length === 0) return 100000
+  const revenues = filteredProspects.value.map(p => p.revenue || 0).sort((a, b) => a - b)
+  
+  // Si on a moins de 5 prospects, utiliser le max normal
+  if (revenues.length <= 5) {
+    return Math.max(...revenues)
+  }
+  
+  // Utiliser le 90e percentile pour éviter les valeurs extrêmes isolées
+  const percentile90Index = Math.floor(revenues.length * 0.9)
+  const smoothedMax = revenues[percentile90Index]
+  
+  console.log('🔍 Smoothed max revenue calculation:', {
+    prospects: filteredProspects.value.length,
+    revenues: revenues,
+    percentile90: smoothedMax,
+    actualMax: Math.max(...revenues)
+  })
+  
+  return smoothedMax
+})
+
+// Compter les prospects au-dessus du seuil lissé
+const prospectsAboveSmoothedMax = computed(() => {
+  if (filteredProspects.value.length <= 5) return 0
+  return filteredProspects.value.filter(p => (p.revenue || 0) > maxRevenue.value).length
+})
+
+const minRevenue = computed(() => {
+  if (filteredProspects.value.length === 0) return 0
+  const revenues = filteredProspects.value.map(p => p.revenue || 0)
+  return Math.min(...revenues)
+})
+
+// Convertir le pourcentage du slider en valeur de revenu réelle
+const actualRevenueFilter = computed(() => {
+  const percentage = revenueFilter.value / 100
+  return minRevenue.value + (maxRevenue.value - minRevenue.value) * percentage
+})
+
+// Prospects filtrés par revenu ET par onglet
+const visibleProspectsAfterFilter = computed(() => {
+  return filteredProspects.value.filter(p => (p.revenue || 0) >= actualRevenueFilter.value)
+})
+
+// Compter les prospects visibles après filtrage
+const visibleProspectsCount = computed(() => visibleProspectsAfterFilter.value.length)
+
+// Émettre les prospects filtrés vers le parent pour la carte
+watch(visibleProspectsAfterFilter, (filteredProspects) => {
+  emit('filtered-prospects', filteredProspects)
+}, { immediate: true })
+
+// Background du slider avec gradient coloré
+const sliderBackground = computed(() => {
+  const percentage = revenueFilter.value
+  return `linear-gradient(to right, 
+    #ef4444 0%, 
+    #f59e0b ${percentage/2}%, 
+    #10b981 ${percentage}%, 
+    #e5e7eb ${percentage}%, 
+    #e5e7eb 100%)`
 })
 
 const loading = computed(() => prospectsStore.loading)
@@ -209,9 +313,9 @@ watch(() => props.tabId, () => {
   localProspects.value = [...filteredProspects.value]
 })
 
-// Obtenir les prospects par statut
+// Obtenir les prospects par statut (après filtrage par revenu)
 function getProspectsByStatus(status) {
-  return filteredProspects.value.filter(p => p.status === status)
+  return visibleProspectsAfterFilter.value.filter(p => p.status === status)
 }
 
 // Calculer le revenu par catégorie
@@ -327,13 +431,6 @@ function onReorder() {
   emit('reorder', newOrder)
 }
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR'
-  }).format(amount)
-}
-
 function getStatusLabel(status) {
   const labels = {
     'cold': 'Cold',
@@ -377,4 +474,75 @@ function getStatusColor(status) {
   }
   return colors[status] || '#3b82f6' // default blue
 }
+
+// Réinitialiser le filtre de revenu
+function resetRevenueFilter() {
+  revenueFilter.value = 0
+}
+
+// Formater les devises
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount)
+}
 </script>
+
+<style scoped>
+/* Styles pour le slider de revenu */
+.revenue-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.revenue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.revenue-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.revenue-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.revenue-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.revenue-slider:focus {
+  outline: none;
+}
+
+.revenue-slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+}
+</style>

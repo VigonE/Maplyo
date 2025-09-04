@@ -63,6 +63,7 @@
           @select-prospect="selectProspect"
           @reorder-prospects="reorderProspects"
           @tab-changed="onTabChanged"
+          @filtered-prospects="onFilteredProspects"
         />
       </div>
     </div>
@@ -70,7 +71,7 @@
     <!-- Map -->
     <div class="flex-1">
       <MapView
-        :prospects="visibleProspects"
+        :prospects="filteredProspectsForMap"
         :selected-prospect="selectedProspect"
         @select-prospect="selectProspect"
       />
@@ -114,8 +115,9 @@ const tabsManager = ref(null)
 const currentTabId = ref('default')
 const showSettingsMenu = ref(false)
 const fileInput = ref(null)
+const filteredProspectsForMap = ref([])
 
-// Prospects visibles selon l'onglet actuel
+// Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
   if (currentTabId.value === 'default') {
     return prospectsStore.prospects
@@ -124,16 +126,34 @@ const visibleProspects = computed(() => {
   }
 })
 
+// Gérer les prospects filtrés depuis ProspectsList
+function onFilteredProspects(filteredProspects) {
+  filteredProspectsForMap.value = filteredProspects
+}
+
 // Surveiller les changements d'onglet actif
 watch(() => tabsManager.value?.activeTabId, (newTabId) => {
   if (newTabId) {
     currentTabId.value = newTabId
+    // Réinitialiser avec tous les prospects de ce tab si pas de filtre actif
+    filteredProspectsForMap.value = visibleProspects.value
+  }
+})
+
+// Surveiller les changements de prospects pour mettre à jour la carte
+watch(visibleProspects, (newProspects) => {
+  // Mettre à jour seulement si on n'a pas de filtrage actif depuis ProspectsList
+  if (filteredProspectsForMap.value.length === 0 || 
+      filteredProspectsForMap.value.length === prospectsStore.prospects.length) {
+    filteredProspectsForMap.value = newProspects
   }
 })
 
 function onTabChanged(tabId) {
   currentTabId.value = tabId
   console.log('Onglet changé vers:', tabId) // Debug
+  // Réinitialiser la carte avec tous les prospects du nouvel onglet
+  filteredProspectsForMap.value = visibleProspects.value
 }
 
 onMounted(async () => {
@@ -143,6 +163,9 @@ onMounted(async () => {
   if (tabsManager.value) {
     currentTabId.value = tabsManager.value.activeTabId || 'default'
   }
+  
+  // Initialiser la carte avec tous les prospects
+  filteredProspectsForMap.value = visibleProspects.value
 })
 
 function selectProspect(prospect) {
@@ -347,3 +370,39 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
+
+<style scoped>
+/* Styles pour le slider */
+.slider {
+  background: linear-gradient(to right, #3b82f6 0%, #3b82f6 var(--value), #e5e7eb var(--value), #e5e7eb 100%);
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider:focus {
+  outline: none;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+</style>

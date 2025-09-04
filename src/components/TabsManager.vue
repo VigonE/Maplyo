@@ -51,6 +51,7 @@
         @select="$emit('select-prospect', $event)"
         @add-prospect="$emit('add-prospect')"
         @reorder="$emit('reorder-prospects', $event)"
+        @filtered-prospects="$emit('filtered-prospects', $event)"
       />
     </div>
 
@@ -122,7 +123,7 @@ export default {
   components: {
     ProspectsList
   },
-  emits: ['add-prospect', 'edit-prospect', 'delete-prospect', 'select-prospect', 'reorder-prospects', 'tab-changed'],
+  emits: ['add-prospect', 'edit-prospect', 'delete-prospect', 'select-prospect', 'reorder-prospects', 'tab-changed', 'filtered-prospects'],
   setup(props, { emit }) {
     const tabs = ref([])
     const activeTabId = ref(null)
