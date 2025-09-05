@@ -96,25 +96,36 @@ function updateMarkers(prospects) {
 function createMarker(prospect, revenueStats) {
   // Calculer le rayon proportionnel au revenu avec une progression visuelle agréable
   
-  const minRadius = 6   // Rayon minimum pour les leads sans revenu ou très faibles
-  const maxRadius = 30  // Rayon maximum pour les plus gros revenus
+  const minRadius = 8   // Rayon minimum pour les leads sans revenu ou très faibles
+  const maxRadius = 25  // Rayon maximum pour les plus gros revenus
   
   let radius = minRadius
   
   if (prospect.revenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
-    // Normaliser le revenu entre 0 et 1
-    const normalizedRevenue = (prospect.revenue - revenueStats.min) / (revenueStats.max - revenueStats.min)
+    // Calculer l'écart relatif des revenus
+    const revenueRange = revenueStats.max - revenueStats.min
+    const relativeRange = revenueRange / revenueStats.max // Écart relatif par rapport au max
     
-    // Utiliser une racine carrée pour une progression visuelle plus douce
-    const scaledRevenue = Math.sqrt(normalizedRevenue)
+    // Normaliser le revenu entre 0 et 1
+    let normalizedRevenue = (prospect.revenue - revenueStats.min) / revenueRange
+    
+    // Si l'écart relatif est très faible (moins de 10%), respecter la vraie proportion
+    if (relativeRange < 0.1) {
+      // Garder la proportion exacte mais avec un écart minimal visible (2px)
+      const minVisibleDiff = 2 / (maxRadius - minRadius) // 2px en proportion
+      normalizedRevenue = Math.max(normalizedRevenue, minVisibleDiff)
+    } else {
+      // Pour les écarts plus importants, utiliser une racine carrée pour adoucir
+      normalizedRevenue = Math.sqrt(normalizedRevenue)
+    }
     
     // Calculer le rayon final
-    radius = minRadius + scaledRevenue * (maxRadius - minRadius)
+    radius = minRadius + normalizedRevenue * (maxRadius - minRadius)
     
     // Debug log pour vérifier les calculs
-    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, normalized=${normalizedRevenue.toFixed(2)}, radius=${radius.toFixed(1)}`)
+    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, range=${revenueRange}, relativeRange=${(relativeRange*100).toFixed(1)}%, normalized=${normalizedRevenue.toFixed(3)}, radius=${radius.toFixed(1)}`)
   } else if (prospect.revenue > 0) {
-    // Si tous les revenus sont identiques ou pas de stats, utiliser un rayon moyen
+    // Si tous les revenus sont identiques, utiliser un rayon moyen
     radius = (minRadius + maxRadius) / 2
   }
   
