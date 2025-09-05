@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 const NodeGeocoder = require('node-geocoder');
 require('dotenv').config();
 console.log('📦 All modules loaded successfully');
@@ -26,7 +27,15 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('dist'));
 
 // Configuration de la base de données SQLite
-const dbPath = path.join(__dirname, '../database/maplyo.db');
+const dbDir = path.join(__dirname, '../database');
+const dbPath = path.join(dbDir, 'maplyo.db');
+
+// Créer le dossier database s'il n'existe pas
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log('📁 Created database directory');
+}
+
 console.log('📁 Database path:', dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {

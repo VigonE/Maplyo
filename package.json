@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.cjs",
-    "server:dev": "nodemon server/index.cjs"
+    "server:dev": "nodemon server/index.cjs",
+    "start": "npm run build && npm run server"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.16",
@@ -26,17 +27,17 @@
     "vue": "^3.4.0",
     "vue-router": "^4.2.5",
     "vue3-leaflet": "^1.0.5",
-    "vuedraggable": "^4.1.0"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^4.5.0",
+    "vuedraggable": "^4.1.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.6.5",
-    "node-geocoder": "^4.2.0",
+    "node-geocoder": "^4.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
     "nodemon": "^3.0.2",
     "vite": "^5.0.0"
   }
