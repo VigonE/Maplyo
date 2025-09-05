@@ -175,7 +175,7 @@
                       
                       <div class="space-y-2">
                         <!-- Revenue Information -->
-                        <div v-if="!editingRevenue[prospect.id]" class="space-y-1">
+                        <div v-if="!editingRevenue[prospect.id] && !editingProbability[prospect.id]" class="space-y-1">
                           <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-500">Revenue:</span>
                             <div class="flex items-center gap-1">
@@ -196,6 +196,68 @@
                           
                           <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-500">Probability:</span>
+                            <div class="flex items-center gap-1">
+                              <span class="text-sm font-medium text-blue-600">
+                                {{ prospect.probability_coefficient || 100 }}%
+                              </span>
+                              <button
+                                @click.stop="startEditingProbability(prospect)"
+                                class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                                title="Edit probability"
+                              >
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-center justify-between border-t pt-1">
+                            <span class="text-xs font-medium text-gray-700">Weighted Revenue:</span>
+                            <span class="text-sm font-bold text-green-600">
+                              💰 {{ formatCurrency(getWeightedRevenue(prospect)) }}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <!-- Revenue Editing Mode -->
+                        <div v-else-if="editingRevenue[prospect.id]" class="space-y-2">
+                          <div class="flex items-center gap-2 w-full">
+                            <span class="text-sm">💰</span>
+                            <input
+                              v-model.number="tempRevenue[prospect.id]"
+                              type="number"
+                              min="0"
+                              step="1"
+                              :data-prospect-id="prospect.id"
+                              @keydown="handleRevenueKeydown($event, prospect)"
+                              @blur="saveRevenue(prospect)"
+                              @click.stop
+                              class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Amount"
+                            />
+                            <button
+                              @click.stop="saveRevenue(prospect)"
+                              class="text-green-600 hover:text-green-700 p-1"
+                              title="Validate"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              @click.stop="cancelEditingRevenue(prospect.id)"
+                              class="text-red-600 hover:text-red-700 p-1"
+                              title="Cancel"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Probability:</span>
                             <span class="text-sm font-medium text-blue-600">
                               {{ prospect.probability_coefficient || 100 }}%
                             </span>
@@ -209,38 +271,57 @@
                           </div>
                         </div>
                         
-                        <div v-else class="flex items-center gap-2 w-full">
-                          <span class="text-sm">💰</span>
-                          <input
-                            v-model.number="tempRevenue[prospect.id]"
-                            type="number"
-                            min="0"
-                            step="1"
-                            :data-prospect-id="prospect.id"
-                            @keydown="handleRevenueKeydown($event, prospect)"
-                            @blur="saveRevenue(prospect)"
-                            @click.stop
-                            class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Amount"
-                          />
-                          <button
-                            @click.stop="saveRevenue(prospect)"
-                            class="text-green-600 hover:text-green-700 p-1"
-                            title="Validate"
-                          >
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </button>
-                          <button
-                            @click.stop="cancelEditingRevenue(prospect.id)"
-                            class="text-red-600 hover:text-red-700 p-1"
-                            title="Cancel"
-                          >
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                        <!-- Probability Editing Mode -->
+                        <div v-else-if="editingProbability[prospect.id]" class="space-y-2">
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Revenue:</span>
+                            <span class="text-sm font-medium text-gray-700">
+                              {{ formatCurrency(prospect.revenue || 0) }}
+                            </span>
+                          </div>
+                          
+                          <div class="flex items-center gap-2 w-full">
+                            <span class="text-sm">📊</span>
+                            <input
+                              v-model.number="tempProbability[prospect.id]"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="1"
+                              :data-prospect-probability-id="prospect.id"
+                              @keydown="handleProbabilityKeydown($event, prospect)"
+                              @blur="saveProbability(prospect)"
+                              @click.stop
+                              class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Probability %"
+                            />
+                            <span class="text-sm text-gray-500">%</span>
+                            <button
+                              @click.stop="saveProbability(prospect)"
+                              class="text-green-600 hover:text-green-700 p-1"
+                              title="Validate"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              @click.stop="cancelEditingProbability(prospect.id)"
+                              class="text-red-600 hover:text-red-700 p-1"
+                              title="Cancel"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          
+                          <div class="flex items-center justify-between border-t pt-1">
+                            <span class="text-xs font-medium text-gray-700">Weighted Revenue:</span>
+                            <span class="text-sm font-bold text-green-600">
+                              💰 {{ formatCurrency(getWeightedRevenue(prospect)) }}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       
@@ -510,6 +591,10 @@ const getWeightedRevenue = (prospect) => {
 // Variables pour l'édition du montant directement sur la carte
 const editingRevenue = ref({}) // { prospectId: true/false }
 const tempRevenue = ref({}) // { prospectId: newAmount }
+
+// Variables pour l'édition de la probabilité directement sur la carte
+const editingProbability = ref({}) // { prospectId: true/false }
+const tempProbability = ref({}) // { prospectId: newProbability }
 
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
@@ -930,6 +1015,7 @@ async function saveRevenue(prospect) {
         address: prospect.address || '',
         status: prospect.status,
         revenue: newRevenue,
+        probability_coefficient: prospect.probability_coefficient, // Préserver la probabilité existante
         notes: prospect.notes || '',
         tabId: prospect.tabId || prospect.tab_id || 'default'
       }
@@ -955,6 +1041,72 @@ function handleRevenueKeydown(event, prospect) {
     saveRevenue(prospect)
   } else if (event.key === 'Escape') {
     cancelEditingRevenue(prospect.id)
+  }
+}
+
+// Fonctions pour l'édition de la probabilité directement sur la carte
+function startEditingProbability(prospect) {
+  editingProbability.value[prospect.id] = true
+  tempProbability.value[prospect.id] = prospect.probability_coefficient || 100
+  
+  // Auto-focus sur le champ input
+  nextTick(() => {
+    const input = document.querySelector(`input[data-prospect-probability-id="${prospect.id}"]`)
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+function cancelEditingProbability(prospectId) {
+  editingProbability.value[prospectId] = false
+  delete tempProbability.value[prospectId]
+}
+
+async function saveProbability(prospect) {
+  const newProbability = tempProbability.value[prospect.id]
+  if (newProbability !== undefined && newProbability !== prospect.probability_coefficient) {
+    try {
+      // Valider que la probabilité est entre 0 et 100
+      const validProbability = Math.max(0, Math.min(100, newProbability))
+      
+      // Ne mettre à jour que la probabilité, en gardant les autres champs intacts
+      const updateData = {
+        name: prospect.name,
+        email: prospect.email || '',
+        phone: prospect.phone || '',
+        company: prospect.company || '',
+        position: prospect.position || '',
+        address: prospect.address || '',
+        status: prospect.status,
+        revenue: prospect.revenue || 0,
+        probability_coefficient: validProbability,
+        notes: prospect.notes || '',
+        tabId: prospect.tabId || prospect.tab_id || 'default'
+      }
+      
+      const result = await prospectsStore.updateProspect(prospect.id, updateData)
+      
+      if (result.success) {
+        console.log(`✅ Probability updated for prospect ${prospect.id}`)
+      } else {
+        console.error('❌ Failed to update probability:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error updating probability:', error)
+    }
+  }
+  
+  editingProbability.value[prospect.id] = false
+  delete tempProbability.value[prospect.id]
+}
+
+function handleProbabilityKeydown(event, prospect) {
+  if (event.key === 'Enter') {
+    saveProbability(prospect)
+  } else if (event.key === 'Escape') {
+    cancelEditingProbability(prospect.id)
   }
 }
 
