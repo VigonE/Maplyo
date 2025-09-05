@@ -339,31 +339,60 @@
           </div>
           <div>
             <h3 class="text-xl font-semibold text-gray-900">{{ selectedProspectForNotes?.name }}</h3>
-            <p class="text-sm text-gray-500">Notes</p>
+            <p class="text-sm text-gray-500">{{ isEditingInModal ? 'Edit Notes' : 'Notes' }}</p>
           </div>
         </div>
-        <button
-          @click="closeNotesModal"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <!-- Bouton Toggle Edit/View -->
+          <button
+            v-if="!isEditingInModal"
+            @click="startEditingInModal"
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600 hover:text-blue-600"
+            title="Edit notes"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button
+            @click="closeNotesModal"
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Contenu des notes -->
-      <div class="flex-1 overflow-y-auto p-6">
-        <div v-if="selectedProspectForNotes?.notes && selectedProspectForNotes.notes.trim()" 
-             class="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-             v-html="selectedProspectForNotes.notes">
+      <div class="flex-1 overflow-hidden flex flex-col">
+        <!-- Mode lecture -->
+        <div v-if="!isEditingInModal" class="flex-1 overflow-y-auto p-6">
+          <div v-if="selectedProspectForNotes?.notes && selectedProspectForNotes.notes.trim()" 
+               class="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+               v-html="selectedProspectForNotes.notes">
+          </div>
+          <div v-else class="text-center py-12 text-gray-400">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-lg font-medium text-gray-500 mb-2">No notes available</p>
+            <p class="text-sm text-gray-400">Click the edit button to add notes for this prospect.</p>
+          </div>
         </div>
-        <div v-else class="text-center py-12 text-gray-400">
-          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p class="text-lg font-medium text-gray-500 mb-2">No notes available</p>
-          <p class="text-sm text-gray-400">Click the edit button to add notes for this prospect.</p>
+
+        <!-- Mode édition -->
+        <div v-else class="flex-1 flex flex-col p-6">
+          <div class="flex-1 border border-gray-200 rounded-lg overflow-hidden quill-editor-modal">
+            <QuillEditor
+              v-model:content="tempNotesForModal"
+              contentType="html"
+              :options="quillOptionsModal"
+              class="h-full"
+              @keydown="handleModalNotesKeydown"
+            />
+          </div>
         </div>
       </div>
 
@@ -374,18 +403,43 @@
             Press <kbd class="px-2 py-1 bg-white border border-gray-200 rounded text-xs">Esc</kbd> to close
           </div>
           <div class="flex gap-3">
-            <button
-              @click="closeNotesModal"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Close
-            </button>
-            <button
-              @click="editNotesFromModal"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Edit Notes
-            </button>
+            <!-- Mode lecture -->
+            <template v-if="!isEditingInModal">
+              <button
+                @click="closeNotesModal"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Close
+              </button>
+              <button
+                @click="startEditingInModal"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Notes
+              </button>
+            </template>
+            
+            <!-- Mode édition -->
+            <template v-else>
+              <button
+                @click="cancelEditingInModal"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                @click="saveNotesFromModal"
+                class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -433,6 +487,8 @@ const isResizingNotes = ref({}) // { prospectId: true/false }
 // Variables pour la modale des notes
 const showNotesModal = ref(false)
 const selectedProspectForNotes = ref(null)
+const isEditingInModal = ref(false)
+const tempNotesForModal = ref('')
 
 // Configuration pour QuillEditor
 const quillOptions = {
@@ -447,6 +503,27 @@ const quillOptions = {
   },
   placeholder: 'Add your notes here... (Esc to cancel)',
   formats: ['bold', 'italic', 'underline', 'list', 'bullet', 'link']
+}
+
+// Configuration pour QuillEditor dans la modale (plus d'options)
+const quillOptionsModal = {
+  theme: 'snow',
+  modules: {
+    toolbar: [
+      ['bold', 'italic', 'underline', 'strike'],
+      ['blockquote', 'code-block'],
+      [{ 'header': 1 }, { 'header': 2 }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link'],
+      ['clean']
+    ]
+  },
+  placeholder: 'Add your detailed notes here... Use the rich formatting options above.',
+  formats: ['bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'header', 'list', 'bullet', 'script', 'indent', 'color', 'background', 'align', 'link']
 }
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
@@ -937,6 +1014,7 @@ function hasHtmlContent(notes) {
 // Fonctions pour la modale des notes
 function openNotesModal(prospect) {
   selectedProspectForNotes.value = prospect
+  isEditingInModal.value = false
   showNotesModal.value = true
   
   // Ajouter un event listener pour la touche Escape
@@ -946,6 +1024,8 @@ function openNotesModal(prospect) {
 function closeNotesModal() {
   showNotesModal.value = false
   selectedProspectForNotes.value = null
+  isEditingInModal.value = false
+  tempNotesForModal.value = ''
   
   // Supprimer l'event listener
   document.removeEventListener('keydown', handleModalKeydown)
@@ -953,14 +1033,51 @@ function closeNotesModal() {
 
 function handleModalKeydown(event) {
   if (event.key === 'Escape') {
-    closeNotesModal()
+    if (isEditingInModal.value) {
+      cancelEditingInModal()
+    } else {
+      closeNotesModal()
+    }
   }
 }
 
-function editNotesFromModal() {
+function startEditingInModal() {
   if (selectedProspectForNotes.value) {
-    closeNotesModal()
-    startEditingNotes(selectedProspectForNotes.value)
+    isEditingInModal.value = true
+    tempNotesForModal.value = selectedProspectForNotes.value.notes || ''
+  }
+}
+
+function cancelEditingInModal() {
+  isEditingInModal.value = false
+  tempNotesForModal.value = ''
+}
+
+async function saveNotesFromModal() {
+  if (selectedProspectForNotes.value) {
+    try {
+      // Sauvegarder via le store
+      await prospectsStore.updateProspect(selectedProspectForNotes.value.id, {
+        notes: tempNotesForModal.value
+      })
+      
+      // Mettre à jour les données locales
+      selectedProspectForNotes.value.notes = tempNotesForModal.value
+      
+      // Quitter le mode édition
+      isEditingInModal.value = false
+      tempNotesForModal.value = ''
+      
+      console.log('Notes saved successfully')
+    } catch (error) {
+      console.error('Error saving notes:', error)
+    }
+  }
+}
+
+function handleModalNotesKeydown(event) {
+  if (event.key === 'Escape') {
+    cancelEditingInModal()
   }
 }
 
@@ -1211,5 +1328,90 @@ kbd {
   font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
   font-weight: 500;
   font-size: 0.875rem;
+}
+
+/* Styles pour l'éditeur Quill dans la modale */
+.quill-editor-modal :deep(.ql-toolbar) {
+  border: 1px solid #d1d5db;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: #f9fafb;
+  padding: 8px;
+}
+
+.quill-editor-modal :deep(.ql-container) {
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  height: calc(100% - 42px); /* Ajuster selon la hauteur de la toolbar */
+}
+
+.quill-editor-modal :deep(.ql-editor) {
+  min-height: 300px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.quill-editor-modal :deep(.ql-toolbar .ql-formats) {
+  margin-right: 12px;
+}
+
+.quill-editor-modal :deep(.ql-toolbar button) {
+  width: 28px;
+  height: 28px;
+  margin: 1px;
+  border-radius: 4px;
+}
+
+.quill-editor-modal :deep(.ql-toolbar button:hover) {
+  background-color: #e5e7eb;
+}
+
+.quill-editor-modal :deep(.ql-toolbar button.ql-active) {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.quill-editor-modal :deep(.ql-editor h1) {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 1rem 0;
+}
+
+.quill-editor-modal :deep(.ql-editor h2) {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.875rem 0;
+}
+
+.quill-editor-modal :deep(.ql-editor p) {
+  margin: 0.75rem 0;
+}
+
+.quill-editor-modal :deep(.ql-editor blockquote) {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.quill-editor-modal :deep(.ql-editor code) {
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: 'SFMono-Regular', 'Menlo', 'Monaco', monospace;
+  font-size: 0.875rem;
+}
+
+.quill-editor-modal :deep(.ql-editor pre) {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
 }
 </style>
