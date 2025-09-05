@@ -133,13 +133,13 @@
               v-model="form.tabId"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="default">Tous les prospects</option>
+              <option value="default">All prospects</option>
               <option v-for="tab in availableTabs" :key="tab.id" :value="tab.id">
                 {{ tab.name }}
               </option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              Choisissez dans quel onglet afficher ce prospect
+              Choose which tab to display this prospect
             </p>
           </div>
 

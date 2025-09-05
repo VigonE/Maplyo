@@ -27,7 +27,7 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <p class="mt-2 text-gray-500">Aucun prospect dans cet onglet</p>
+        <p class="mt-2 text-gray-500">No prospects in this tab</p>
         <p class="text-sm text-gray-400">Cliquez sur "Ajouter" pour commencer</p>
       </div>
 
@@ -103,7 +103,7 @@
                       </div>
                       
                       <p class="text-xs text-gray-500 mb-2 truncate">
-                        📍 {{ prospect.address || 'Aucune adresse' }}
+                        📍 {{ prospect.address || 'No address' }}
                       </p>
                       
                       <div class="text-sm font-semibold text-green-600">
@@ -138,7 +138,7 @@
 
             <!-- Message pour catégorie vide -->
             <div v-if="getProspectsByStatus(status).length === 0" class="text-center py-6 text-gray-400">
-              <p class="text-sm">Aucun prospect {{ getStatusLabel(status).toLowerCase() }}</p>
+              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} prospects</p>
               <p class="text-xs">Glissez une carte ici pour changer son statut</p>
             </div>
           </div>
@@ -282,8 +282,8 @@ function getStatusLabel(status) {
     'cold': 'Cold',
     'warm': 'Warm',
     'hot': 'Hot',
-    'won': 'Gagné',
-    'lost': 'Perdu'
+    'won': 'Won',
+    'lost': 'Lost'
   }
   return labels[status] || status || 'Unknown'
 }

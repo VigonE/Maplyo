@@ -11,7 +11,7 @@
           @click="$emit('add-prospect')"
           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
         >
-          Ajouter
+          Add
         </button>
       </div>
       
@@ -19,16 +19,16 @@
       <div class="px-4 pb-3">
         <div class="mb-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">
-            Filtrer par revenu minimum 
+            Filter by minimum revenue 
             <span v-if="prospectsAboveSmoothedMax > 0" class="text-purple-600">
-              (Lissé sur 90%)
+              (Smoothed at 90%)
             </span>
           </label>
           <div class="text-xs text-gray-500 mb-2">
-            Filtre: {{ formatCurrency(actualRevenueFilter) }} - {{ formatCurrency(maxRevenue) }} 
+            Filter: {{ formatCurrency(actualRevenueFilter) }} - {{ formatCurrency(maxRevenue) }} 
             ({{ visibleProspectsCount }}/{{ totalProspectsInTab }} prospects)
             <span v-if="prospectsAboveSmoothedMax > 0" class="text-blue-600">
-              • {{ prospectsAboveSmoothedMax }} prospect(s) premium au-dessus
+              • {{ prospectsAboveSmoothedMax }} premium prospect(s) above
             </span>
           </div>
         </div>
@@ -62,8 +62,8 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <p class="mt-2 text-gray-500">Aucun prospect dans cette plage de revenus</p>
-        <p class="text-sm text-gray-400">Ajustez le slider ou ajoutez des prospects</p>
+        <p class="mt-2 text-gray-500">No prospects in this revenue range</p>
+        <p class="text-sm text-gray-400">Adjust the slider or add prospects</p>
       </div>
 
       <!-- Catégories du funnel verticales -->
@@ -139,7 +139,7 @@
                       </div>
                       
                       <p class="text-xs text-gray-500 mb-2 truncate">
-                        📍 {{ prospect.address || 'Aucune adresse' }}
+                        📍 {{ prospect.address || 'No address' }}
                       </p>
                       
                       <div class="flex items-center justify-between">
@@ -150,7 +150,7 @@
                           <button
                             @click.stop="startEditingRevenue(prospect)"
                             class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-                            title="Modifier le montant"
+                            title="Edit amount"
                           >
                             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -170,12 +170,12 @@
                             @blur="saveRevenue(prospect)"
                             @click.stop
                             class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Montant"
+                            placeholder="Amount"
                           />
                           <button
                             @click.stop="saveRevenue(prospect)"
                             class="text-green-600 hover:text-green-700 p-1"
-                            title="Valider"
+                            title="Validate"
                           >
                             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -184,7 +184,7 @@
                           <button
                             @click.stop="cancelEditingRevenue(prospect.id)"
                             class="text-red-600 hover:text-red-700 p-1"
-                            title="Annuler"
+                            title="Cancel"
                           >
                             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -199,7 +199,7 @@
                           <div 
                             class="bg-gray-50 border border-gray-200 rounded-md p-2 min-h-[40px] cursor-pointer hover:bg-gray-100 transition-colors"
                             @click.stop="startEditingNotes(prospect)"
-                            title="Cliquer pour modifier les notes"
+                            title="Click to edit notes"
                           >
                             <div class="flex items-start justify-between">
                               <div class="flex-1">
@@ -208,13 +208,13 @@
                                   {{ getPlainTextFromHtml(prospect.notes) }}
                                 </div>
                                 <div v-else class="text-xs text-gray-400 italic">
-                                  Cliquer pour ajouter des notes...
+                                  Click to add notes...
                                 </div>
                               </div>
                               <button
                                 @click.stop="startEditingNotes(prospect)"
                                 class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 ml-1 flex-shrink-0"
-                                title="Modifier les notes"
+                                title="Edit notes"
                               >
                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -244,7 +244,7 @@
                             <div 
                               class="resize-handle"
                               @mousedown="startResizeNotes($event, prospect.id)"
-                              title="Glisser pour redimensionner"
+                              title="Drag to resize"
                             >
                               <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
@@ -255,7 +255,7 @@
                             <button
                               @click.stop="saveNotes(prospect)"
                               class="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50"
-                              title="Valider"
+                              title="Validate"
                             >
                               <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -264,7 +264,7 @@
                             <button
                               @click.stop="cancelEditingNotes(prospect.id)"
                               class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50"
-                              title="Annuler"
+                              title="Cancel"
                             >
                               <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -279,7 +279,7 @@
                       <button
                         @click.stop="$emit('edit', prospect)"
                         class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-                        title="Modifier"
+                        title="Edit"
                       >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -288,7 +288,7 @@
                       <button
                         @click.stop="$emit('delete', prospect)"
                         class="text-gray-400 hover:text-red-600 p-1 rounded hover:bg-red-50"
-                        title="Supprimer"
+                        title="Delete"
                       >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0016.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -302,8 +302,8 @@
 
             <!-- Message pour catégorie vide -->
             <div v-if="getProspectsByStatus(status).length === 0" class="text-center py-6 text-gray-400">
-              <p class="text-sm">Aucun prospect {{ getStatusLabel(status).toLowerCase() }}</p>
-              <p class="text-xs">Glissez une carte ici pour changer son statut</p>
+              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} prospects</p>
+              <p class="text-xs">Drag a card here to change its status</p>
             </div>
           </div>
         </div>
@@ -360,7 +360,7 @@ const quillOptions = {
       ['clean']
     ]
   },
-  placeholder: 'Ajoutez vos notes ici... (Échap pour annuler)',
+  placeholder: 'Add your notes here... (Esc to cancel)',
   formats: ['bold', 'italic', 'underline', 'list', 'bullet', 'link']
 }
 
@@ -621,8 +621,8 @@ function getStatusLabel(status) {
     'cold': 'Cold',
     'warm': 'Warm',
     'hot': 'Hot',
-    'won': 'Gagné',
-    'lost': 'Perdu'
+    'won': 'Won',
+    'lost': 'Lost'
   }
   return labels[status] || status || 'Unknown'
 }

@@ -15,7 +15,7 @@
               <button
                 @click="showSettingsMenu = !showSettingsMenu"
                 class="text-gray-500 hover:text-gray-700 p-1 rounded"
-                title="Paramètres"
+                title="Settings"
               >
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -37,7 +37,7 @@
                     <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                     </svg>
-                    Importer CSV
+                    Import CSV
                   </button>
                 </div>
               </div>
@@ -46,7 +46,7 @@
             <button
               @click="authStore.logout"
               class="text-gray-500 hover:text-gray-700"
-              title="Déconnexion"
+              title="Logout"
             >
               <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -230,7 +230,7 @@ watch(visibleProspects, (newProspects) => {
 
 function onTabChanged(tabId) {
   currentTabId.value = tabId
-  console.log('Onglet changé vers:', tabId) // Debug
+  console.log('Tab changed to:', tabId) // Debug
   // Réinitialiser la carte avec tous les prospects du nouvel onglet
   filteredProspectsForMap.value = visibleProspects.value
   // Forcer le re-rendu du modal pour mettre à jour les onglets disponibles
@@ -271,7 +271,7 @@ function editProspect(prospect) {
 }
 
 async function deleteProspect(prospect) {
-  if (confirm('Êtes-vous sûr de vouloir supprimer ce prospect ?')) {
+  if (confirm('Are you sure you want to delete this prospect?')) {
     await prospectsStore.deleteProspect(prospect.id)
   }
 }
@@ -355,7 +355,7 @@ function parseCSV(text) {
 
   // Lire la ligne d'en-tête
   const headers = lines[0].split(';').map(h => h.trim().toLowerCase())
-  console.log('En-têtes détectés:', headers)
+  console.log('Headers detected:', headers)
 
   const prospects = []
 
@@ -436,7 +436,7 @@ function parseCSV(text) {
     }
   }
 
-  console.log(`${prospects.length} prospects traités depuis le CSV`)
+  console.log(`${prospects.length} prospects processed from CSV`)
   return prospects
 }
 

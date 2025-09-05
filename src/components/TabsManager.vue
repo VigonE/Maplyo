@@ -32,7 +32,7 @@
       <button
         @click="showAddTabModal = true"
         class="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-        title="Ajouter un onglet"
+        title="Add a tab"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -65,17 +65,17 @@
         class="bg-white rounded-lg p-6 w-96 max-w-[90vw]"
         @click.stop
       >
-        <h3 class="text-lg font-semibold mb-4">Ajouter un nouvel onglet</h3>
+        <h3 class="text-lg font-semibold mb-4">Add a new tab</h3>
         
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            Nom de l'onglet
+            Tab name
           </label>
           <input
             v-model="newTabName"
             @keyup.enter="addTab"
             type="text"
-            placeholder="Ex: Paris, Lyon, Prospects VIP..."
+            placeholder="Ex: Paris, Lyon, VIP Prospects..."
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             maxlength="30"
           />
@@ -99,14 +99,14 @@
             @click="showAddTabModal = false"
             class="px-4 py-2 text-gray-600 hover:text-gray-800"
           >
-            Annuler
+            Cancel
           </button>
           <button
             @click="addTab"
             :disabled="!newTabName.trim()"
             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Ajouter
+            Add
           </button>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default {
         // Créer un onglet par défaut
         const defaultTab = {
           id: 'default',
-          name: 'Tous les prospects',
+          name: 'All prospects',
           description: 'Liste principale des prospects',
           createdAt: new Date().toISOString()
         }
