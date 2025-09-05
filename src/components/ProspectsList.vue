@@ -211,15 +211,30 @@
                                   Click to add notes...
                                 </div>
                               </div>
-                              <button
-                                @click.stop="startEditingNotes(prospect)"
-                                class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 ml-1 flex-shrink-0"
-                                title="Edit notes"
-                              >
-                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
+                              <div class="flex items-center gap-1 ml-1 flex-shrink-0">
+                                <!-- Bouton View -->
+                                <button
+                                  v-if="prospect.notes && prospect.notes.trim()"
+                                  @click.stop="openNotesModal(prospect)"
+                                  class="text-gray-400 hover:text-green-600 p-1 rounded hover:bg-green-50"
+                                  title="View notes in full screen"
+                                >
+                                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                                <!-- Bouton Edit -->
+                                <button
+                                  @click.stop="startEditingNotes(prospect)"
+                                  class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                                  title="Edit notes"
+                                >
+                                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -310,10 +325,76 @@
       </div>
     </div>
   </div>
+
+  <!-- Modale pour afficher les notes en plein écran -->
+  <div v-if="showNotesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="closeNotesModal">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] m-4 flex flex-col" @click.stop>
+      <!-- En-tête de la modale -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">{{ selectedProspectForNotes?.name }}</h3>
+            <p class="text-sm text-gray-500">Notes</p>
+          </div>
+        </div>
+        <button
+          @click="closeNotesModal"
+          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Contenu des notes -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <div v-if="selectedProspectForNotes?.notes && selectedProspectForNotes.notes.trim()" 
+             class="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+             v-html="selectedProspectForNotes.notes">
+        </div>
+        <div v-else class="text-center py-12 text-gray-400">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p class="text-lg font-medium text-gray-500 mb-2">No notes available</p>
+          <p class="text-sm text-gray-400">Click the edit button to add notes for this prospect.</p>
+        </div>
+      </div>
+
+      <!-- Pied de page avec actions -->
+      <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg">
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-500">
+            Press <kbd class="px-2 py-1 bg-white border border-gray-200 rounded text-xs">Esc</kbd> to close
+          </div>
+          <div class="flex gap-3">
+            <button
+              @click="closeNotesModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Close
+            </button>
+            <button
+              @click="editNotesFromModal"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Edit Notes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 import { QuillEditor } from '@vueup/vue-quill'
@@ -348,6 +429,10 @@ const editingNotes = ref({}) // { prospectId: true/false }
 const tempNotes = ref({}) // { prospectId: newNotes }
 const notesHeight = ref({}) // { prospectId: height in pixels }
 const isResizingNotes = ref({}) // { prospectId: true/false }
+
+// Variables pour la modale des notes
+const showNotesModal = ref(false)
+const selectedProspectForNotes = ref(null)
 
 // Configuration pour QuillEditor
 const quillOptions = {
@@ -849,6 +934,36 @@ function hasHtmlContent(notes) {
   return /<[^>]*>/g.test(notes)
 }
 
+// Fonctions pour la modale des notes
+function openNotesModal(prospect) {
+  selectedProspectForNotes.value = prospect
+  showNotesModal.value = true
+  
+  // Ajouter un event listener pour la touche Escape
+  document.addEventListener('keydown', handleModalKeydown)
+}
+
+function closeNotesModal() {
+  showNotesModal.value = false
+  selectedProspectForNotes.value = null
+  
+  // Supprimer l'event listener
+  document.removeEventListener('keydown', handleModalKeydown)
+}
+
+function handleModalKeydown(event) {
+  if (event.key === 'Escape') {
+    closeNotesModal()
+  }
+}
+
+function editNotesFromModal() {
+  if (selectedProspectForNotes.value) {
+    closeNotesModal()
+    startEditingNotes(selectedProspectForNotes.value)
+  }
+}
+
 // Réinitialiser le filtre de revenu
 function resetRevenueFilter() {
   revenueFilter.value = minRevenue.value
@@ -863,6 +978,11 @@ function formatCurrency(amount) {
     maximumFractionDigits: 0
   }).format(amount)
 }
+
+// Cleanup lors du démontage du composant
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleModalKeydown)
+})
 </script>
 
 <style scoped>
@@ -1044,5 +1164,52 @@ function formatCurrency(amount) {
 
 .quill-editor-compact :deep(.ql-editor a:hover) {
   color: #1d4ed8;
+}
+
+/* Styles pour la modale des notes */
+.prose {
+  line-height: 1.6;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin: 0.25em 0;
+}
+
+.prose p {
+  margin: 0.75em 0;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  color: #1d4ed8;
+}
+
+/* Style pour les touches clavier */
+kbd {
+  font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 </style>
