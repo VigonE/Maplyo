@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, defineExpose } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue'
 import ProspectsList from './ProspectsList.vue'
 
 export default {
@@ -218,12 +218,35 @@ export default {
       }
     }
 
+    // Écouter les changements d'onglets depuis d'autres sources
+    const handleTabsChanged = () => {
+      console.log('📋 TabsManager: Received tabsChanged event')
+      loadTabs()
+    }
+
+    const handleStorageChanged = (event) => {
+      if (event.detail?.key === 'maplyo_tabs' || event.key === 'maplyo_tabs') {
+        console.log('📋 TabsManager: Storage changed for tabs')
+        loadTabs()
+      }
+    }
+
     onMounted(() => {
       loadTabs()
       // Émettre l'onglet actif initial
       if (activeTabId.value) {
         emit('tab-changed', activeTabId.value)
       }
+
+      // Écouter les événements de changement
+      window.addEventListener('tabsChanged', handleTabsChanged)
+      window.addEventListener('storage', handleStorageChanged)
+    })
+
+    // Nettoyer les listeners
+    onUnmounted(() => {
+      window.removeEventListener('tabsChanged', handleTabsChanged)
+      window.removeEventListener('storage', handleStorageChanged)
     })
 
     // Exposer les méthodes pour l'accès depuis le parent

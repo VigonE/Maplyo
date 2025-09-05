@@ -742,8 +742,24 @@ async function handleDatabaseImport(event) {
     // Reload prospects data
     await prospectsStore.fetchProspects()
     
-    // Trigger tabs reload by dispatching a custom event
+    // Force complete refresh of tabs and UI
+    await nextTick()
+    
+    // Trigger multiple events to ensure all components update
     window.dispatchEvent(new CustomEvent('tabsChanged'))
+    window.dispatchEvent(new CustomEvent('storage', { 
+      detail: { key: 'maplyo_tabs', newValue: localStorage.getItem('maplyo_tabs') }
+    }))
+    
+    // Force re-render of TabsManager
+    if (tabsManager.value) {
+      tabsManager.value.$forceUpdate()
+    }
+    
+    // Close the modal and refresh the page after a short delay to ensure everything is updated
+    setTimeout(() => {
+      window.location.reload()
+    }, 1500)
     
   } catch (error) {
     console.error('Import error:', error)
