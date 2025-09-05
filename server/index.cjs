@@ -594,7 +594,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           [
             name, email || '', phone || '', company || '', position || '',
             address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', prospectId, req.user.userId
+            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', tabId || 'default', prospectId, req.user.userId
           ],
           function(err) {
             if (err) {

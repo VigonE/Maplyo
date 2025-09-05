@@ -826,6 +826,7 @@ async function onStatusChange(evt) {
             address: prospect.address || '',
             status: newStatus,
             revenue: prospect.revenue || 0,
+            probability_coefficient: prospect.probability_coefficient, // Préserver la probabilité existante
             notes: prospect.notes || '',
             tabId: prospect.tabId || prospect.tab_id || 'default'
           }
