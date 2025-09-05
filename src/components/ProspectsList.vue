@@ -5,10 +5,10 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">{{ tabName }}</h2>
-          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} prospect(s) • Total: {{ totalRevenue }}</p>
+          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Total: {{ totalRevenue }}</p>
         </div>
         <button
-          @click="$emit('add-prospect')"
+          @click="$emit('add-lead')"
           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
         >
           Add
@@ -26,9 +26,9 @@
           </label>
           <div class="text-xs text-gray-500 mb-2">
             Filter: {{ formatCurrency(actualRevenueFilter) }} - {{ formatCurrency(maxRevenue) }} 
-            ({{ visibleProspectsCount }}/{{ totalProspectsInTab }} prospects)
+            ({{ visibleProspectsCount }}/{{ totalProspectsInTab }} leads)
             <span v-if="prospectsAboveSmoothedMax > 0" class="text-blue-600">
-              • {{ prospectsAboveSmoothedMax }} premium prospect(s) above
+              • {{ prospectsAboveSmoothedMax }} premium lead(s) above
             </span>
           </div>
         </div>
@@ -62,8 +62,8 @@
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <p class="mt-2 text-gray-500">No prospects in this revenue range</p>
-        <p class="text-sm text-gray-400">Adjust the slider or add prospects</p>
+        <p class="mt-2 text-gray-500">No leads in this revenue range</p>
+        <p class="text-sm text-gray-400">Adjust the slider or add leads</p>
       </div>
 
       <!-- Catégories du funnel verticales -->
@@ -103,7 +103,7 @@
           >
             <draggable
               :model-value="getProspectsByStatus(status)"
-              :group="{ name: 'prospects', pull: true, put: true }"
+              :group="{ name: 'leads', pull: true, put: true }"
               item-key="id"
               @end="onStatusChange"
               @dragover.prevent="isDragOverCategory = status"
@@ -302,7 +302,7 @@
 
             <!-- Message pour catégorie vide -->
             <div v-if="getProspectsByStatus(status).length === 0" class="text-center py-6 text-gray-400">
-              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} prospects</p>
+              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} leads</p>
               <p class="text-xs">Drag a card here to change its status</p>
             </div>
           </div>

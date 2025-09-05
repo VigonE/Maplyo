@@ -138,7 +138,7 @@
 
             <!-- Message pour catégorie vide -->
             <div v-if="getProspectsByStatus(status).length === 0" class="text-center py-6 text-gray-400">
-              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} prospects</p>
+              <p class="text-sm">No {{ getStatusLabel(status).toLowerCase() }} leads</p>
               <p class="text-xs">Glissez une carte ici pour changer son statut</p>
             </div>
           </div>

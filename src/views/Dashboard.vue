@@ -271,7 +271,7 @@ function editProspect(prospect) {
 }
 
 async function deleteProspect(prospect) {
-  if (confirm('Are you sure you want to delete this prospect?')) {
+  if (confirm('Are you sure you want to delete this lead?')) {
     await prospectsStore.deleteProspect(prospect.id)
   }
 }
@@ -309,7 +309,7 @@ async function handleFileImport(event) {
     const prospects = parseCSV(text)
     
     if (prospects.length === 0) {
-      alert('Aucun prospect trouvé dans le fichier CSV')
+      alert('No leads found in CSV file')
       return
     }
 

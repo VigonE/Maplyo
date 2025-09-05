@@ -9,7 +9,7 @@
       <div class="mt-3">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-medium text-gray-900">
-            {{ prospect ? 'Edit Prospect' : 'New Prospect' }}
+            {{ prospect ? 'Edit Lead' : 'New Lead' }}
           </h3>
           <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,13 +133,13 @@
               v-model="form.tabId"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="default">All prospects</option>
+              <option value="default">All leads</option>
               <option v-for="tab in availableTabs" :key="tab.id" :value="tab.id">
                 {{ tab.name }}
               </option>
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              Choose which tab to display this prospect
+              Choose which tab to display this lead
             </p>
           </div>
 
@@ -247,22 +247,22 @@ onUnmounted(() => {
   window.removeEventListener('tabsChanged', loadAvailableTabs)
 })
 
-watch(() => props.prospect, (newProspect) => {
-  if (newProspect) {
+watch(() => props.prospect, (newLead) => {
+  if (newLead) {
     Object.assign(form, {
-      name: newProspect.name || '',
-      email: newProspect.email || '',
-      phone: newProspect.phone || '',
-      company: newProspect.company || '',
-      position: newProspect.position || '',
-      address: newProspect.address || '',
-      revenue: newProspect.revenue || 0,
-      status: newProspect.status || 'cold',
-      tabId: newProspect.tabId || props.currentTabId || 'default',
-      notes: newProspect.notes || ''
+      name: newLead.name || '',
+      email: newLead.email || '',
+      phone: newLead.phone || '',
+      company: newLead.company || '',
+      position: newLead.position || '',
+      address: newLead.address || '',
+      revenue: newLead.revenue || 0,
+      status: newLead.status || 'cold',
+      tabId: newLead.tabId || props.currentTabId || 'default',
+      notes: newLead.notes || ''
     })
   } else {
-    // Reset form for new prospect
+    // Reset form for new lead
     Object.assign(form, {
       name: '',
       email: '',
@@ -281,7 +281,7 @@ watch(() => props.prospect, (newProspect) => {
 // Watch pour currentTabId
 watch(() => props.currentTabId, (newTabId) => {
   if (!props.prospect && newTabId) {
-    // Pour un nouveau prospect, mettre à jour le tabId
+    // Pour un nouveau lead, mettre à jour le tabId
     form.tabId = newTabId
     console.log('Updated form tabId to:', newTabId)
   }
@@ -314,7 +314,7 @@ async function handleSubmit() {
         ...form,
         tabId: form.tabId || props.currentTabId || 'default'
       }
-      console.log('Creating prospect with data:', prospectData)
+      console.log('Creating lead with data:', leadData)
       result = await prospectsStore.createProspect(prospectData)
     }
 
@@ -324,7 +324,7 @@ async function handleSubmit() {
       error.value = result.error
     }
   } catch (err) {
-    error.value = err.message || 'Error saving prospect'
+    error.value = err.message || 'Error saving lead'
   } finally {
     loading.value = false
   }
