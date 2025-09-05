@@ -73,9 +73,16 @@ function updateMarkers(prospects) {
 
   if (!prospects?.length) return
 
+  // Calculer les statistiques de revenus une seule fois pour tous les markers
+  const allRevenues = prospects.map(p => p.revenue || 0).filter(r => r > 0)
+  const revenueStats = allRevenues.length > 0 ? {
+    min: Math.min(...allRevenues),
+    max: Math.max(...allRevenues)
+  } : null
+
   prospects.forEach(prospect => {
     if (prospect.latitude && prospect.longitude) {
-      createMarker(prospect)
+      createMarker(prospect, revenueStats)
     }
   })
 
@@ -86,8 +93,30 @@ function updateMarkers(prospects) {
   }
 }
 
-function createMarker(prospect) {
-  const radius = Math.max(10, Math.min(50, (prospect.revenue || 0) / 1000))
+function createMarker(prospect, revenueStats) {
+  // Calculer le rayon proportionnel au revenu avec une progression visuelle agréable
+  
+  const minRadius = 6   // Rayon minimum pour les leads sans revenu ou très faibles
+  const maxRadius = 30  // Rayon maximum pour les plus gros revenus
+  
+  let radius = minRadius
+  
+  if (prospect.revenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
+    // Normaliser le revenu entre 0 et 1
+    const normalizedRevenue = (prospect.revenue - revenueStats.min) / (revenueStats.max - revenueStats.min)
+    
+    // Utiliser une racine carrée pour une progression visuelle plus douce
+    const scaledRevenue = Math.sqrt(normalizedRevenue)
+    
+    // Calculer le rayon final
+    radius = minRadius + scaledRevenue * (maxRadius - minRadius)
+    
+    // Debug log pour vérifier les calculs
+    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, normalized=${normalizedRevenue.toFixed(2)}, radius=${radius.toFixed(1)}`)
+  } else if (prospect.revenue > 0) {
+    // Si tous les revenus sont identiques ou pas de stats, utiliser un rayon moyen
+    radius = (minRadius + maxRadius) / 2
+  }
   
   const marker = L.circleMarker([prospect.latitude, prospect.longitude], {
     radius: radius,
