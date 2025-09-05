@@ -204,7 +204,7 @@
                             <div class="flex items-start justify-between">
                               <div class="flex-1">
                                 <div v-if="prospect.notes && prospect.notes.trim()" 
-                                     class="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-line">
+                                     class="text-xs text-gray-700 leading-relaxed break-words truncate max-w-full">
                                   {{ getPlainTextFromHtml(prospect.notes) }}
                                 </div>
                                 <div v-else class="text-xs text-gray-400 italic">
