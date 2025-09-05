@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">{{ tabName }}</h2>
-          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Total: {{ totalRevenue }}</p>
+          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Weighted Total: {{ totalRevenue }}</p>
         </div>
         <button
           @click="$emit('add-lead')"
@@ -19,7 +19,7 @@
       <div class="px-4 pb-3">
         <div class="mb-2">
           <label class="block text-xs font-medium text-gray-600 mb-1">
-            Filter by minimum revenue 
+            Filter by minimum weighted revenue
             <span v-if="prospectsAboveSmoothedMax > 0" class="text-purple-600">
               (Smoothed at 90%)
             </span>
@@ -142,20 +142,40 @@
                         📍 {{ prospect.address || 'No address' }}
                       </p>
                       
-                      <div class="flex items-center justify-between">
-                        <div v-if="!editingRevenue[prospect.id]" class="flex items-center gap-2">
-                          <span class="text-sm font-semibold text-green-600">
-                            💰 {{ formatCurrency(prospect.revenue || 0) }}
-                          </span>
-                          <button
-                            @click.stop="startEditingRevenue(prospect)"
-                            class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
-                            title="Edit amount"
-                          >
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
+                      <div class="space-y-2">
+                        <!-- Revenue Information -->
+                        <div v-if="!editingRevenue[prospect.id]" class="space-y-1">
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Revenue:</span>
+                            <div class="flex items-center gap-1">
+                              <span class="text-sm font-medium text-gray-700">
+                                {{ formatCurrency(prospect.revenue || 0) }}
+                              </span>
+                              <button
+                                @click.stop="startEditingRevenue(prospect)"
+                                class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                                title="Edit amount"
+                              >
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Probability:</span>
+                            <span class="text-sm font-medium text-blue-600">
+                              {{ prospect.probability_coefficient || 100 }}%
+                            </span>
+                          </div>
+                          
+                          <div class="flex items-center justify-between border-t pt-1">
+                            <span class="text-xs font-medium text-gray-700">Weighted Revenue:</span>
+                            <span class="text-sm font-bold text-green-600">
+                              💰 {{ formatCurrency(getWeightedRevenue(prospect)) }}
+                            </span>
+                          </div>
                         </div>
                         
                         <div v-else class="flex items-center gap-2 w-full">
@@ -447,6 +467,13 @@ const isDragOverCategory = ref(null)
 const revenueFilter = ref(0) // Sera mis à jour avec minRevenue quand disponible
 const forceRerender = ref(0) // Trigger pour forcer le re-render
 
+// Fonction pour calculer le revenu pondéré
+const getWeightedRevenue = (prospect) => {
+  if (!prospect.revenue) return 0
+  const probability = prospect.probability_coefficient || 100
+  return (prospect.revenue * probability) / 100
+}
+
 // Variables pour l'édition du montant directement sur la carte
 const editingRevenue = ref({}) // { prospectId: true/false }
 const tempRevenue = ref({}) // { prospectId: newAmount }
@@ -539,7 +566,7 @@ const revenueStats = computed(() => {
     }
   }
 
-  const revenues = filteredProspects.value.map(p => p.revenue || 0).sort((a, b) => a - b)
+  const revenues = filteredProspects.value.map(p => getWeightedRevenue(p)).sort((a, b) => a - b)
   const minRevenue = Math.min(...revenues)
   const actualMaxRevenue = Math.max(...revenues)
   
@@ -578,9 +605,9 @@ const prospectsAboveSmoothedMax = computed(() => revenueStats.value.prospectsAbo
 // Le filtre de revenu utilise maintenant directement la valeur du slider
 const actualRevenueFilter = computed(() => revenueFilter.value)
 
-// Prospects filtrés par revenu ET par onglet
+// Prospects filtrés par revenu AND par onglet
 const visibleProspectsAfterFilter = computed(() => {
-  return filteredProspects.value.filter(p => (p.revenue || 0) >= actualRevenueFilter.value)
+  return filteredProspects.value.filter(p => getWeightedRevenue(p) >= actualRevenueFilter.value)
 })
 
 // Compter les prospects visibles après filtrage
