@@ -684,10 +684,21 @@ async function saveRevenue(prospect) {
   const newRevenue = tempRevenue.value[prospect.id]
   if (newRevenue !== undefined && newRevenue !== prospect.revenue) {
     try {
-      const result = await prospectsStore.updateProspect(prospect.id, {
-        ...prospect,
-        revenue: newRevenue
-      })
+      // Ne mettre à jour que le revenue, en gardant les autres champs intacts
+      const updateData = {
+        name: prospect.name,
+        email: prospect.email || '',
+        phone: prospect.phone || '',
+        company: prospect.company || '',
+        position: prospect.position || '',
+        address: prospect.address || '',
+        status: prospect.status,
+        revenue: newRevenue,
+        notes: prospect.notes || '',
+        tabId: prospect.tabId || prospect.tab_id || 'default'
+      }
+      
+      const result = await prospectsStore.updateProspect(prospect.id, updateData)
       
       if (result.success) {
         console.log(`✅ Revenue updated for prospect ${prospect.id}`)
@@ -768,10 +779,21 @@ async function saveNotes(prospect) {
   const newNotes = tempNotes.value[prospect.id]
   if (newNotes !== undefined && newNotes !== prospect.notes) {
     try {
-      const result = await prospectsStore.updateProspect(prospect.id, {
-        ...prospect,
-        notes: newNotes
-      })
+      // Ne mettre à jour que les notes, en gardant les autres champs intacts
+      const updateData = {
+        name: prospect.name,
+        email: prospect.email || '',
+        phone: prospect.phone || '',
+        company: prospect.company || '',
+        position: prospect.position || '',
+        address: prospect.address || '',
+        status: prospect.status,
+        revenue: prospect.revenue || 0,
+        notes: newNotes,
+        tabId: prospect.tabId || prospect.tab_id || 'default'
+      }
+      
+      const result = await prospectsStore.updateProspect(prospect.id, updateData)
       
       if (result.success) {
         console.log(`✅ Notes updated for prospect ${prospect.id}`)
