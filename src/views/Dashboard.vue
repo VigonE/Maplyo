@@ -614,6 +614,19 @@ async function exportDatabase() {
     
     const data = await response.json()
     
+    // Add tabs from localStorage to the export data
+    const savedTabs = localStorage.getItem('maplyo_tabs')
+    if (savedTabs) {
+      try {
+        data.tabs = JSON.parse(savedTabs)
+      } catch (error) {
+        console.warn('Failed to parse tabs from localStorage:', error)
+        data.tabs = []
+      }
+    } else {
+      data.tabs = []
+    }
+    
     // Create and download the file
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
@@ -629,7 +642,7 @@ async function exportDatabase() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
     
-    systemMessage.value = 'Database exported successfully!'
+    systemMessage.value = `Database exported successfully! Included ${data.prospects?.length || 0} prospects and ${data.tabs?.length || 0} tabs.`
     systemMessageType.value = 'success'
     
   } catch (error) {
@@ -713,11 +726,24 @@ async function handleDatabaseImport(event) {
 
     const result = await response.json()
     
-    systemMessage.value = `Database imported successfully! ${result.imported?.prospects || 0} prospects imported.`
+    // Restore tabs to localStorage if they exist in the backup
+    if (importData.tabs && Array.isArray(importData.tabs)) {
+      localStorage.setItem('maplyo_tabs', JSON.stringify(importData.tabs))
+      console.log(`✅ Restored ${importData.tabs.length} tabs to localStorage`)
+    } else {
+      // Clear existing tabs if none in backup
+      localStorage.removeItem('maplyo_tabs')
+      console.log('🗑️ No tabs in backup, cleared existing tabs')
+    }
+    
+    systemMessage.value = `Database imported successfully! ${result.imported?.prospects || 0} prospects and ${importData.tabs?.length || 0} tabs imported.`
     systemMessageType.value = 'success'
     
     // Reload prospects data
     await prospectsStore.fetchProspects()
+    
+    // Trigger tabs reload by dispatching a custom event
+    window.dispatchEvent(new CustomEvent('tabsChanged'))
     
   } catch (error) {
     console.error('Import error:', error)
@@ -779,7 +805,19 @@ async function confirmDeleteAllData() {
 
     const result = await response.json()
     
-    deleteMessage.value = `All data deleted successfully! ${result.deleted?.prospects || 0} prospects removed.`
+    // Count tabs before clearing
+    const savedTabs = localStorage.getItem('maplyo_tabs')
+    let tabsCount = 0
+    if (savedTabs) {
+      try {
+        const tabs = JSON.parse(savedTabs)
+        tabsCount = tabs.filter(tab => tab.id !== 'default').length
+      } catch (error) {
+        console.warn('Failed to parse tabs from localStorage:', error)
+      }
+    }
+    
+    deleteMessage.value = `All data deleted successfully! ${result.deleted?.prospects || 0} prospects and ${tabsCount} tabs removed.`
     deleteMessageType.value = 'success'
     
     // Clear all local data
