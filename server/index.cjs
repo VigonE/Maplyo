@@ -21,7 +21,8 @@ const geocoder = NodeGeocoder({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Augmenter la limite pour les imports de base de données
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('dist'));
 
 // Configuration de la base de données SQLite
@@ -682,6 +683,135 @@ app.post('/api/geocode', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Geocoding error:', error);
     res.status(500).json({ error: 'Geocoding failed' });
+  }
+});
+
+// Database management routes
+
+// Export entire database for current user
+app.get('/api/database/export', authenticateToken, (req, res) => {
+  try {
+    console.log('📋 Exporting database for user:', req.user.userId);
+
+    // Get user data
+    db.get(
+      'SELECT id, email, name, company, created_at FROM users WHERE id = ?',
+      [req.user.userId],
+      (err, user) => {
+        if (err) {
+          console.error('Error retrieving user data:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Get all prospects for the user
+        db.all(
+          'SELECT * FROM prospects WHERE user_id = ? ORDER BY created_at ASC',
+          [req.user.userId],
+          (err, prospects) => {
+            if (err) {
+              console.error('Error retrieving prospects data:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            const exportData = {
+              exportInfo: {
+                exportDate: new Date().toISOString(),
+                version: '1.0',
+                userEmail: user.email
+              },
+              users: [user],
+              prospects: prospects
+            };
+
+            console.log(`✅ Database exported successfully: ${prospects.length} prospects`);
+            res.json(exportData);
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Export failed' });
+  }
+});
+
+// Import database (replace existing data for current user)
+app.post('/api/database/import', authenticateToken, (req, res) => {
+  try {
+    console.log('📥 Importing database for user:', req.user.userId);
+    const { users, prospects } = req.body;
+
+    if (!users || !prospects || !Array.isArray(prospects)) {
+      return res.status(400).json({ error: 'Invalid import data format' });
+    }
+
+    // Start transaction by deleting existing prospects for this user
+    db.run(
+      'DELETE FROM prospects WHERE user_id = ?',
+      [req.user.userId],
+      function(deleteErr) {
+        if (deleteErr) {
+          console.error('Error deleting existing prospects:', deleteErr);
+          return res.status(500).json({ error: 'Database error during cleanup' });
+        }
+
+        console.log(`🗑️  Deleted ${this.changes} existing prospects`);
+
+        // Import prospects
+        const importPromises = prospects.map((prospect, index) => {
+          return new Promise((resolve, reject) => {
+            const {
+              name, email, phone, company, position, address, latitude, longitude,
+              status, revenue, probability_coefficient, notes, tab_id, display_order, created_at
+            } = prospect;
+
+            db.run(
+              `INSERT INTO prospects 
+               (user_id, name, email, phone, company, position, address, latitude, longitude, 
+                status, revenue, probability_coefficient, notes, tab_id, display_order, created_at, updated_at) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+              [
+                req.user.userId, name || '', email || '', phone || '', company || '',
+                position || '', address || '', latitude, longitude, status || 'cold',
+                revenue || 0, probability_coefficient || 100, notes || '',
+                tab_id || 'default', display_order || index, created_at || new Date().toISOString()
+              ],
+              function(err) {
+                if (err) {
+                  console.error(`Error importing prospect ${index + 1}:`, err);
+                  reject(err);
+                } else {
+                  resolve(this.lastID);
+                }
+              }
+            );
+          });
+        });
+
+        // Execute all imports
+        Promise.all(importPromises)
+          .then((results) => {
+            console.log(`✅ Imported ${results.length} prospects successfully`);
+            res.json({
+              message: 'Database imported successfully',
+              imported: {
+                prospects: results.length
+              }
+            });
+          })
+          .catch((error) => {
+            console.error('Error during import:', error);
+            res.status(500).json({ error: 'Import failed during data insertion' });
+          });
+      }
+    );
+  } catch (error) {
+    console.error('Import error:', error);
+    res.status(500).json({ error: 'Import failed' });
   }
 });
 
