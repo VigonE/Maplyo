@@ -108,6 +108,26 @@
           </div>
 
           <div>
+            <label for="probability" class="block text-sm font-medium text-gray-700 mb-1">
+              Probability (%)
+            </label>
+            <div class="relative">
+              <input
+                id="probability"
+                v-model.number="form.probability_coefficient"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                placeholder="100"
+                class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              />
+              <span class="absolute right-3 top-2 text-gray-500">%</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Leave empty for 100% (certain deal)</p>
+          </div>
+
+          <div>
             <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
@@ -229,6 +249,7 @@ const form = reactive({
   position: '',
   address: '',
   revenue: 0,
+  probability_coefficient: 100,
   status: 'cold',
   tabId: 'default',
   notes: ''
@@ -257,6 +278,7 @@ watch(() => props.prospect, (newLead) => {
       position: newLead.position || '',
       address: newLead.address || '',
       revenue: newLead.revenue || 0,
+      probability_coefficient: newLead.probability_coefficient || 100,
       status: newLead.status || 'cold',
       tabId: newLead.tabId || props.currentTabId || 'default',
       notes: newLead.notes || ''
@@ -271,6 +293,7 @@ watch(() => props.prospect, (newLead) => {
       position: '',
       address: '',
       revenue: 0,
+      probability_coefficient: 100,
       status: 'cold',
       tabId: props.currentTabId || 'default',
       notes: ''
@@ -314,7 +337,7 @@ async function handleSubmit() {
         ...form,
         tabId: form.tabId || props.currentTabId || 'default'
       }
-      console.log('Creating lead with data:', leadData)
+      console.log('Creating prospect with data:', prospectData)
       result = await prospectsStore.createProspect(prospectData)
     }
 

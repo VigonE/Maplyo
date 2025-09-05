@@ -520,7 +520,7 @@ const filteredProspects = computed(() => {
 // Calculer le revenu total
 const totalRevenue = computed(() => {
   const total = visibleProspectsAfterFilter.value.reduce((sum, prospect) => {
-    return sum + (prospect.revenue || 0)
+    return sum + prospectsStore.getWeightedRevenue(prospect)
   }, 0)
   return formatCurrency(total)
 })
@@ -635,7 +635,7 @@ function getProspectsByStatus(status) {
 function getCategoryRevenue(status) {
   const prospects = getProspectsByStatus(status)
   const total = prospects.reduce((sum, prospect) => {
-    return sum + (prospect.revenue || 0)
+    return sum + prospectsStore.getWeightedRevenue(prospect)
   }, 0)
   return formatCurrency(total)
 }

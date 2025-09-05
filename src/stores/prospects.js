@@ -1,10 +1,25 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import api from '@/services/api'
 
 export const useProspectsStore = defineStore('prospects', () => {
   const prospects = ref([])
   const loading = ref(false)
+
+  // Computed pour calculer le revenu pondéré par la probabilité
+  const getWeightedRevenue = (prospect) => {
+    if (!prospect.revenue) return 0
+    const probability = prospect.probability_coefficient || 100
+    return (prospect.revenue * probability) / 100
+  }
+
+  // Computed pour obtenir les prospects avec revenus pondérés
+  const prospectsWithWeightedRevenue = computed(() => {
+    return prospects.value.map(prospect => ({
+      ...prospect,
+      weightedRevenue: getWeightedRevenue(prospect)
+    }))
+  })
 
   async function fetchProspects() {
     loading.value = true
@@ -111,6 +126,8 @@ export const useProspectsStore = defineStore('prospects', () => {
   return {
     prospects,
     loading,
+    prospectsWithWeightedRevenue,
+    getWeightedRevenue,
     fetchProspects,
     createProspect,
     updateProspect,

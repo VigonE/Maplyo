@@ -47,6 +47,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 // Importer le plugin heatmap
 import 'leaflet.heat'
+import { useProspectsStore } from '../stores/prospects'
 
 const props = defineProps({
   prospects: Array,           // Prospects filtrés (pour affichage)
@@ -55,6 +56,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['select-prospect'])
+
+const prospectsStore = useProspectsStore()
 
 const mapContainer = ref(null)
 let map = null
@@ -131,29 +134,29 @@ function updateHeatmap() {
   
   // Préparer les données pour la heatmap (prospects filtrés pour l'affichage)
   const prospectsWithCoords = props.prospects.filter(prospect => 
-    prospect.latitude && prospect.longitude && prospect.revenue > 0
+    prospect.latitude && prospect.longitude && prospectsStore.getWeightedRevenue(prospect) > 0
   )
   
   if (prospectsWithCoords.length === 0) return
 
   // Calculer l'échelle basée sur les prospects VISIBLES pour avoir toujours du rouge
-  const visibleRevenues = prospectsWithCoords.map(p => parseFloat(p.revenue) || 0)
+  const visibleRevenues = prospectsWithCoords.map(p => prospectsStore.getWeightedRevenue(p))
   const visibleMaxRevenue = Math.max(...visibleRevenues)
   const visibleMinRevenue = Math.min(...visibleRevenues)
   const visibleRevenueRange = visibleMaxRevenue - visibleMinRevenue
   
   // Calculer aussi l'échelle globale pour la cohérence relative
   const allProspectsWithRevenue = (props.allProspects || props.prospects).filter(prospect => 
-    prospect.revenue > 0
+    prospectsStore.getWeightedRevenue(prospect) > 0
   )
-  const allRevenues = allProspectsWithRevenue.map(p => parseFloat(p.revenue) || 0)
+  const allRevenues = allProspectsWithRevenue.map(p => prospectsStore.getWeightedRevenue(p))
   const globalMaxRevenue = Math.max(...allRevenues)
   
   // Créer plusieurs points pour les gros revenus (effet de densité)
   const heatmapData = []
   
   prospectsWithCoords.forEach(prospect => {
-    const revenue = parseFloat(prospect.revenue) || 0
+    const revenue = prospectsStore.getWeightedRevenue(prospect)
     const lat = parseFloat(prospect.latitude)
     const lng = parseFloat(prospect.longitude)
     
@@ -252,11 +255,11 @@ function updateMarkers(prospects) {
 
   if (!prospects?.length) return
 
-  // Calculer les statistiques de revenus une seule fois pour tous les markers
-  const allRevenues = prospects.map(p => p.revenue || 0).filter(r => r > 0)
-  const revenueStats = allRevenues.length > 0 ? {
-    min: Math.min(...allRevenues),
-    max: Math.max(...allRevenues)
+  // Calculer les statistiques de revenus pondérés une seule fois pour tous les markers
+  const allWeightedRevenues = prospects.map(p => prospectsStore.getWeightedRevenue(p)).filter(r => r > 0)
+  const revenueStats = allWeightedRevenues.length > 0 ? {
+    min: Math.min(...allWeightedRevenues),
+    max: Math.max(...allWeightedRevenues)
   } : null
 
   prospects.forEach(prospect => {
@@ -273,20 +276,22 @@ function updateMarkers(prospects) {
 }
 
 function createMarker(prospect, revenueStats) {
-  // Calculer le rayon proportionnel au revenu avec une progression visuelle agréable
+  // Calculer le rayon proportionnel au revenu pondéré avec une progression visuelle agréable
   
   const minRadius = 8   // Rayon minimum pour les leads sans revenu ou très faibles
   const maxRadius = 25  // Rayon maximum pour les plus gros revenus
   
   let radius = minRadius
   
-  if (prospect.revenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
+  const weightedRevenue = prospectsStore.getWeightedRevenue(prospect)
+  
+  if (weightedRevenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
     // Calculer l'écart relatif des revenus
     const revenueRange = revenueStats.max - revenueStats.min
     const relativeRange = revenueRange / revenueStats.max // Écart relatif par rapport au max
     
-    // Normaliser le revenu entre 0 et 1
-    let normalizedRevenue = (prospect.revenue - revenueStats.min) / revenueRange
+    // Normaliser le revenu pondéré entre 0 et 1
+    let normalizedRevenue = (weightedRevenue - revenueStats.min) / revenueRange
     
     // Si l'écart relatif est très faible (moins de 10%), respecter la vraie proportion
     if (relativeRange < 0.1) {
@@ -302,8 +307,8 @@ function createMarker(prospect, revenueStats) {
     radius = minRadius + normalizedRevenue * (maxRadius - minRadius)
     
     // Debug log pour vérifier les calculs
-    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, range=${revenueRange}, relativeRange=${(relativeRange*100).toFixed(1)}%, normalized=${normalizedRevenue.toFixed(3)}, radius=${radius.toFixed(1)}`)
-  } else if (prospect.revenue > 0) {
+    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, weighted=${weightedRevenue.toFixed(2)}, range=${revenueRange}, relativeRange=${(relativeRange*100).toFixed(1)}%, normalized=${normalizedRevenue.toFixed(3)}, radius=${radius.toFixed(1)}`)
+  } else if (weightedRevenue > 0) {
     // Si tous les revenus sont identiques, utiliser un rayon moyen
     radius = (minRadius + maxRadius) / 2
   }
@@ -318,11 +323,16 @@ function createMarker(prospect, revenueStats) {
   })
 
   // Tooltip au survol
+  const hasLowerProbability = prospect.probability_coefficient && prospect.probability_coefficient < 100
+  
   const tooltipContent = `
     <div class="text-sm">
       <div class="font-bold text-gray-900 mb-1">${prospect.name}</div>
       <div class="text-gray-600 text-xs mb-1">📍 ${getCity(prospect.address)}</div>
-      <div class="text-green-700 font-semibold mb-1">💰 ${formatCurrency(prospect.revenue || 0)}</div>
+      <div class="text-green-700 font-semibold mb-1">
+        💰 ${formatCurrency(weightedRevenue)}
+        ${hasLowerProbability ? `<div class="text-xs text-gray-500">(${formatCurrency(prospect.revenue || 0)} at ${prospect.probability_coefficient}%)</div>` : ''}
+      </div>
       <div class="text-xs px-2 py-1 rounded-full bg-blue-600 text-white inline-block">${getStatusLabel(prospect.status)}</div>
     </div>
   `
@@ -340,7 +350,10 @@ function createMarker(prospect, revenueStats) {
       <h3 class="font-semibold text-lg">${prospect.name}</h3>
       <p class="text-sm text-gray-600 mb-2">${prospect.address || 'No address'}</p>
       <div class="flex justify-between items-center">
-        <span class="font-medium text-green-600">${formatCurrency(prospect.revenue || 0)}</span>
+        <div>
+          <span class="font-medium text-green-600">${formatCurrency(weightedRevenue)}</span>
+          ${hasLowerProbability ? `<div class="text-xs text-gray-500">Base: ${formatCurrency(prospect.revenue || 0)} (${prospect.probability_coefficient}%)</div>` : ''}
+        </div>
         <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">${getStatusLabel(prospect.status)}</span>
       </div>
     </div>

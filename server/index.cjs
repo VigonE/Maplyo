@@ -65,6 +65,7 @@ function initializeDatabase() {
       longitude REAL,
       status TEXT DEFAULT 'cold',
       revenue REAL DEFAULT 0,
+      probability_coefficient REAL DEFAULT 100,
       notes TEXT,
       tab_id TEXT DEFAULT 'default',
       display_order INTEGER DEFAULT 0,
@@ -93,6 +94,15 @@ function initializeDatabase() {
         console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
       } else if (!err) {
         console.log('✅ Migration applied: added display_order column');
+      }
+    });
+    
+    // Migration pour ajouter probability_coefficient aux bases de données existantes
+    db.run(`ALTER TABLE prospects ADD COLUMN probability_coefficient REAL DEFAULT 100`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
+      } else if (!err) {
+        console.log('✅ Migration applied: added probability_coefficient column');
       }
     });
     
@@ -326,7 +336,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, position, address, status, revenue, notes, tabId } = req.body;
+    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
@@ -365,12 +375,12 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes, tab_id, display_order) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             position || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, notes || '', tabId || 'default', 0 // Nouveau prospect en haut
+            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0 // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
@@ -539,7 +549,7 @@ app.put('/api/prospects/reorder', authenticateToken, (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, position, address, status, revenue, notes, tabId } = req.body;
+    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -579,12 +589,12 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, position = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
-           notes = ?, tab_id = ?, updated_at = CURRENT_TIMESTAMP
+           probability_coefficient = ?, notes = ?, tab_id = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', position || '',
             address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, notes || '', tabId || 'default', prospectId, req.user.userId
+            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', prospectId, req.user.userId
           ],
           function(err) {
             if (err) {

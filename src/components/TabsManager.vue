@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineExpose } from 'vue'
 import ProspectsList from './ProspectsList.vue'
 
 export default {
@@ -226,6 +226,12 @@ export default {
       }
     })
 
+    // Exposer les méthodes pour l'accès depuis le parent
+    defineExpose({
+      switchToTab: selectTab,
+      get activeTabId() { return activeTabId.value }
+    })
+
     return {
       tabs,
       activeTabId,
@@ -239,10 +245,4 @@ export default {
     }
   }
 }
-
-// Exposer les méthodes pour l'accès depuis le parent
-defineExpose({
-  switchToTab: selectTab,
-  get activeTabId() { return activeTabId.value }
-})
 </script>

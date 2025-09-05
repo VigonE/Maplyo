@@ -85,6 +85,7 @@ async function initDatabase() {
         latitude DECIMAL(10, 8),
         longitude DECIMAL(11, 8),
         potential_revenue DECIMAL(12, 2) NOT NULL,
+        probability_coefficient DECIMAL(5, 2) DEFAULT 100.00,
         stage ENUM('prospect', 'quote', 'order_1m', 'order_6m', 'won', 'lost') DEFAULT 'prospect',
         color VARCHAR(7) DEFAULT '#3b82f6',
         sort_order INT DEFAULT 0,
@@ -93,6 +94,20 @@ async function initDatabase() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `)
+
+    // Add probability_coefficient column if it doesn't exist (migration for existing databases)
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        ADD COLUMN probability_coefficient DECIMAL(5, 2) DEFAULT 100.00
+      `)
+      console.log('Added probability_coefficient column to prospects table')
+    } catch (error) {
+      // Column already exists or other error - ignore
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('Column probability_coefficient may already exist:', error.message)
+      }
+    }
 
     return db
   } catch (error) {
@@ -200,7 +215,19 @@ app.get('/api/prospects', authenticateToken, async (req, res) => {
 
 app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
-    const { name, address, potential_revenue, stage, color } = req.body
+    const { 
+      name, 
+      email, 
+      phone, 
+      company, 
+      position, 
+      address, 
+      revenue, 
+      probability_coefficient, 
+      status, 
+      tabId, 
+      notes 
+    } = req.body
     const db = await mysql.createConnection(dbConfig)
 
     // Geocode address
@@ -222,10 +249,11 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     )
     const sortOrder = (maxOrder[0].max_order || 0) + 1
 
-    // Insert prospect
+    // Insert prospect with probability coefficient (default to 100% if not provided)
+    const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : 100.00
     const [result] = await db.execute(
-      'INSERT INTO prospects (user_id, name, address, latitude, longitude, potential_revenue, stage, color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.id, name, address, latitude, longitude, potential_revenue, stage, color, sortOrder]
+      'INSERT INTO prospects (user_id, name, email, phone, company, position, address, latitude, longitude, revenue, probability_coefficient, status, tabId, notes, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.id, name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, sortOrder]
     )
 
     // Get created prospect
@@ -242,7 +270,19 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params
-    const { name, address, potential_revenue, stage, color } = req.body
+    const { 
+      name, 
+      email, 
+      phone, 
+      company, 
+      position, 
+      address, 
+      revenue, 
+      probability_coefficient, 
+      status, 
+      tabId, 
+      notes 
+    } = req.body
     const db = await mysql.createConnection(dbConfig)
 
     // Check ownership
@@ -272,10 +312,13 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
       }
     }
 
+    // Use existing probability coefficient if not provided
+    const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : prospect.probability_coefficient
+
     // Update prospect
     await db.execute(
-      'UPDATE prospects SET name = ?, address = ?, latitude = ?, longitude = ?, potential_revenue = ?, stage = ?, color = ? WHERE id = ? AND user_id = ?',
-      [name, address, latitude, longitude, potential_revenue, stage, color, id, req.user.id]
+      'UPDATE prospects SET name = ?, email = ?, phone = ?, company = ?, position = ?, address = ?, latitude = ?, longitude = ?, revenue = ?, probability_coefficient = ?, status = ?, tabId = ?, notes = ? WHERE id = ? AND user_id = ?',
+      [name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, id, req.user.id]
     )
 
     // Get updated prospect
