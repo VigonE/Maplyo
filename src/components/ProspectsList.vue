@@ -224,17 +224,33 @@
                           </div>
                         </div>
                         
-                        <div v-else class="bg-white border-2 border-blue-300 rounded-md p-2">
-                          <!-- Éditeur de texte riche Quill -->
-                          <QuillEditor
-                            v-model:content="tempNotes[prospect.id]"
-                            contentType="html"
-                            :options="quillOptions"
-                            @blur="saveNotes(prospect)"
-                            @keydown="handleNotesKeydown($event, prospect)"
-                            style="min-height: 120px; max-height: 300px;"
-                            class="quill-editor-compact"
-                          />
+                        <div v-else class="bg-white border-2 border-blue-300 rounded-md p-2 relative">
+                          <!-- Éditeur de texte riche Quill avec redimensionnement -->
+                          <div class="resizable-notes-editor" :class="`prospect-notes-${prospect.id}`">
+                            <QuillEditor
+                              v-model:content="tempNotes[prospect.id]"
+                              contentType="html"
+                              :options="quillOptions"
+                              @blur="saveNotes(prospect)"
+                              @keydown="handleNotesKeydown($event, prospect)"
+                              :style="{ 
+                                minHeight: '120px', 
+                                maxHeight: 'none', 
+                                height: getNotesHeight(prospect.id) 
+                              }"
+                              class="quill-editor-compact"
+                            />
+                            <!-- Poignée de redimensionnement -->
+                            <div 
+                              class="resize-handle"
+                              @mousedown="startResizeNotes($event, prospect.id)"
+                              title="Glisser pour redimensionner"
+                            >
+                              <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                              </svg>
+                            </div>
+                          </div>
                           <div class="flex justify-end gap-1 mt-2">
                             <button
                               @click.stop="saveNotes(prospect)"
@@ -330,6 +346,8 @@ const tempRevenue = ref({}) // { prospectId: newAmount }
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
 const tempNotes = ref({}) // { prospectId: newNotes }
+const notesHeight = ref({}) // { prospectId: height in pixels }
+const isResizingNotes = ref({}) // { prospectId: true/false }
 
 // Configuration pour QuillEditor
 const quillOptions = {
@@ -698,6 +716,11 @@ function startEditingNotes(prospect) {
   editingNotes.value[prospect.id] = true
   tempNotes.value[prospect.id] = prospect.notes || ''
   
+  // Initialiser la hauteur par défaut si elle n'existe pas
+  if (!notesHeight.value[prospect.id]) {
+    notesHeight.value[prospect.id] = '150px'
+  }
+  
   // Auto-focus sur le champ textarea
   nextTick(() => {
     const textarea = document.querySelector(`textarea[data-prospect-notes-id="${prospect.id}"]`)
@@ -706,6 +729,34 @@ function startEditingNotes(prospect) {
       textarea.select()
     }
   })
+}
+
+function getNotesHeight(prospectId) {
+  return notesHeight.value[prospectId] || '150px'
+}
+
+function startResizeNotes(event, prospectId) {
+  isResizingNotes.value[prospectId] = true
+  const startY = event.clientY
+  const startHeight = parseInt(getNotesHeight(prospectId))
+  
+  const doResize = (e) => {
+    if (!isResizingNotes.value[prospectId]) return
+    
+    const deltaY = e.clientY - startY
+    const newHeight = Math.max(120, Math.min(500, startHeight + deltaY))
+    notesHeight.value[prospectId] = `${newHeight}px`
+  }
+  
+  const stopResize = () => {
+    isResizingNotes.value[prospectId] = false
+    document.removeEventListener('mousemove', doResize)
+    document.removeEventListener('mouseup', stopResize)
+  }
+  
+  document.addEventListener('mousemove', doResize)
+  document.addEventListener('mouseup', stopResize)
+  event.preventDefault()
 }
 
 function cancelEditingNotes(prospectId) {
@@ -871,6 +922,37 @@ function formatCurrency(amount) {
   }
 }
 
+/* Styles pour l'éditeur de notes redimensionnable */
+.resizable-notes-editor {
+  position: relative;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.resize-handle:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.resize-handle:hover svg {
+  color: #3b82f6;
+}
+
 /* Styles pour QuillEditor compact */
 .quill-editor-compact :deep(.ql-toolbar) {
   border: 1px solid #d1d5db;
@@ -889,10 +971,10 @@ function formatCurrency(amount) {
 }
 
 .quill-editor-compact :deep(.ql-editor) {
-  min-height: 60px;
-  max-height: 200px;
+  min-height: 80px;
   overflow-y: auto;
-  padding: 8px;
+  padding: 8px 20px 8px 8px; /* Padding à droite pour la poignée */
+  resize: none; /* Désactiver le resize par défaut */
 }
 
 .quill-editor-compact :deep(.ql-toolbar button) {
