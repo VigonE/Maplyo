@@ -180,6 +180,26 @@
               </div>
             </div>
 
+            <!-- Danger Zone -->
+            <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+              <h4 class="text-md font-medium text-red-800 mb-3">🚨 Danger Zone</h4>
+              
+              <div class="space-y-2">
+                <button
+                  @click="openDeleteAllDataModal"
+                  :disabled="deleteLoading"
+                  class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="!deleteLoading" class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {{ deleteLoading ? 'Deleting...' : 'Delete All Data' }}
+                </button>
+                <p class="text-xs text-red-700">Permanently delete all your prospects, tabs, and data. This action cannot be undone.</p>
+              </div>
+            </div>
+
             <!-- Status Messages -->
             <div v-if="systemMessage" class="p-3 rounded-md" :class="systemMessageType === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
               <div class="flex">
@@ -191,6 +211,99 @@
                 </svg>
                 <div class="ml-3">
                   <p class="text-sm">{{ systemMessage }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete All Data Confirmation Modal -->
+    <div
+      v-if="showDeleteAllModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
+      style="z-index: 10000;"
+      @click="closeDeleteAllModal"
+    >
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" @click.stop>
+        <div class="mt-3">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-red-600">
+              ⚠️ Delete All Data
+            </h3>
+            <button @click="closeDeleteAllModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Warning Message -->
+            <div class="p-4 bg-red-50 border border-red-200 rounded-md">
+              <div class="flex">
+                <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div class="ml-3">
+                  <h4 class="text-sm font-medium text-red-800">DANGER: This action cannot be undone!</h4>
+                  <div class="mt-2 text-sm text-red-700">
+                    <p>This will permanently delete:</p>
+                    <ul class="list-disc list-inside mt-1">
+                      <li>All your prospects ({{ prospectsStore.prospects.length }} prospects)</li>
+                      <li>All custom tabs and categories</li>
+                      <li>All notes and data</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Confirmation Input -->
+            <div>
+              <label for="confirmText" class="block text-sm font-medium text-gray-700 mb-2">
+                To confirm deletion, type: <code class="bg-gray-100 px-2 py-1 rounded text-red-600 font-mono">sudo delete all</code>
+              </label>
+              <input
+                id="confirmText"
+                v-model="deleteConfirmText"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
+                placeholder="Type confirmation text here..."
+                @keyup.enter="confirmDeleteAllData"
+              />
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                @click="closeDeleteAllModal"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                @click="confirmDeleteAllData"
+                :disabled="deleteConfirmText !== 'sudo delete all' || deleteLoading"
+                class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ deleteLoading ? 'Deleting...' : 'Delete All Data' }}
+              </button>
+            </div>
+
+            <!-- Delete Status Messages -->
+            <div v-if="deleteMessage" class="p-3 rounded-md" :class="deleteMessageType === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'">
+              <div class="flex">
+                <svg v-if="deleteMessageType === 'success'" class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <svg v-else class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div class="ml-3">
+                  <p class="text-sm">{{ deleteMessage }}</p>
                 </div>
               </div>
             </div>
@@ -287,6 +400,11 @@ const tabsManager = ref(null)
 const currentTabId = ref('default')
 const showSettingsMenu = ref(false)
 const showSystemSettings = ref(false)
+const showDeleteAllModal = ref(false)
+const deleteConfirmText = ref('')
+const deleteLoading = ref(false)
+const deleteMessage = ref('')
+const deleteMessageType = ref('success') // 'success' or 'error'
 const exportLoading = ref(false)
 const importLoading = ref(false)
 const systemMessage = ref('')
@@ -608,6 +726,80 @@ async function handleDatabaseImport(event) {
   } finally {
     importLoading.value = false
     event.target.value = '' // Reset the file input
+  }
+}
+
+// Delete All Data functions
+function openDeleteAllDataModal() {
+  showSystemSettings.value = false
+  showDeleteAllModal.value = true
+  deleteConfirmText.value = ''
+  deleteMessage.value = ''
+}
+
+function closeDeleteAllModal() {
+  showDeleteAllModal.value = false
+  deleteConfirmText.value = ''
+  deleteMessage.value = ''
+}
+
+async function confirmDeleteAllData() {
+  if (deleteConfirmText.value !== 'sudo delete all') {
+    deleteMessage.value = 'Please type the exact confirmation text: sudo delete all'
+    deleteMessageType.value = 'error'
+    return
+  }
+
+  deleteLoading.value = true
+  deleteMessage.value = ''
+
+  try {
+    const response = await fetch('/api/database/delete-all', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Delete failed: ${response.statusText}`
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorMessage
+      } catch (parseError) {
+        const responseText = await response.text()
+        if (responseText.includes('<!DOCTYPE')) {
+          errorMessage = 'Server error occurred. Please check that the server is running and try again.'
+        } else {
+          errorMessage = responseText || errorMessage
+        }
+      }
+      throw new Error(errorMessage)
+    }
+
+    const result = await response.json()
+    
+    deleteMessage.value = `All data deleted successfully! ${result.deleted?.prospects || 0} prospects removed.`
+    deleteMessageType.value = 'success'
+    
+    // Clear all local data
+    prospectsStore.prospects = []
+    
+    // Clear tabs from localStorage
+    localStorage.removeItem('maplyo_tabs')
+    
+    // Refresh the page after a short delay to show the success message
+    setTimeout(() => {
+      closeDeleteAllModal()
+      window.location.reload()
+    }, 2000)
+    
+  } catch (error) {
+    console.error('Delete error:', error)
+    deleteMessage.value = `Delete failed: ${error.message}`
+    deleteMessageType.value = 'error'
+  } finally {
+    deleteLoading.value = false
   }
 }
 

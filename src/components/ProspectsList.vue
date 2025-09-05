@@ -8,7 +8,7 @@
           <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Weighted Total: {{ totalRevenue }}</p>
         </div>
         <button
-          @click="$emit('add-lead')"
+          @click="$emit('add-prospect')"
           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
         >
           Add

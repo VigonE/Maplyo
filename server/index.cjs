@@ -815,6 +815,38 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
   }
 });
 
+// Delete all data for current user
+app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
+  try {
+    console.log('🗑️  Deleting all data for user:', req.user.userId);
+
+    // Delete all prospects for this user
+    db.run(
+      'DELETE FROM prospects WHERE user_id = ?',
+      [req.user.userId],
+      function(err) {
+        if (err) {
+          console.error('Error deleting all prospects:', err);
+          return res.status(500).json({ error: 'Database error during deletion' });
+        }
+
+        const deletedProspects = this.changes;
+        console.log(`🗑️  Deleted ${deletedProspects} prospects for user ${req.user.userId}`);
+
+        res.json({
+          message: 'All data deleted successfully',
+          deleted: {
+            prospects: deletedProspects
+          }
+        });
+      }
+    );
+  } catch (error) {
+    console.error('Delete all error:', error);
+    res.status(500).json({ error: 'Delete operation failed' });
+  }
+});
+
 // Route de test
 app.get('/api/test', (req, res) => {
   res.json({ 
