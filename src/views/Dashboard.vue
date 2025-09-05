@@ -83,6 +83,7 @@
     <div class="flex-1 min-h-0">
       <MapView
         :prospects="filteredProspectsForMap"
+        :all-prospects="prospectsStore.prospects"
         :selected-prospect="selectedProspect"
         @select-prospect="selectProspect"
       />

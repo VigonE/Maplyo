@@ -29,7 +29,8 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet.heat'
 
 const props = defineProps({
-  prospects: Array,
+  prospects: Array,           // Prospects filtrés (pour affichage)
+  allProspects: Array,       // Tous les prospects (pour échelle de couleur)
   selectedProspect: Object
 })
 
@@ -107,18 +108,25 @@ function updateHeatmap() {
   
   clearHeatmap()
   
-  // Préparer les données pour la heatmap
+  // Préparer les données pour la heatmap (prospects filtrés pour l'affichage)
   const prospectsWithCoords = props.prospects.filter(prospect => 
     prospect.latitude && prospect.longitude && prospect.revenue > 0
   )
   
   if (prospectsWithCoords.length === 0) return
 
-  // Calculer la valeur maximale et minimale de revenu pour une normalisation relative
-  const revenues = prospectsWithCoords.map(p => parseFloat(p.revenue) || 0)
-  const maxRevenue = Math.max(...revenues)
-  const minRevenue = Math.min(...revenues)
-  const revenueRange = maxRevenue - minRevenue
+  // Calculer l'échelle basée sur les prospects VISIBLES pour avoir toujours du rouge
+  const visibleRevenues = prospectsWithCoords.map(p => parseFloat(p.revenue) || 0)
+  const visibleMaxRevenue = Math.max(...visibleRevenues)
+  const visibleMinRevenue = Math.min(...visibleRevenues)
+  const visibleRevenueRange = visibleMaxRevenue - visibleMinRevenue
+  
+  // Calculer aussi l'échelle globale pour la cohérence relative
+  const allProspectsWithRevenue = (props.allProspects || props.prospects).filter(prospect => 
+    prospect.revenue > 0
+  )
+  const allRevenues = allProspectsWithRevenue.map(p => parseFloat(p.revenue) || 0)
+  const globalMaxRevenue = Math.max(...allRevenues)
   
   // Créer plusieurs points pour les gros revenus (effet de densité)
   const heatmapData = []
@@ -128,16 +136,33 @@ function updateHeatmap() {
     const lat = parseFloat(prospect.latitude)
     const lng = parseFloat(prospect.longitude)
     
-    // Normalisation relative basée sur la plage de revenus actuelle
-    let normalizedIntensity
-    if (revenueRange === 0) {
-      normalizedIntensity = 0.7  // Si tous les revenus sont identiques, intensité modérée
+    let intensity
+    
+    if (visibleRevenueRange === 0) {
+      // Tous les revenus visibles sont identiques
+      intensity = 0.9  // Plus élevé pour être visible
     } else {
-      normalizedIntensity = (revenue - minRevenue) / revenueRange
+      // Normalisation hybride : basée sur les visibles mais avec influence globale
+      const visibleNormalized = (revenue - visibleMinRevenue) / visibleRevenueRange
+      const globalNormalized = revenue / globalMaxRevenue
+      
+      // Mélange : 70% basé sur les visibles, 30% sur l'échelle globale
+      // Cela garantit que le max visible soit proche de rouge, mais garde une cohérence
+      const hybridNormalized = (visibleNormalized * 0.7) + (globalNormalized * 0.3)
+      
+      // S'assurer que le max visible atteigne au moins 0.9 (rouge vif)
+      const minIntensityForMax = 0.9
+      const adjustedNormalized = hybridNormalized * (1 - minIntensityForMax) + 
+                                 (visibleNormalized * minIntensityForMax)
+      
+      // Intensité plus élevée avec minimum à 0.4 pour éviter le violet fade
+      intensity = Math.pow(adjustedNormalized, 0.6) * 0.6 + 0.4
     }
     
-    // Amplifier l'intensité pour plus de contraste mais avec plus de douceur
-    const intensity = Math.pow(normalizedIntensity, 0.7) * 0.8 + 0.2 // Entre 0.2 et 1.0
+    // Garantir que le prospect avec le plus gros revenu visible soit au moins à 0.95
+    if (revenue === visibleMaxRevenue) {
+      intensity = Math.max(intensity, 0.95)
+    }
     
     // Réduire le nombre de points multiples pour un lissage plus naturel
     const numPoints = Math.max(1, Math.floor(intensity * 2) + 1)
@@ -159,19 +184,21 @@ function updateHeatmap() {
     heatmapLayer = L.heatLayer(heatmapData, {
       radius: 50,        // Rayon plus large pour plus de lissage
       blur: 30,          // Plus de flou pour un lissage plus doux
-      maxZoom: 17,
-      max: 1.0,
-      minOpacity: 0.2,   // Opacité minimum réduite pour plus de transparence
+      maxZoom: 18,       // Zoom max plus élevé
+      minOpacity: 0.3,   // Opacité minimum plus élevée pour éviter le violet fade
+      max: 0.9,          // Max plus bas pour forcer plus d'intensité
       gradient: {
-        0.0: 'rgba(0, 50, 255, 0.1)',   // Bleu très transparent
-        0.2: 'rgba(0, 100, 255, 0.3)',  // Bleu léger
-        0.4: 'rgba(0, 200, 100, 0.4)',  // Vert-bleu transparent
-        0.5: 'rgba(255, 255, 0, 0.5)',  // Jaune semi-transparent
-        0.6: 'rgba(255, 150, 0, 0.6)',  // Orange modéré
-        0.7: 'rgba(255, 80, 0, 0.7)',   // Orange-rouge
-        0.8: 'rgba(255, 20, 0, 0.8)',   // Rouge vif mais pas opaque
-        0.9: 'rgba(255, 0, 0, 0.9)',    // Rouge intense
-        1.0: 'rgba(200, 0, 0, 0.9)'     // Rouge foncé mais pas complètement opaque
+        0.0: 'rgba(0, 50, 255, 0.2)',   // Bleu transparent
+        0.1: 'rgba(0, 100, 255, 0.4)',  // Bleu léger
+        0.2: 'rgba(0, 150, 255, 0.5)',  // Bleu plus visible
+        0.3: 'rgba(0, 200, 150, 0.6)',  // Vert-bleu
+        0.4: 'rgba(100, 255, 100, 0.7)', // Vert clair
+        0.5: 'rgba(255, 255, 0, 0.8)',  // Jaune vif
+        0.6: 'rgba(255, 180, 0, 0.85)', // Orange
+        0.7: 'rgba(255, 100, 0, 0.9)',  // Orange-rouge
+        0.8: 'rgba(255, 20, 0, 0.95)',  // Rouge vif
+        0.9: 'rgba(255, 0, 0, 1.0)',    // Rouge intense
+        1.0: 'rgba(200, 0, 0, 1.0)'     // Rouge foncé
       }
     }).addTo(map)
   }
