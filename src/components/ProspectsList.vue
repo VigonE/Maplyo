@@ -328,7 +328,7 @@
 
   <!-- Modale pour afficher les notes en plein écran -->
   <div v-if="showNotesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click="closeNotesModal">
-    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] m-4 flex flex-col" @click.stop>
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] m-4 flex flex-col" @click.stop>
       <!-- En-tête de la modale -->
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center gap-3">
@@ -343,7 +343,26 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <!-- Bouton Toggle Edit/View -->
+          <!-- Boutons en mode édition -->
+          <template v-if="isEditingInModal">
+            <button
+              @click="cancelEditingInModal"
+              class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              @click="saveNotesFromModal"
+              class="px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Save
+            </button>
+          </template>
+          
+          <!-- Bouton Toggle Edit/View en mode lecture -->
           <button
             v-if="!isEditingInModal"
             @click="startEditingInModal"
@@ -354,6 +373,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
+          
+          <!-- Bouton fermer -->
           <button
             @click="closeNotesModal"
             class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -392,54 +413,6 @@
               class="h-full"
               @keydown="handleModalNotesKeydown"
             />
-          </div>
-        </div>
-      </div>
-
-      <!-- Pied de page avec actions -->
-      <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg">
-        <div class="flex items-center justify-between">
-          <div class="text-sm text-gray-500">
-            Press <kbd class="px-2 py-1 bg-white border border-gray-200 rounded text-xs">Esc</kbd> to close
-          </div>
-          <div class="flex gap-3">
-            <!-- Mode lecture -->
-            <template v-if="!isEditingInModal">
-              <button
-                @click="closeNotesModal"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Close
-              </button>
-              <button
-                @click="startEditingInModal"
-                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Notes
-              </button>
-            </template>
-            
-            <!-- Mode édition -->
-            <template v-else>
-              <button
-                @click="cancelEditingInModal"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                @click="saveNotesFromModal"
-                class="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Save Changes
-              </button>
-            </template>
           </div>
         </div>
       </div>
