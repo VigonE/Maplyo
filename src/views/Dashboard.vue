@@ -129,6 +129,27 @@
   background-color: #3b82f6;
 }
 
+/* Effet de mise en évidence pour le prospect sélectionné depuis la carte */
+:deep(.highlight-prospect) {
+  animation: highlight-pulse 2s ease-in-out;
+  transform: scale(1.02);
+}
+
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.3);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    background-color: transparent;
+  }
+}
+
 /* Responsive breakpoints personnalisés si nécessaire */
 @media (max-width: 768px) {
   .mobile-toggle {
@@ -138,7 +159,7 @@
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
@@ -264,6 +285,45 @@ onUnmounted(() => {
 
 function selectProspect(prospect) {
   selectedProspect.value = prospect
+  
+  // Scroll vers le prospect dans la liste
+  scrollToProspectInList(prospect)
+}
+
+async function scrollToProspectInList(prospect) {
+  // Vérifier dans quel onglet se trouve le prospect
+  const prospectTabId = prospect.tabId || prospect.tab_id || 'default'
+  
+  // Basculer vers l'onglet approprié si nécessaire
+  if (tabsManager.value && currentTabId.value !== prospectTabId) {
+    // Changer d'onglet
+    tabsManager.value.switchToTab(prospectTabId)
+    currentTabId.value = prospectTabId
+    
+    // Attendre que le DOM soit mis à jour
+    await nextTick()
+  }
+  
+  // Attendre un peu plus pour s'assurer que les composants sont rendus
+  setTimeout(() => {
+    // Trouver l'élément prospect dans la liste
+    const prospectElement = document.querySelector(`[data-prospect-id="${prospect.id}"]`)
+    
+    if (prospectElement) {
+      // Scroller vers l'élément avec un comportement smooth
+      prospectElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      })
+      
+      // Ajouter un effet visuel temporaire pour mettre en évidence le prospect
+      prospectElement.classList.add('highlight-prospect')
+      setTimeout(() => {
+        prospectElement.classList.remove('highlight-prospect')
+      }, 2000)
+    }
+  }, 200)
 }
 
 function editProspect(prospect) {

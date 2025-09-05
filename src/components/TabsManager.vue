@@ -239,4 +239,10 @@ export default {
     }
   }
 }
+
+// Exposer les méthodes pour l'accès depuis le parent
+defineExpose({
+  switchToTab: selectTab,
+  get activeTabId() { return activeTabId.value }
+})
 </script>
