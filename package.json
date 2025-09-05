@@ -17,6 +17,7 @@
     "autoprefixer": "^10.4.16",
     "axios": "^1.6.0",
     "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "pinia": "^2.1.7",
     "postcss": "^8.4.32",
     "quill": "^2.0.3",

@@ -1,5 +1,22 @@
 <template>
   <div class="h-full relative">
+    <!-- Bouton de contrôle de la heatmap -->
+    <div class="absolute top-4 right-4 z-[1000]">
+      <button
+        @click="toggleHeatmap"
+        :class="{
+          'bg-blue-600 text-white': showHeatmap,
+          'bg-white text-gray-700 hover:bg-gray-50': !showHeatmap
+        }"
+        class="px-3 py-2 rounded-lg shadow-lg border transition-colors duration-200 flex items-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        {{ showHeatmap ? 'Masquer Heatmap' : 'Voir Heatmap' }}
+      </button>
+    </div>
     <div ref="mapContainer" class="h-full w-full"></div>
   </div>
 </template>
@@ -7,6 +24,9 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
 import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+// Importer le plugin heatmap
+import 'leaflet.heat'
 
 const props = defineProps({
   prospects: Array,
@@ -18,6 +38,8 @@ const emit = defineEmits(['select-prospect'])
 const mapContainer = ref(null)
 let map = null
 const markers = new Map()
+let heatmapLayer = null
+const showHeatmap = ref(false)
 
 onMounted(async () => {
   await nextTick()
@@ -26,12 +48,16 @@ onMounted(async () => {
 
 watch(() => props.prospects, (newProspects) => {
   if (map) {
-    updateMarkers(newProspects)
+    if (showHeatmap.value) {
+      updateHeatmap()
+    } else {
+      updateMarkers(newProspects)
+    }
   }
 }, { deep: true })
 
 watch(() => props.selectedProspect, (prospect) => {
-  if (map && prospect && markers.has(prospect.id)) {
+  if (map && prospect && markers.has(prospect.id) && !showHeatmap.value) {
     const marker = markers.get(prospect.id)
     map.setView(marker.getLatLng(), 14)
     marker.openPopup()
@@ -62,14 +88,116 @@ function initMap() {
   updateMarkers(props.prospects)
 }
 
-function updateMarkers(prospects) {
-  if (!map) return
+function toggleHeatmap() {
+  showHeatmap.value = !showHeatmap.value
+  
+  if (showHeatmap.value) {
+    // Cacher les marqueurs et afficher la heatmap
+    clearMarkers()
+    updateHeatmap()
+  } else {
+    // Cacher la heatmap et afficher les marqueurs
+    clearHeatmap()
+    updateMarkers(props.prospects)
+  }
+}
 
-  // Clear existing markers
+function updateHeatmap() {
+  if (!map || !props.prospects) return
+  
+  clearHeatmap()
+  
+  // Préparer les données pour la heatmap
+  const prospectsWithCoords = props.prospects.filter(prospect => 
+    prospect.latitude && prospect.longitude && prospect.revenue > 0
+  )
+  
+  if (prospectsWithCoords.length === 0) return
+
+  // Calculer la valeur maximale et minimale de revenu pour une normalisation relative
+  const revenues = prospectsWithCoords.map(p => parseFloat(p.revenue) || 0)
+  const maxRevenue = Math.max(...revenues)
+  const minRevenue = Math.min(...revenues)
+  const revenueRange = maxRevenue - minRevenue
+  
+  // Créer plusieurs points pour les gros revenus (effet de densité)
+  const heatmapData = []
+  
+  prospectsWithCoords.forEach(prospect => {
+    const revenue = parseFloat(prospect.revenue) || 0
+    const lat = parseFloat(prospect.latitude)
+    const lng = parseFloat(prospect.longitude)
+    
+    // Normalisation relative basée sur la plage de revenus actuelle
+    let normalizedIntensity
+    if (revenueRange === 0) {
+      normalizedIntensity = 0.7  // Si tous les revenus sont identiques, intensité modérée
+    } else {
+      normalizedIntensity = (revenue - minRevenue) / revenueRange
+    }
+    
+    // Amplifier l'intensité pour plus de contraste mais avec plus de douceur
+    const intensity = Math.pow(normalizedIntensity, 0.7) * 0.8 + 0.2 // Entre 0.2 et 1.0
+    
+    // Réduire le nombre de points multiples pour un lissage plus naturel
+    const numPoints = Math.max(1, Math.floor(intensity * 2) + 1)
+    
+    for (let i = 0; i < numPoints; i++) {
+      // Décalage plus important pour un effet plus lissé
+      const latOffset = (Math.random() - 0.5) * 0.004
+      const lngOffset = (Math.random() - 0.5) * 0.004
+      
+      heatmapData.push([
+        lat + latOffset,
+        lng + lngOffset,
+        intensity
+      ])
+    }
+  })
+
+  if (heatmapData.length > 0) {
+    heatmapLayer = L.heatLayer(heatmapData, {
+      radius: 50,        // Rayon plus large pour plus de lissage
+      blur: 30,          // Plus de flou pour un lissage plus doux
+      maxZoom: 17,
+      max: 1.0,
+      minOpacity: 0.2,   // Opacité minimum réduite pour plus de transparence
+      gradient: {
+        0.0: 'rgba(0, 50, 255, 0.1)',   // Bleu très transparent
+        0.2: 'rgba(0, 100, 255, 0.3)',  // Bleu léger
+        0.4: 'rgba(0, 200, 100, 0.4)',  // Vert-bleu transparent
+        0.5: 'rgba(255, 255, 0, 0.5)',  // Jaune semi-transparent
+        0.6: 'rgba(255, 150, 0, 0.6)',  // Orange modéré
+        0.7: 'rgba(255, 80, 0, 0.7)',   // Orange-rouge
+        0.8: 'rgba(255, 20, 0, 0.8)',   // Rouge vif mais pas opaque
+        0.9: 'rgba(255, 0, 0, 0.9)',    // Rouge intense
+        1.0: 'rgba(200, 0, 0, 0.9)'     // Rouge foncé mais pas complètement opaque
+      }
+    }).addTo(map)
+  }
+}
+
+function clearHeatmap() {
+  if (heatmapLayer && map) {
+    map.removeLayer(heatmapLayer)
+    heatmapLayer = null
+  }
+}
+
+function clearMarkers() {
   markers.forEach(marker => {
-    map.removeLayer(marker)
+    if (map.hasLayer(marker)) {
+      map.removeLayer(marker)
+    }
   })
   markers.clear()
+}
+
+function updateMarkers(prospects) {
+  if (!map || showHeatmap.value) return
+
+  // Clear existing markers
+  clearMarkers()
 
   if (!prospects?.length) return
 
