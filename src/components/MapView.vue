@@ -17,6 +17,26 @@
         {{ showHeatmap ? 'Masquer Heatmap' : 'Voir Heatmap' }}
       </button>
     </div>
+    
+    <!-- Slider de densité de couleur -->
+    <div v-if="showHeatmap" class="absolute top-20 right-4 z-[1000] bg-white rounded-lg shadow-lg border p-3 min-w-[200px]">
+      <div class="text-sm font-medium text-gray-700 mb-2">Intensité des couleurs</div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-500">Faible</span>
+        <input
+          v-model="colorIntensity"
+          @input="updateHeatmap"
+          type="range"
+          min="0.3"
+          max="2.0"
+          step="0.1"
+          class="flex-1 h-2 bg-gradient-to-r from-blue-200 via-yellow-200 to-red-400 rounded-lg appearance-none cursor-pointer"
+        />
+        <span class="text-xs text-gray-500">Forte</span>
+      </div>
+      <div class="text-xs text-gray-500 mt-1 text-center">{{ colorIntensity }}</div>
+    </div>
+    
     <div ref="mapContainer" class="h-full w-full"></div>
   </div>
 </template>
@@ -41,6 +61,7 @@ let map = null
 const markers = new Map()
 let heatmapLayer = null
 const showHeatmap = ref(false)
+const colorIntensity = ref(1.0)  // Valeur par défaut du slider
 
 onMounted(async () => {
   await nextTick()
@@ -159,9 +180,12 @@ function updateHeatmap() {
       intensity = Math.pow(adjustedNormalized, 0.6) * 0.6 + 0.4
     }
     
+    // Appliquer le multiplicateur d'intensité du slider
+    intensity = Math.min(1.0, intensity * colorIntensity.value)
+    
     // Garantir que le prospect avec le plus gros revenu visible soit au moins à 0.95
     if (revenue === visibleMaxRevenue) {
-      intensity = Math.max(intensity, 0.95)
+      intensity = Math.max(intensity, 0.95 * Math.min(1.0, colorIntensity.value))
     }
     
     // Réduire le nombre de points multiples pour un lissage plus naturel
@@ -185,8 +209,8 @@ function updateHeatmap() {
       radius: 50,        // Rayon plus large pour plus de lissage
       blur: 30,          // Plus de flou pour un lissage plus doux
       maxZoom: 18,       // Zoom max plus élevé
-      minOpacity: 0.3,   // Opacité minimum plus élevée pour éviter le violet fade
-      max: 0.9,          // Max plus bas pour forcer plus d'intensité
+      minOpacity: Math.max(0.1, 0.3 * colorIntensity.value),   // Opacité minimum adaptée au slider
+      max: Math.max(0.5, 0.9 / colorIntensity.value),          // Max adapté pour équilibrer
       gradient: {
         0.0: 'rgba(0, 50, 255, 0.2)',   // Bleu transparent
         0.1: 'rgba(0, 100, 255, 0.4)',  // Bleu léger
@@ -385,6 +409,58 @@ function getCity(address) {
   return words.slice(-2).join(' ')
 }
 </script>
+
+<style>
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
+/* Style du slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: linear-gradient(to right, #3b82f6, #eab308, #ef4444);
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ffffff;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 2px solid #374151;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-track {
+  background: linear-gradient(to right, #3b82f6, #eab308, #ef4444);
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: #ffffff;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 2px solid #374151;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+</style>
 
 <style>
 .leaflet-popup-content-wrapper {
