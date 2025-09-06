@@ -54,7 +54,7 @@
             </div>
             
             <button
-              @click="authStore.logout"
+              @click="handleLogout"
               class="text-gray-500 hover:text-gray-700"
               title="Logout"
             >
@@ -383,12 +383,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import ProspectModal from '@/components/ProspectModal.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const prospectsStore = useProspectsStore()
 
@@ -1013,6 +1015,12 @@ function handleClickOutside(event) {
   if (!event.target.closest('.relative')) {
     showSettingsMenu.value = false
   }
+}
+
+// Méthode de déconnexion avec redirection
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
 }
 
 onMounted(async () => {

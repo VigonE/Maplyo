@@ -153,7 +153,6 @@
               v-model="form.tabId"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="default">All leads</option>
               <option v-for="tab in availableTabs" :key="tab.id" :value="tab.id">
                 {{ tab.name }}
               </option>
@@ -205,6 +204,8 @@
 <script setup>
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProspectsStore } from '@/stores/prospects'
+import { useAuthStore } from '@/stores/auth'
+import axios from 'axios'
 
 const props = defineProps({
   show: Boolean,
@@ -220,22 +221,36 @@ const emit = defineEmits(['close', 'save'])
 const loading = ref(false)
 const error = ref('')
 const availableTabsRef = ref([])
+const authStore = useAuthStore()
 
-// Fonction pour charger les onglets
-const loadAvailableTabs = () => {
-  const savedTabs = localStorage.getItem('maplyo_tabs')
-  if (savedTabs) {
-    availableTabsRef.value = JSON.parse(savedTabs).filter(tab => tab.id !== 'default')
-  } else {
+// Fonction pour charger les onglets depuis l'API
+const loadAvailableTabs = async () => {
+  try {
+    console.log('📋 Loading available tabs from API...')
+    const response = await axios.get('/api/tabs', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    // Filtrer pour ne garder que les onglets non-spéciaux pour l'assignation
+    availableTabsRef.value = response.data.filter(tab => !tab.is_special)
+    console.log('📋 Available tabs for assignment:', availableTabsRef.value)
+    
+    // Si on crée un nouveau prospect et qu'on n'a pas encore de tabId, utiliser le premier onglet disponible
+    if (!props.prospect && !form.tabId && availableTabsRef.value.length > 0) {
+      // Essayer d'utiliser l'onglet actuel ou le premier disponible
+      const defaultTab = availableTabsRef.value.find(t => t.id === props.currentTabId) || availableTabsRef.value[0]
+      form.tabId = defaultTab.id
+      console.log('📋 Set default tab for new prospect:', defaultTab.name)
+    }
+  } catch (error) {
+    console.error('❌ Error loading tabs:', error)
     availableTabsRef.value = []
   }
 }
 
-// Écouter les changements dans localStorage
-const handleStorageChange = (event) => {
-  if (event.key === 'maplyo_tabs') {
-    loadAvailableTabs()
-  }
+// Écouter les changements d'onglets
+const handleTabsChanged = () => {
+  console.log('📋 ProspectModal: Received tabsChanged event, reloading tabs')
+  loadAvailableTabs()
 }
 
 // Computed pour les onglets disponibles
@@ -251,21 +266,18 @@ const form = reactive({
   revenue: 0,
   probability_coefficient: 100,
   status: 'cold',
-  tabId: 'default',
+  tabId: '',
   notes: ''
 })
 
 // Lifecycle hooks
 onMounted(() => {
   loadAvailableTabs()
-  window.addEventListener('storage', handleStorageChange)
-  // Écouter aussi les événements customEvent pour les changements dans la même page
-  window.addEventListener('tabsChanged', loadAvailableTabs)
+  window.addEventListener('tabsChanged', handleTabsChanged)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('storage', handleStorageChange)
-  window.removeEventListener('tabsChanged', loadAvailableTabs)
+  window.removeEventListener('tabsChanged', handleTabsChanged)
 })
 
 watch(() => props.prospect, (newLead) => {
@@ -280,7 +292,7 @@ watch(() => props.prospect, (newLead) => {
       revenue: newLead.revenue || 0,
       probability_coefficient: newLead.probability_coefficient || 100,
       status: newLead.status || 'cold',
-      tabId: newLead.tabId || props.currentTabId || 'default',
+      tabId: newLead.tab_id || newLead.tabId || '',
       notes: newLead.notes || ''
     })
   } else {
@@ -295,18 +307,26 @@ watch(() => props.prospect, (newLead) => {
       revenue: 0,
       probability_coefficient: 100,
       status: 'cold',
-      tabId: props.currentTabId || 'default',
+      tabId: '',
       notes: ''
     })
+    // Re-set default tab for new prospect
+    if (availableTabsRef.value.length > 0) {
+      const defaultTab = availableTabsRef.value.find(t => t.id === props.currentTabId) || availableTabsRef.value[0]
+      form.tabId = defaultTab.id
+    }
   }
 }, { immediate: true })
 
 // Watch pour currentTabId
 watch(() => props.currentTabId, (newTabId) => {
-  if (!props.prospect && newTabId) {
-    // Pour un nouveau lead, mettre à jour le tabId
-    form.tabId = newTabId
-    console.log('Updated form tabId to:', newTabId)
+  if (!props.prospect && newTabId && availableTabsRef.value.length > 0) {
+    // Pour un nouveau lead, mettre à jour le tabId si l'onglet existe
+    const targetTab = availableTabsRef.value.find(t => t.id === newTabId)
+    if (targetTab) {
+      form.tabId = targetTab.id
+      console.log('Updated form tabId to:', targetTab.id)
+    }
   }
 })
 
@@ -335,7 +355,7 @@ async function handleSubmit() {
       // Mode création
       const prospectData = { 
         ...form,
-        tabId: form.tabId || props.currentTabId || 'default'
+        tabId: form.tabId || (availableTabsRef.value.length > 0 ? availableTabsRef.value[0].id : '')
       }
       console.log('Creating prospect with data:', prospectData)
       result = await prospectsStore.createProspect(prospectData)

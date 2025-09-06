@@ -17,9 +17,10 @@
         >
           <span class="truncate max-w-24">{{ tab.name }}</span>
           <button
-            v-if="tabs.length > 1"
+            v-if="tabs.length > 1 && !tab.is_special"
             @click.stop="removeTab(tab.id)"
             class="ml-2 p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600"
+            title="Delete tab"
           >
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -43,9 +44,11 @@
     <!-- Contenu de l'onglet actif -->
     <div class="flex-1 overflow-hidden">
       <ProspectsList 
-        :key="activeTabId"
-        :tab-id="activeTabId"
+        :key="activeTabId || 'loading'"
+        :tab-id="activeTabId || ''"
         :tab-name="activeTab?.name || ''"
+        :is-all-leads-view="activeTab?.is_special && activeTab?.name === 'All Leads'"
+        :all-tabs="tabs"
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
         @select="$emit('select-prospect', $event)"
@@ -115,7 +118,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, defineExpose } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineExpose, nextTick } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import axios from 'axios'
 import ProspectsList from './ProspectsList.vue'
 
 export default {
@@ -125,6 +130,7 @@ export default {
   },
   emits: ['add-prospect', 'edit-prospect', 'delete-prospect', 'select-prospect', 'reorder-prospects', 'tab-changed', 'filtered-prospects'],
   setup(props, { emit }) {
+    const authStore = useAuthStore()
     const tabs = ref([])
     const activeTabId = ref(null)
     const showAddTabModal = ref(false)
@@ -136,38 +142,49 @@ export default {
       return tabs.value.find(tab => tab.id === activeTabId.value)
     })
 
-    // Charger les onglets depuis le localStorage
-    const loadTabs = () => {
-      const savedTabs = localStorage.getItem('maplyo_tabs')
-      if (savedTabs) {
-        tabs.value = JSON.parse(savedTabs)
+    // Charger les onglets depuis le serveur
+    const loadTabs = async () => {
+      try {
+        console.log('📋 Loading tabs from server...')
+        console.log('🔑 Auth token:', authStore.token ? 'Present' : 'Missing')
+        const response = await axios.get('/api/tabs', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        })
+        tabs.value = response.data
+        console.log('📋 Loaded tabs from server:', tabs.value.length, tabs.value)
+        
+        // Log détaillé des onglets
+        tabs.value.forEach(tab => {
+          console.log(`📋 Tab: ${tab.name} (ID: ${tab.id}, Special: ${tab.is_special})`)
+        })
+        
+        // Sélectionner l'onglet actif
         const savedActiveTab = localStorage.getItem('maplyo_active_tab')
+        console.log('💾 Saved active tab from localStorage:', savedActiveTab)
+        
         if (savedActiveTab && tabs.value.find(t => t.id === savedActiveTab)) {
           activeTabId.value = savedActiveTab
-        } else if (tabs.value.length > 0) {
-          activeTabId.value = tabs.value[0].id
+          console.log('✅ Using saved active tab:', savedActiveTab)
+        } else {
+          // Sélectionner "All Leads" par défaut
+          const allLeadsTab = tabs.value.find(t => t.is_special && t.name === 'All Leads')
+          console.log('🔍 All Leads tab found:', allLeadsTab)
+          activeTabId.value = allLeadsTab ? allLeadsTab.id : tabs.value[0]?.id
+          console.log('🎯 Default active tab set to:', activeTabId.value)
         }
-      } else {
-        // Créer un onglet par défaut
-        const defaultTab = {
-          id: 'default',
-          name: 'All prospects',
-          description: 'Liste principale des prospects',
-          createdAt: new Date().toISOString()
-        }
-        tabs.value = [defaultTab]
-        activeTabId.value = defaultTab.id
-        saveTabs()
+        
+        console.log('📋 Final active tab:', activeTabId.value)
+      } catch (error) {
+        console.error('❌ Error loading tabs:', error)
+        // Pas de fallback - laisser le serveur créer les onglets par défaut
       }
     }
 
-    // Sauvegarder les onglets
+    // Sauvegarder les onglets (plus nécessaire avec le serveur)
     const saveTabs = () => {
-      localStorage.setItem('maplyo_tabs', JSON.stringify(tabs.value))
+      // Les onglets sont maintenant gérés côté serveur
+      // Garder juste l'onglet actif en localStorage pour la session
       localStorage.setItem('maplyo_active_tab', activeTabId.value)
-      
-      // Émettre un événement pour notifier les autres composants
-      window.dispatchEvent(new CustomEvent('tabsChanged'))
     }
 
     // Sélectionner un onglet
@@ -178,61 +195,100 @@ export default {
     }
 
     // Ajouter un nouvel onglet
-    const addTab = () => {
+    const addTab = async () => {
       if (!newTabName.value.trim()) return
 
-      const newTab = {
-        id: 'tab_' + Date.now(),
-        name: newTabName.value.trim(),
-        description: newTabDescription.value.trim(),
-        createdAt: new Date().toISOString()
+      try {
+        console.log('➕ Creating new tab:', newTabName.value.trim())
+        const response = await axios.post('/api/tabs', {
+          name: newTabName.value.trim(),
+          description: newTabDescription.value.trim()
+        }, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        })
+
+        console.log('📋 New tab created:', response.data)
+        
+        // Ajouter le nouvel onglet à la liste
+        tabs.value.push(response.data)
+        activeTabId.value = response.data.id
+        emit('tab-changed', response.data.id)
+
+        // Reset modal
+        newTabName.value = ''
+        newTabDescription.value = ''
+        showAddTabModal.value = false
+
+        console.log('✅ Tab created successfully')
+        
+        // Notifier les autres composants
+        window.dispatchEvent(new CustomEvent('tabsChanged'))
+      } catch (error) {
+        console.error('❌ Error creating tab:', error)
+        alert('Error creating tab: ' + (error.response?.data?.error || error.message))
       }
-
-      tabs.value.push(newTab)
-      activeTabId.value = newTab.id
-      saveTabs()
-      emit('tab-changed', newTab.id)
-
-      // Reset modal
-      newTabName.value = ''
-      newTabDescription.value = ''
-      showAddTabModal.value = false
     }
 
     // Supprimer un onglet
-    const removeTab = (tabId) => {
-      if (tabs.value.length <= 1) {
-        alert('Vous ne pouvez pas supprimer le dernier onglet')
+    const removeTab = async (tabId) => {
+      console.log('🗑️ Attempting to delete tab:', tabId)
+      
+      // Empêcher la suppression de l'onglet "All Leads"
+      const tab = tabs.value.find(t => t.id === tabId)
+      console.log('🔍 Tab to delete:', tab)
+      
+      if (tab?.is_special) {
+        alert('Cannot delete special tabs like "All Leads".')
+        return
+      }
+      
+      if (tabs.value.filter(t => !t.is_special).length <= 1) {
+        alert('You cannot delete the last regular tab')
         return
       }
 
-      if (confirm('Êtes-vous sûr de vouloir supprimer cet onglet ? Les prospects de cette liste ne seront pas supprimés.')) {
-        tabs.value = tabs.value.filter(tab => tab.id !== tabId)
-        
-        // Si l'onglet supprimé était actif, sélectionner le premier onglet
-        if (activeTabId.value === tabId) {
-          activeTabId.value = tabs.value[0]?.id
+      if (confirm('Are you sure you want to delete this tab? The prospects in this tab will not be deleted.')) {
+        try {
+          console.log(`🗑️ Deleting tab ${tabId} from server...`)
+          await axios.delete(`/api/tabs/${tabId}`, {
+            headers: { Authorization: `Bearer ${authStore.token}` }
+          })
+
+          // Supprimer de la liste locale
+          tabs.value = tabs.value.filter(tab => tab.id !== tabId)
+          
+          // Si l'onglet supprimé était actif, sélectionner "All Leads" ou le premier
+          if (activeTabId.value === tabId) {
+            const allLeadsTab = tabs.value.find(t => t.is_special && t.name === 'All Leads')
+            activeTabId.value = allLeadsTab ? allLeadsTab.id : tabs.value[0]?.id
+            emit('tab-changed', activeTabId.value)
+          }
+
+          console.log('✅ Tab deleted successfully')
+          
+          // Notifier les autres composants
+          window.dispatchEvent(new CustomEvent('tabsChanged'))
+        } catch (error) {
+          console.error('❌ Error deleting tab:', error)
+          alert('Error deleting tab: ' + (error.response?.data?.error || error.message))
         }
-        
-        saveTabs()
       }
+    }
+
+    // Fonction utilitaire pour obtenir le nom d'un onglet
+    const getTabName = (tabId) => {
+      const tab = tabs.value.find(t => t.id === tabId)
+      return tab ? tab.name : 'Unknown Tab'
     }
 
     // Écouter les changements d'onglets depuis d'autres sources
     const handleTabsChanged = () => {
-      console.log('📋 TabsManager: Received tabsChanged event')
+      console.log('📋 TabsManager: Received tabsChanged event, reloading tabs')
       loadTabs()
     }
 
-    const handleStorageChanged = (event) => {
-      if (event.detail?.key === 'maplyo_tabs' || event.key === 'maplyo_tabs') {
-        console.log('📋 TabsManager: Storage changed for tabs')
-        loadTabs()
-      }
-    }
-
-    onMounted(() => {
-      loadTabs()
+    onMounted(async () => {
+      await loadTabs()
       // Émettre l'onglet actif initial
       if (activeTabId.value) {
         emit('tab-changed', activeTabId.value)
@@ -240,19 +296,11 @@ export default {
 
       // Écouter les événements de changement
       window.addEventListener('tabsChanged', handleTabsChanged)
-      window.addEventListener('storage', handleStorageChanged)
     })
 
     // Nettoyer les listeners
     onUnmounted(() => {
       window.removeEventListener('tabsChanged', handleTabsChanged)
-      window.removeEventListener('storage', handleStorageChanged)
-    })
-
-    // Exposer les méthodes pour l'accès depuis le parent
-    defineExpose({
-      switchToTab: selectTab,
-      get activeTabId() { return activeTabId.value }
     })
 
     return {
@@ -264,7 +312,22 @@ export default {
       newTabDescription,
       selectTab,
       addTab,
-      removeTab
+      removeTab,
+      switchToTab: selectTab, // Alias pour l'accès depuis le parent
+      loadTabs
+    }
+
+    return {
+      tabs,
+      activeTabId,
+      activeTab,
+      showAddTabModal,
+      newTabName,
+      newTabDescription,
+      selectTab,
+      addTab,
+      removeTab,
+      getTabName
     }
   }
 }

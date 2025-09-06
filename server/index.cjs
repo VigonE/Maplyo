@@ -85,9 +85,23 @@ function initializeDatabase() {
     )
   `;
 
+  const createTabsTable = `
+    CREATE TABLE IF NOT EXISTS tabs (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      is_special BOOLEAN DEFAULT 0,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `;
+
   db.serialize(() => {
     db.run(createUsersTable);
     db.run(createProspectsTable);
+    db.run(createTabsTable);
     
     // Migration pour ajouter tab_id aux bases de données existantes
     db.run(`ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'`, (err) => {
@@ -117,6 +131,42 @@ function initializeDatabase() {
     });
     
     console.log('✅ SQLite database initialized successfully');
+  });
+}
+
+// Fonction pour créer les onglets par défaut pour un nouvel utilisateur
+function createDefaultTabsForUser(userId) {
+  console.log('📋 Creating default tabs for user:', userId);
+  
+  const defaultTabs = [
+    {
+      id: `all-leads-${userId}`,
+      name: 'All Leads',
+      description: 'View all prospects from all tabs',
+      is_special: 1,
+      display_order: 0
+    },
+    {
+      id: `default-${userId}`,
+      name: 'Main Pipeline',
+      description: 'Primary prospects list',
+      is_special: 0,
+      display_order: 1
+    }
+  ];
+
+  defaultTabs.forEach((tab, index) => {
+    db.run(
+      'INSERT INTO tabs (id, user_id, name, description, is_special, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+      [tab.id, userId, tab.name, tab.description, tab.is_special, tab.display_order],
+      function(err) {
+        if (err) {
+          console.error(`Error creating default tab ${tab.name}:`, err);
+        } else {
+          console.log(`✅ Created default tab: ${tab.name} for user ${userId}`);
+        }
+      }
+    );
   });
 }
 
@@ -189,6 +239,9 @@ app.post('/api/register', async (req, res) => {
               process.env.JWT_SECRET || 'your-secret-key',
               { expiresIn: '24h' }
             );
+
+            // Créer les onglets par défaut pour le nouvel utilisateur
+            createDefaultTabsForUser(this.lastID);
 
             console.log('✅ User registered successfully:', email);
             res.status(201).json({
@@ -669,6 +722,170 @@ app.delete('/api/prospects/:id', authenticateToken, (req, res) => {
   );
 });
 
+// Routes pour les onglets
+
+// Obtenir tous les onglets de l'utilisateur
+app.get('/api/tabs', authenticateToken, (req, res) => {
+  console.log('📋 Fetching tabs for user:', req.user.userId);
+  db.all(
+    'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC, created_at ASC',
+    [req.user.userId],
+    (err, tabs) => {
+      if (err) {
+        console.error('Error retrieving tabs:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      // Vérifier si l'utilisateur a un onglet "All Leads"
+      const hasAllLeadsTab = tabs.some(tab => tab.is_special && tab.name === 'All Leads');
+      
+      // Si l'utilisateur n'a pas d'onglet "All Leads", le créer
+      if (!hasAllLeadsTab) {
+        console.log('🔧 No "All Leads" tab found for user, creating it');
+        const allLeadsTab = {
+          id: `all-leads-${req.user.userId}`,
+          name: 'All Leads',
+          description: 'View all prospects from all tabs',
+          is_special: 1,
+          display_order: -1 // Mettre en premier
+        };
+        
+        db.run(
+          'INSERT INTO tabs (id, user_id, name, description, is_special, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+          [allLeadsTab.id, req.user.userId, allLeadsTab.name, allLeadsTab.description, allLeadsTab.is_special, allLeadsTab.display_order],
+          function(err) {
+            if (err) {
+              console.error('Error creating All Leads tab:', err);
+            } else {
+              console.log('✅ Created "All Leads" tab for existing user');
+              // Re-fetch avec le nouvel onglet
+              db.all(
+                'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC, created_at ASC',
+                [req.user.userId],
+                (err, updatedTabs) => {
+                  if (err) {
+                    console.error('Error retrieving updated tabs:', err);
+                    return res.status(500).json({ error: 'Database error' });
+                  }
+                  console.log(`📊 Found ${updatedTabs.length} tabs for user ${req.user.userId} after All Leads creation`);
+                  res.json(updatedTabs);
+                }
+              );
+            }
+          }
+        );
+        return;
+      }
+
+      // Si l'utilisateur n'a pas d'onglets du tout, créer les onglets par défaut
+      if (tabs.length === 0) {
+        console.log('🔧 No tabs found for user, creating default tabs');
+        createDefaultTabsForUser(req.user.userId);
+        
+        // Re-fetch après création
+        setTimeout(() => {
+          db.all(
+            'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC, created_at ASC',
+            [req.user.userId],
+            (err, newTabs) => {
+              if (err) {
+                console.error('Error retrieving newly created tabs:', err);
+                return res.status(500).json({ error: 'Database error' });
+              }
+              console.log(`📊 Found ${newTabs.length} tabs for user ${req.user.userId} after creation`);
+              res.json(newTabs);
+            }
+          );
+        }, 100); // Small delay to ensure tabs are created
+      } else {
+        console.log(`📊 Found ${tabs.length} tabs for user ${req.user.userId}`);
+        res.json(tabs);
+      }
+    }
+  );
+});
+
+// Créer un nouvel onglet
+app.post('/api/tabs', authenticateToken, (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Tab name is required' });
+    }
+
+    const tabId = `tab_${Date.now()}_${req.user.userId}`;
+    
+    db.run(
+      'INSERT INTO tabs (id, user_id, name, description, is_special, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+      [tabId, req.user.userId, name, description || '', 0, 999], // Mettre à la fin par défaut
+      function(err) {
+        if (err) {
+          console.error('Error creating tab:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        // Récupérer l'onglet créé
+        db.get(
+          'SELECT * FROM tabs WHERE id = ?',
+          [tabId],
+          (err, tab) => {
+            if (err) {
+              console.error('Error retrieving created tab:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            console.log('✅ Tab created successfully:', tab.name);
+            res.status(201).json(tab);
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Error creating tab:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Supprimer un onglet (sauf les onglets spéciaux)
+app.delete('/api/tabs/:id', authenticateToken, (req, res) => {
+  const tabId = req.params.id;
+
+  // Vérifier que l'onglet appartient à l'utilisateur et n'est pas spécial
+  db.get(
+    'SELECT id, is_special FROM tabs WHERE id = ? AND user_id = ?',
+    [tabId, req.user.userId],
+    (err, tab) => {
+      if (err) {
+        console.error('Error checking tab ownership:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (!tab) {
+        return res.status(404).json({ error: 'Tab not found' });
+      }
+
+      if (tab.is_special) {
+        return res.status(400).json({ error: 'Cannot delete special tabs' });
+      }
+
+      db.run(
+        'DELETE FROM tabs WHERE id = ? AND user_id = ?',
+        [tabId, req.user.userId],
+        function(err) {
+          if (err) {
+            console.error('Error deleting tab:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+
+          console.log('✅ Tab deleted successfully:', tabId);
+          res.json({ message: 'Tab deleted successfully' });
+        }
+      );
+    }
+  );
+});
+
 // Route de géocodage
 app.post('/api/geocode', authenticateToken, async (req, res) => {
   try {
@@ -726,18 +943,31 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
               return res.status(500).json({ error: 'Database error' });
             }
 
-            const exportData = {
-              exportInfo: {
-                exportDate: new Date().toISOString(),
-                version: '1.0',
-                userEmail: user.email
-              },
-              users: [user],
-              prospects: prospects
-            };
+            // Get all tabs for the user
+            db.all(
+              'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC',
+              [req.user.userId],
+              (err, tabs) => {
+                if (err) {
+                  console.error('Error retrieving tabs data:', err);
+                  return res.status(500).json({ error: 'Database error' });
+                }
 
-            console.log(`✅ Database exported successfully: ${prospects.length} prospects`);
-            res.json(exportData);
+                const exportData = {
+                  exportInfo: {
+                    exportDate: new Date().toISOString(),
+                    version: '2.0',
+                    userEmail: user.email
+                  },
+                  users: [user],
+                  prospects: prospects,
+                  tabs: tabs
+                };
+
+                console.log(`✅ Database exported successfully: ${prospects.length} prospects, ${tabs.length} tabs`);
+                res.json(exportData);
+              }
+            );
           }
         );
       }
@@ -752,70 +982,125 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
 app.post('/api/database/import', authenticateToken, (req, res) => {
   try {
     console.log('📥 Importing database for user:', req.user.userId);
-    const { users, prospects } = req.body;
+    const { users, prospects, tabs } = req.body;
 
     if (!users || !prospects || !Array.isArray(prospects)) {
       return res.status(400).json({ error: 'Invalid import data format' });
     }
 
-    // Start transaction by deleting existing prospects for this user
+    // Start transaction by deleting existing data for this user
     db.run(
       'DELETE FROM prospects WHERE user_id = ?',
       [req.user.userId],
-      function(deleteErr) {
-        if (deleteErr) {
-          console.error('Error deleting existing prospects:', deleteErr);
+      function(deleteProspectsErr) {
+        if (deleteProspectsErr) {
+          console.error('Error deleting existing prospects:', deleteProspectsErr);
           return res.status(500).json({ error: 'Database error during cleanup' });
         }
 
         console.log(`🗑️  Deleted ${this.changes} existing prospects`);
 
-        // Import prospects
-        const importPromises = prospects.map((prospect, index) => {
-          return new Promise((resolve, reject) => {
-            const {
-              name, email, phone, company, position, address, latitude, longitude,
-              status, revenue, probability_coefficient, notes, tab_id, display_order, created_at
-            } = prospect;
+        // Delete existing tabs (except special ones)
+        db.run(
+          'DELETE FROM tabs WHERE user_id = ?',
+          [req.user.userId],
+          function(deleteTabsErr) {
+            if (deleteTabsErr) {
+              console.error('Error deleting existing tabs:', deleteTabsErr);
+              return res.status(500).json({ error: 'Database error during tabs cleanup' });
+            }
 
-            db.run(
-              `INSERT INTO prospects 
-               (user_id, name, email, phone, company, position, address, latitude, longitude, 
-                status, revenue, probability_coefficient, notes, tab_id, display_order, created_at, updated_at) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-              [
-                req.user.userId, name || '', email || '', phone || '', company || '',
-                position || '', address || '', latitude, longitude, status || 'cold',
-                revenue || 0, probability_coefficient || 100, notes || '',
-                tab_id || 'default', display_order || index, created_at || new Date().toISOString()
-              ],
-              function(err) {
-                if (err) {
-                  console.error(`Error importing prospect ${index + 1}:`, err);
-                  reject(err);
-                } else {
-                  resolve(this.lastID);
-                }
-              }
-            );
-          });
-        });
+            console.log(`🗑️  Deleted ${this.changes} existing tabs`);
 
-        // Execute all imports
-        Promise.all(importPromises)
-          .then((results) => {
-            console.log(`✅ Imported ${results.length} prospects successfully`);
-            res.json({
-              message: 'Database imported successfully',
-              imported: {
-                prospects: results.length
-              }
+            // Import tabs first (if available)
+            let tabsToImport = tabs || [];
+            if (tabsToImport.length === 0) {
+              // Create default tabs if none in import
+              createDefaultTabsForUser(req.user.userId);
+            }
+
+            const tabPromises = tabsToImport.map((tab, index) => {
+              return new Promise((resolve, reject) => {
+                const { id, name, description, is_special, display_order } = tab;
+                const newTabId = `${id}_${req.user.userId}`; // Make unique per user
+                
+                db.run(
+                  'INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                  [
+                    newTabId, req.user.userId, name || '', description || '',
+                    is_special || 0, display_order || index, new Date().toISOString()
+                  ],
+                  function(err) {
+                    if (err) {
+                      console.error(`Error importing tab ${index + 1}:`, err);
+                      reject(err);
+                    } else {
+                      resolve(this.lastID);
+                    }
+                  }
+                );
+              });
             });
-          })
-          .catch((error) => {
-            console.error('Error during import:', error);
-            res.status(500).json({ error: 'Import failed during data insertion' });
-          });
+
+            // Execute tabs import first, then prospects
+            Promise.all(tabPromises)
+              .then((tabResults) => {
+                console.log(`✅ Imported ${tabResults.length} tabs successfully`);
+
+                // Import prospects
+                const importPromises = prospects.map((prospect, index) => {
+                  return new Promise((resolve, reject) => {
+                    const {
+                      name, email, phone, company, position, address, latitude, longitude,
+                      status, revenue, probability_coefficient, notes, tab_id, display_order, created_at
+                    } = prospect;
+
+                    db.run(
+                      `INSERT INTO prospects 
+                       (user_id, name, email, phone, company, position, address, latitude, longitude, 
+                        status, revenue, probability_coefficient, notes, tab_id, display_order, created_at, updated_at) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                      [
+                        req.user.userId, name || '', email || '', phone || '', company || '',
+                        position || '', address || '', latitude, longitude, status || 'cold',
+                        revenue || 0, probability_coefficient || 100, notes || '',
+                        tab_id || 'default', display_order || index, created_at || new Date().toISOString()
+                      ],
+                      function(err) {
+                        if (err) {
+                          console.error(`Error importing prospect ${index + 1}:`, err);
+                          reject(err);
+                        } else {
+                          resolve(this.lastID);
+                        }
+                      }
+                    );
+                  });
+                });
+
+                // Execute all prospect imports
+                Promise.all(importPromises)
+                  .then((prospectResults) => {
+                    console.log(`✅ Imported ${prospectResults.length} prospects successfully`);
+                    res.json({
+                      message: 'Database imported successfully',
+                      imported: {
+                        prospects: prospectResults.length,
+                        tabs: tabResults.length
+                      }
+                    });
+                  })
+                  .catch((error) => {
+                    console.error('Error during prospect import:', error);
+                    res.status(500).json({ error: 'Import failed during prospect insertion' });
+                  });
+              })
+              .catch((error) => {
+                console.error('Error during tabs import:', error);
+                res.status(500).json({ error: 'Import failed during tabs insertion' });
+              });
+          }
+        );
       }
     );
   } catch (error) {
@@ -918,6 +1203,21 @@ app.get('/debug/prospects/hot', (req, res) => {
     console.log('🔥 DEBUG - HOT prospects with display_order:');
     rows.forEach(p => {
       console.log(`ID: ${p.id}, Name: ${p.name}, Display Order: ${p.display_order}`);
+    });
+    res.json(rows);
+  });
+});
+
+// DEBUG: Endpoint pour voir tous les onglets
+app.get('/debug/tabs', (req, res) => {
+  const sql = 'SELECT * FROM tabs ORDER BY user_id, display_order ASC';
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    console.log('📋 DEBUG - All tabs:');
+    rows.forEach(t => {
+      console.log(`User: ${t.user_id}, ID: ${t.id}, Name: ${t.name}, Special: ${t.is_special}, Order: ${t.display_order}`);
     });
     res.json(rows);
   });

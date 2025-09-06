@@ -167,7 +167,7 @@ A Dockerfile will be provided in a future version.
 ### Architecture
 - **Frontend**: Vue.js SPA with client-side routing
 - **Backend**: REST API with JWT authentication
-- **Database**: MySQL with optimized relationships
+- **Database**: SQLite with optimized schema
 
 ### Contributions
 Contributions are welcome! Check GitHub issues for planned improvements.

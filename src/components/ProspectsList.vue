@@ -16,7 +16,7 @@
       </div>
       
       <!-- Champ de recherche -->
-      <div class="mt-4 mb-4">
+      <div class="mt-4 mb-4 px-4">
         <div class="relative">
           <input
             ref="searchInput"
@@ -167,6 +167,14 @@
                         <h3 class="text-sm font-medium text-gray-900 truncate">
                           <span v-html="highlightSearchTerm(prospect.name, searchQuery)"></span>
                         </h3>
+                        <!-- Badge d'onglet d'origine (seulement dans la vue "All Leads") -->
+                        <span 
+                          v-if="isAllLeadsView && getProspectTabName(prospect)"
+                          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0"
+                          :title="'From tab: ' + getProspectTabName(prospect)"
+                        >
+                          {{ getProspectTabName(prospect) }}
+                        </span>
                       </div>
                       
                       <p class="text-xs text-gray-500 mb-2 truncate">
@@ -568,7 +576,15 @@ const props = defineProps({
     type: String,
     default: 'Prospects'
   },
-  selectedProspect: Object
+  selectedProspect: Object,
+  isAllLeadsView: {
+    type: Boolean,
+    default: false
+  },
+  allTabs: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects'])
@@ -586,6 +602,19 @@ const getWeightedRevenue = (prospect) => {
   if (!prospect.revenue) return 0
   const probability = prospect.probability_coefficient || 100
   return (prospect.revenue * probability) / 100
+}
+
+// Fonction pour obtenir le nom de l'onglet d'origine d'un prospect
+const getProspectTabName = (prospect) => {
+  if (!props.isAllLeadsView) return null
+  
+  const prospectTabId = prospect.tabId || prospect.tab_id
+  if (!prospectTabId || prospectTabId === 'default') {
+    return 'Main Pipeline'
+  }
+  
+  const tab = props.allTabs.find(t => t.id === prospectTabId)
+  return tab ? tab.name : 'Unknown Tab'
 }
 
 // Variables pour l'édition du montant directement sur la carte
@@ -679,8 +708,15 @@ const highlightSearchTerm = (text, searchTerm) => {
 const filteredProspects = computed(() => {
   let prospects = []
   
-  if (props.tabId === 'default') {
-    // L'onglet par défaut affiche tous les prospects
+  // Vérifier si c'est l'onglet "All Leads" (par nom, flag is_special, ou ID contenant 'all-leads')
+  const currentTab = props.allTabs.find(t => t.id === props.tabId)
+  const isAllLeadsTab = props.isAllLeadsView || 
+                       (props.tabId && props.tabId.includes('all-leads')) ||
+                       props.tabName === 'All Leads' ||
+                       (currentTab && currentTab.is_special)
+  
+  if (isAllLeadsTab || props.tabId === 'default') {
+    // L'onglet "All Leads" ou l'onglet par défaut affiche tous les prospects
     prospects = prospectsStore.prospects
   } else {
     // Les autres onglets affichent seulement leurs prospects assignés
