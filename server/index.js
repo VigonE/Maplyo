@@ -376,6 +376,38 @@ app.put('/api/prospects/reorder', authenticateToken, async (req, res) => {
   }
 })
 
+// Delete all data endpoint (admin only)
+app.delete('/api/database/delete-all', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Delete all prospects for the user
+    const [prospectsResult] = await db.execute(
+      'DELETE FROM prospects WHERE user_id = ?',
+      [req.user.id]
+    )
+    
+    // Delete all tabs for the user (except special tabs)
+    const [tabsResult] = await db.execute(
+      'DELETE FROM tabs WHERE user_id = ? AND is_special = FALSE',
+      [req.user.id]
+    )
+    
+    await db.end()
+    
+    res.json({ 
+      message: 'All data deleted successfully',
+      deleted: {
+        prospects: prospectsResult.affectedRows,
+        tabs: tabsResult.affectedRows
+      }
+    })
+  } catch (error) {
+    console.error('Error deleting all data:', error)
+    res.status(500).json({ error: 'Server error while deleting data' })
+  }
+})
+
 // Initialize database and start server
 initDatabase().then(() => {
   app.listen(PORT, () => {

@@ -108,6 +108,14 @@
       @close="closeModal"
     />
 
+    <!-- CSV Import Modal -->
+    <CsvImportModal
+      :is-open="showCsvImportModal"
+      :available-tabs="availableTabs"
+      @close="closeCsvImportModal"
+      @imported="onCsvImported"
+    />
+
     <!-- System Settings Modal -->
     <div
       v-if="showSystemSettings"
@@ -486,6 +494,7 @@ import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import ProspectModal from '@/components/ProspectModal.vue'
+import CsvImportModal from '@/components/CsvImportModal.vue'
 import api, { profileAPI } from '@/services/api'
 
 const router = useRouter()
@@ -517,6 +526,9 @@ const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
+// CSV Import Modal
+const showCsvImportModal = ref(false)
+
 // User profile and password management
 const userProfile = ref(null)
 const showChangePassword = ref(false)
@@ -544,6 +556,14 @@ const canChangePassword = computed(() => {
     passwordForm.value.confirmPassword.length > 0 &&
     passwordForm.value.newPassword === passwordForm.value.confirmPassword
   )
+})
+
+// Available tabs for CSV import
+const availableTabs = computed(() => {
+  if (tabsManager.value && tabsManager.value.tabs) {
+    return tabsManager.value.tabs
+  }
+  return []
 })
 
 // Gérer les prospects filtrés depuis ProspectsList
@@ -991,14 +1011,21 @@ async function confirmDeleteAllData() {
     if (!response.ok) {
       let errorMessage = `Delete failed: ${response.statusText}`
       try {
-        const errorData = await response.json()
+        // Clone the response to be able to read it multiple times
+        const responseClone = response.clone()
+        const errorData = await responseClone.json()
         errorMessage = errorData.error || errorMessage
       } catch (parseError) {
-        const responseText = await response.text()
-        if (responseText.includes('<!DOCTYPE')) {
-          errorMessage = 'Server error occurred. Please check that the server is running and try again.'
-        } else {
-          errorMessage = responseText || errorMessage
+        try {
+          const responseText = await response.text()
+          if (responseText.includes('<!DOCTYPE')) {
+            errorMessage = 'Server error occurred. Please check that the server is running and try again.'
+          } else {
+            errorMessage = responseText || errorMessage
+          }
+        } catch (textError) {
+          // If all parsing fails, use the original error message
+          console.error('Failed to parse error response:', textError)
         }
       }
       throw new Error(errorMessage)
@@ -1045,7 +1072,28 @@ async function confirmDeleteAllData() {
 // Fonctions pour l'import CSV
 function triggerFileImport() {
   showSettingsMenu.value = false
-  fileInput.value?.click()
+  showCsvImportModal.value = true
+}
+
+function closeCsvImportModal() {
+  showCsvImportModal.value = false
+}
+
+function onCsvImported(results) {
+  console.log('CSV import completed:', results)
+  showCsvImportModal.value = false
+  
+  // Afficher un message de succès
+  systemMessage.value = `Import terminé avec succès ! ${results.imported} prospects importés${results.merged > 0 ? `, ${results.merged} fusionnés` : ''}${results.skipped > 0 ? `, ${results.skipped} ignorés` : ''}.`
+  systemMessageType.value = 'success'
+  
+  // Effacer le message après 5 secondes
+  setTimeout(() => {
+    systemMessage.value = ''
+  }, 5000)
+  
+  // Actualiser les données
+  prospectsStore.fetchProspects()
 }
 
 async function handleFileImport(event) {

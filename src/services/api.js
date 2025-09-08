@@ -52,4 +52,20 @@ export const profileAPI = {
   changePassword: (passwordData) => api.put('/profile/password', passwordData)
 }
 
+// CSV Import API
+export const csvImportAPI = {
+  importCsv: (csvData, options) => {
+    return api.post('/prospects/import-csv', { csvData, options }, {
+      timeout: 300000 // 5 minutes timeout pour l'import
+    })
+  }
+}
+
+// Convenience function for CSV import
+export const importCsv = (csvData, options = {}) => {
+  return api.post('/prospects/import-csv', { csvData, options }, {
+    timeout: 300000 // 5 minutes timeout for large imports
+  })
+}
+
 export default api

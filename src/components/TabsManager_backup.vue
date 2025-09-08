@@ -177,7 +177,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick, defineExpose } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
 import ProspectsList from './ProspectsList.vue'

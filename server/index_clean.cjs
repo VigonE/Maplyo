@@ -1101,54 +1101,6 @@ async function createProspectFromCSV(prospectData, userId, options) {
   });
 }
 
-// Endpoint pour supprimer toutes les données de l'utilisateur
-app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
-  try {
-    console.log(`🗑️ Deleting all data for user ${req.user.userId}`);
-    
-    // Supprimer tous les prospects de l'utilisateur
-    db.run(
-      'DELETE FROM prospects WHERE user_id = ?',
-      [req.user.userId],
-      function(err) {
-        if (err) {
-          console.error('Error deleting prospects:', err);
-          return res.status(500).json({ error: 'Database error while deleting prospects' });
-        }
-
-        const prospectsDeleted = this.changes;
-        console.log(`✅ Deleted ${prospectsDeleted} prospects`);
-
-        // Supprimer tous les onglets personnalisés de l'utilisateur (garder les onglets spéciaux)
-        db.run(
-          'DELETE FROM tabs WHERE user_id = ? AND is_special = 0',
-          [req.user.userId],
-          function(err) {
-            if (err) {
-              console.error('Error deleting tabs:', err);
-              return res.status(500).json({ error: 'Database error while deleting tabs' });
-            }
-
-            const tabsDeleted = this.changes;
-            console.log(`✅ Deleted ${tabsDeleted} custom tabs`);
-
-            res.json({
-              message: 'All data deleted successfully',
-              deleted: {
-                prospects: prospectsDeleted,
-                tabs: tabsDeleted
-              }
-            });
-          }
-        );
-      }
-    );
-  } catch (error) {
-    console.error('Error in delete-all endpoint:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Servir les fichiers statiques et gestion du SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
