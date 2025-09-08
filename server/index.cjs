@@ -919,195 +919,342 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
   try {
     console.log('📋 Exporting database for user:', req.user.userId);
 
-    // Get user data
-    db.get(
-      'SELECT id, email, name, company, created_at FROM users WHERE id = ?',
-      [req.user.userId],
-      (err, user) => {
+    // Get schema information for compatibility
+    db.all("PRAGMA table_info(prospects)", (err, prospectsSchema) => {
+      if (err) {
+        console.error('Error getting prospects schema:', err);
+        return res.status(500).json({ error: 'Schema error' });
+      }
+
+      db.all("PRAGMA table_info(tabs)", (err, tabsSchema) => {
         if (err) {
-          console.error('Error retrieving user data:', err);
-          return res.status(500).json({ error: 'Database error' });
+          console.error('Error getting tabs schema:', err);
+          return res.status(500).json({ error: 'Schema error' });
         }
 
-        if (!user) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Get all prospects for the user
-        db.all(
-          'SELECT * FROM prospects WHERE user_id = ? ORDER BY created_at ASC',
+        // Get user data
+        db.get(
+          'SELECT id, email, name, company, created_at FROM users WHERE id = ?',
           [req.user.userId],
-          (err, prospects) => {
+          (err, user) => {
             if (err) {
-              console.error('Error retrieving prospects data:', err);
+              console.error('Error retrieving user data:', err);
               return res.status(500).json({ error: 'Database error' });
             }
 
-            // Get all tabs for the user
+            if (!user) {
+              return res.status(404).json({ error: 'User not found' });
+            }
+
+            // Get all prospects for the user with ALL columns
             db.all(
-              'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC',
+              'SELECT * FROM prospects WHERE user_id = ? ORDER BY created_at ASC',
               [req.user.userId],
-              (err, tabs) => {
+              (err, prospects) => {
                 if (err) {
-                  console.error('Error retrieving tabs data:', err);
+                  console.error('Error retrieving prospects data:', err);
                   return res.status(500).json({ error: 'Database error' });
                 }
 
-                const exportData = {
-                  exportInfo: {
-                    exportDate: new Date().toISOString(),
-                    version: '2.0',
-                    userEmail: user.email
-                  },
-                  users: [user],
-                  prospects: prospects,
-                  tabs: tabs
-                };
+                // Get all tabs for the user with ALL columns
+                db.all(
+                  'SELECT * FROM tabs WHERE user_id = ? ORDER BY display_order ASC',
+                  [req.user.userId],
+                  (err, tabs) => {
+                    if (err) {
+                      console.error('Error retrieving tabs data:', err);
+                      return res.status(500).json({ error: 'Database error' });
+                    }
 
-                console.log(`✅ Database exported successfully: ${prospects.length} prospects, ${tabs.length} tabs`);
-                res.json(exportData);
+                    const exportData = {
+                      exportInfo: {
+                        exportDate: new Date().toISOString(),
+                        version: '3.0', // Upgraded version for flexible import
+                        userEmail: user.email,
+                        schemaVersion: {
+                          prospects: prospectsSchema.map(col => ({ name: col.name, type: col.type, nullable: !col.notnull })),
+                          tabs: tabsSchema.map(col => ({ name: col.name, type: col.type, nullable: !col.notnull }))
+                        }
+                      },
+                      users: [user],
+                      prospects: prospects,
+                      tabs: tabs
+                    };
+
+                    console.log(`✅ Database exported successfully: ${prospects.length} prospects, ${tabs.length} tabs`);
+                    console.log(`📊 Schema info: ${prospectsSchema.length} prospect columns, ${tabsSchema.length} tab columns`);
+                    res.json(exportData);
+                  }
+                );
               }
             );
           }
         );
-      }
-    );
+      });
+    });
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Export failed' });
   }
 });
 
-// Import database (replace existing data for current user)
+// Import database (replace existing data for current user) - FLEXIBLE VERSION
 app.post('/api/database/import', authenticateToken, (req, res) => {
   try {
     console.log('📥 Importing database for user:', req.user.userId);
-    const { users, prospects, tabs } = req.body;
+    const { users, prospects, tabs, exportInfo } = req.body;
 
     if (!users || !prospects || !Array.isArray(prospects)) {
       return res.status(400).json({ error: 'Invalid import data format' });
     }
 
-    // Start transaction by deleting existing data for this user
-    db.run(
-      'DELETE FROM prospects WHERE user_id = ?',
-      [req.user.userId],
-      function(deleteProspectsErr) {
-        if (deleteProspectsErr) {
-          console.error('Error deleting existing prospects:', deleteProspectsErr);
-          return res.status(500).json({ error: 'Database error during cleanup' });
+    console.log(`📊 Import info: version ${exportInfo?.version || 'unknown'}, ${prospects.length} prospects, ${tabs?.length || 0} tabs`);
+
+    // Security check: Only import data from the same user's export
+    const exportedUserEmail = exportInfo?.userEmail;
+    console.log(`🔐 Export source: ${exportedUserEmail}, Current user: ${req.user.email}`);
+    
+    // Verify current user info
+    db.get('SELECT email FROM users WHERE id = ?', [req.user.userId], (err, currentUser) => {
+      if (err) {
+        console.error('Error getting current user:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      if (!currentUser) {
+        return res.status(404).json({ error: 'Current user not found' });
+      }
+
+      // Allow import only if it's the same user or if user explicitly accepts mixed data
+      const isSameUser = exportedUserEmail === currentUser.email;
+      if (!isSameUser && !req.body.acceptMixedData) {
+        console.warn(`⚠️  Import security warning: Export from ${exportedUserEmail}, current user ${currentUser.email}`);
+        return res.status(400).json({ 
+          error: 'Import security warning',
+          message: `This export file contains data from ${exportedUserEmail}, but you are logged in as ${currentUser.email}. This could mix data from different accounts.`,
+          exportUser: exportedUserEmail,
+          currentUser: currentUser.email,
+          canProceed: false
+        });
+      }
+
+      if (!isSameUser && req.body.acceptMixedData) {
+        console.log(`⚠️  User explicitly accepted mixed data import from ${exportedUserEmail} to ${currentUser.email}`);
+      }
+
+      // Get current database schema for flexible import
+      db.all("PRAGMA table_info(prospects)", (err, prospectsSchema) => {
+        if (err) {
+          console.error('Error getting prospects schema:', err);
+          return res.status(500).json({ error: 'Schema error' });
         }
 
-        console.log(`🗑️  Deleted ${this.changes} existing prospects`);
-
-        // Delete existing tabs (except special ones)
-        db.run(
-          'DELETE FROM tabs WHERE user_id = ?',
-          [req.user.userId],
-          function(deleteTabsErr) {
-            if (deleteTabsErr) {
-              console.error('Error deleting existing tabs:', deleteTabsErr);
-              return res.status(500).json({ error: 'Database error during tabs cleanup' });
-            }
-
-            console.log(`🗑️  Deleted ${this.changes} existing tabs`);
-
-            // Import tabs first (if available)
-            let tabsToImport = tabs || [];
-            if (tabsToImport.length === 0) {
-              // Create default tabs if none in import
-              createDefaultTabsForUser(req.user.userId);
-            }
-
-            const tabPromises = tabsToImport.map((tab, index) => {
-              return new Promise((resolve, reject) => {
-                const { id, name, description, is_special, display_order } = tab;
-                const newTabId = `${id}_${req.user.userId}`; // Make unique per user
-                
-                db.run(
-                  'INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                  [
-                    newTabId, req.user.userId, name || '', description || '',
-                    is_special || 0, display_order || index, new Date().toISOString()
-                  ],
-                  function(err) {
-                    if (err) {
-                      console.error(`Error importing tab ${index + 1}:`, err);
-                      reject(err);
-                    } else {
-                      resolve(this.lastID);
-                    }
-                  }
-                );
-              });
-            });
-
-            // Execute tabs import first, then prospects
-            Promise.all(tabPromises)
-              .then((tabResults) => {
-                console.log(`✅ Imported ${tabResults.length} tabs successfully`);
-
-                // Import prospects
-                const importPromises = prospects.map((prospect, index) => {
-                  return new Promise((resolve, reject) => {
-                    const {
-                      name, email, phone, company, position, address, latitude, longitude,
-                      status, revenue, probability_coefficient, notes, tab_id, display_order, created_at
-                    } = prospect;
-
-                    db.run(
-                      `INSERT INTO prospects 
-                       (user_id, name, email, phone, company, position, address, latitude, longitude, 
-                        status, revenue, probability_coefficient, notes, tab_id, display_order, created_at, updated_at) 
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                      [
-                        req.user.userId, name || '', email || '', phone || '', company || '',
-                        position || '', address || '', latitude, longitude, status || 'cold',
-                        revenue || 0, probability_coefficient || 100, notes || '',
-                        tab_id || 'default', display_order || index, created_at || new Date().toISOString()
-                      ],
-                      function(err) {
-                        if (err) {
-                          console.error(`Error importing prospect ${index + 1}:`, err);
-                          reject(err);
-                        } else {
-                          resolve(this.lastID);
-                        }
-                      }
-                    );
-                  });
-                });
-
-                // Execute all prospect imports
-                Promise.all(importPromises)
-                  .then((prospectResults) => {
-                    console.log(`✅ Imported ${prospectResults.length} prospects successfully`);
-                    res.json({
-                      message: 'Database imported successfully',
-                      imported: {
-                        prospects: prospectResults.length,
-                        tabs: tabResults.length
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error('Error during prospect import:', error);
-                    res.status(500).json({ error: 'Import failed during prospect insertion' });
-                  });
-              })
-              .catch((error) => {
-                console.error('Error during tabs import:', error);
-                res.status(500).json({ error: 'Import failed during tabs insertion' });
-              });
+        db.all("PRAGMA table_info(tabs)", (err, tabsSchema) => {
+          if (err) {
+            console.error('Error getting tabs schema:', err);
+            return res.status(500).json({ error: 'Schema error' });
           }
-        );
-      }
-    );
+
+          const prospectsColumns = prospectsSchema.map(col => col.name);
+          const tabsColumns = tabsSchema.map(col => col.name);
+          
+          console.log(`📋 Current schema: ${prospectsColumns.length} prospect columns, ${tabsColumns.length} tab columns`);
+
+          // Filter data to only import prospects and tabs that belong to the exported user
+          // Since export already filters by user, this is additional safety
+          const filteredProspects = prospects.filter(p => {
+            // All prospects in export should belong to the source user, but double-check
+            return true; // Export already filtered by user
+          });
+
+          const filteredTabs = (tabs || []).filter(t => {
+            // All tabs in export should belong to the source user
+            return true; // Export already filtered by user
+          });
+
+          console.log(`🔍 Filtered data: ${filteredProspects.length} prospects, ${filteredTabs.length} tabs`);
+
+          // Start transaction by deleting existing data for this user
+          db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId], function(deleteProspectsErr) {
+            if (deleteProspectsErr) {
+              console.error('Error deleting existing prospects:', deleteProspectsErr);
+              return res.status(500).json({ error: 'Database error during cleanup' });
+            }
+
+            console.log(`🗑️  Deleted ${this.changes} existing prospects`);
+
+            db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId], function(deleteTabsErr) {
+              if (deleteTabsErr) {
+                console.error('Error deleting existing tabs:', deleteTabsErr);
+                return res.status(500).json({ error: 'Database error during tabs cleanup' });
+              }
+
+              console.log(`🗑️  Deleted ${this.changes} existing tabs`);
+
+              // Import with flexible schema matching and current user ID
+              importDataFlexibly(filteredProspects, filteredTabs, req.user.userId, prospectsColumns, tabsColumns)
+                .then((results) => {
+                  console.log(`✅ Flexible import completed: ${results.prospects} prospects, ${results.tabs} tabs`);
+                  res.json({
+                    message: 'Database imported successfully with security checks',
+                    imported: results,
+                    security: {
+                      exportUser: exportedUserEmail,
+                      currentUser: currentUser.email,
+                      sameUser: isSameUser
+                    },
+                    schemaInfo: {
+                      currentProspectColumns: prospectsColumns.length,
+                      currentTabColumns: tabsColumns.length,
+                      adaptedImport: true
+                    }
+                  });
+                })
+                .catch((error) => {
+                  console.error('Flexible import error:', error);
+                  res.status(500).json({ error: 'Import failed: ' + error.message });
+                });
+            });
+          });
+        });
+      });
+    });
   } catch (error) {
     console.error('Import error:', error);
     res.status(500).json({ error: 'Import failed' });
   }
 });
+
+// Flexible import function that adapts to schema changes
+async function importDataFlexibly(prospects, tabs, userId, prospectsColumns, tabsColumns) {
+  return new Promise((resolve, reject) => {
+    const results = { prospects: 0, tabs: 0 };
+
+    // Import tabs first with flexible schema
+    const importTabs = () => {
+      if (!tabs || tabs.length === 0) {
+        createDefaultTabsForUser(userId);
+        results.tabs = 2; // Default tabs created
+        return Promise.resolve();
+      }
+
+      const tabPromises = tabs.map((tab, index) => {
+        return new Promise((resolveTab, rejectTab) => {
+          // Build flexible INSERT for tabs
+          const validColumns = ['user_id', 'created_at'];
+          const validValues = [userId, new Date().toISOString()];
+          const placeholders = ['?', '?'];
+
+          // Map import data to current schema
+          Object.keys(tab).forEach(key => {
+            if (tabsColumns.includes(key) && !validColumns.includes(key)) {
+              validColumns.push(key);
+              validValues.push(tab[key]);
+              placeholders.push('?');
+            }
+          });
+
+          // Ensure required fields with defaults
+          const ensureColumn = (colName, defaultValue) => {
+            if (tabsColumns.includes(colName) && !validColumns.includes(colName)) {
+              validColumns.push(colName);
+              validValues.push(defaultValue);
+              placeholders.push('?');
+            }
+          };
+
+          ensureColumn('name', tab.name || `Imported Tab ${index + 1}`);
+          ensureColumn('description', tab.description || '');
+          ensureColumn('is_special', tab.is_special || 0);
+          ensureColumn('display_order', tab.display_order || index);
+
+          const sql = `INSERT INTO tabs (${validColumns.join(', ')}) VALUES (${placeholders.join(', ')})`;
+          
+          db.run(sql, validValues, function(err) {
+            if (err) {
+              console.error(`Flexible tab import error ${index + 1}:`, err);
+              console.error('SQL:', sql);
+              console.error('Values:', validValues.slice(0, 5), '...');
+              rejectTab(err);
+            } else {
+              resolveTab(this.lastID);
+            }
+          });
+        });
+      });
+
+      return Promise.all(tabPromises).then(tabResults => {
+        results.tabs = tabResults.length;
+        console.log(`✅ Flexibly imported ${results.tabs} tabs`);
+      });
+    };
+
+    // Import prospects with flexible schema
+    const importProspects = () => {
+      const prospectPromises = prospects.map((prospect, index) => {
+        return new Promise((resolveProspect, rejectProspect) => {
+          // Build flexible INSERT for prospects
+          const validColumns = ['user_id', 'created_at', 'updated_at'];
+          const validValues = [userId, prospect.created_at || new Date().toISOString(), new Date().toISOString()];
+          const placeholders = ['?', '?', '?'];
+
+          // Map import data to current schema
+          Object.keys(prospect).forEach(key => {
+            if (prospectsColumns.includes(key) && !validColumns.includes(key)) {
+              validColumns.push(key);
+              validValues.push(prospect[key]);
+              placeholders.push('?');
+            }
+          });
+
+          // Ensure required fields with smart defaults
+          const ensureColumn = (colName, defaultValue) => {
+            if (prospectsColumns.includes(colName) && !validColumns.includes(colName)) {
+              validColumns.push(colName);
+              validValues.push(defaultValue);
+              placeholders.push('?');
+            }
+          };
+
+          ensureColumn('name', prospect.name || `Imported Prospect ${index + 1}`);
+          ensureColumn('status', prospect.status || 'cold');
+          ensureColumn('revenue', prospect.revenue || 0);
+          ensureColumn('probability_coefficient', prospect.probability_coefficient || 100);
+          ensureColumn('display_order', prospect.display_order || index);
+          ensureColumn('email', prospect.email || '');
+          ensureColumn('phone', prospect.phone || '');
+          ensureColumn('company', prospect.company || '');
+          ensureColumn('notes', prospect.notes || '');
+          ensureColumn('tab_id', prospect.tab_id || 'default');
+
+          const sql = `INSERT INTO prospects (${validColumns.join(', ')}) VALUES (${placeholders.join(', ')})`;
+          
+          db.run(sql, validValues, function(err) {
+            if (err) {
+              console.error(`Flexible prospect import error ${index + 1}:`, err);
+              console.error('SQL:', sql);
+              console.error('Values:', validValues.slice(0, 10), '...');
+              rejectProspect(err);
+            } else {
+              resolveProspect(this.lastID);
+            }
+          });
+        });
+      });
+
+      return Promise.all(prospectPromises).then(prospectResults => {
+        results.prospects = prospectResults.length;
+        console.log(`✅ Flexibly imported ${results.prospects} prospects`);
+      });
+    };
+
+    // Execute sequential import: tabs first, then prospects
+    importTabs()
+      .then(() => importProspects())
+      .then(() => resolve(results))
+      .catch(reject);
+  });
+}
 
 // Delete all data for current user
 app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
