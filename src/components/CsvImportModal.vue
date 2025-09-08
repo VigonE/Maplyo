@@ -439,6 +439,10 @@ const props = defineProps({
   availableTabs: {
     type: Array,
     default: () => []
+  },
+  currentTabId: {
+    type: [String, Number],
+    default: null
   }
 })
 
@@ -527,7 +531,12 @@ const handleFile = async (file) => {
     
     // Set default tab if available
     if (props.availableTabs.length > 0) {
-      selectedTabId.value = props.availableTabs[0].id
+      // Priority: 1) Current tab, 2) First available tab
+      if (props.currentTabId && props.availableTabs.find(tab => tab.id === props.currentTabId)) {
+        selectedTabId.value = props.currentTabId
+      } else {
+        selectedTabId.value = props.availableTabs[0].id
+      }
     }
     
   } catch (error) {

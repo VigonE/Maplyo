@@ -112,6 +112,7 @@
     <CsvImportModal
       :is-open="showCsvImportModal"
       :available-tabs="availableTabs"
+      :current-tab-id="currentTabId"
       @close="closeCsvImportModal"
       @imported="onCsvImported"
     />
@@ -564,6 +565,10 @@ const availableTabs = computed(() => {
     return tabsManager.value.tabs
   }
   return []
+})
+
+const currentTabId = computed(() => {
+  return tabsManager.value?.activeTabId || null
 })
 
 // Gérer les prospects filtrés depuis ProspectsList
