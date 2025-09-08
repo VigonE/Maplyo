@@ -351,6 +351,74 @@ app.get('/api/profile', authenticateToken, (req, res) => {
   );
 });
 
+// Route pour changer le mot de passe
+app.put('/api/profile/password', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔐 Password change request for user:', req.user.userId);
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ 
+        error: 'Current password and new password are required' 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        error: 'New password must be at least 6 characters long' 
+      });
+    }
+
+    // Récupérer l'utilisateur avec son mot de passe
+    db.get(
+      'SELECT id, email, password FROM users WHERE id = ?',
+      [req.user.userId],
+      async (err, user) => {
+        if (err) {
+          console.error('Error retrieving user for password change:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Vérifier le mot de passe actuel
+        const validCurrentPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validCurrentPassword) {
+          console.log('❌ Invalid current password for user:', user.email);
+          return res.status(401).json({ 
+            error: 'Current password is incorrect' 
+          });
+        }
+
+        // Hasher le nouveau mot de passe
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Mettre à jour le mot de passe
+        db.run(
+          'UPDATE users SET password = ? WHERE id = ?',
+          [hashedNewPassword, req.user.userId],
+          function(err) {
+            if (err) {
+              console.error('Error updating password:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            console.log('✅ Password updated successfully for user:', user.email);
+            res.json({ 
+              message: 'Password updated successfully' 
+            });
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Routes pour les prospects
 
 // Obtenir tous les prospects

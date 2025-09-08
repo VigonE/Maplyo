@@ -46,4 +46,10 @@ export const tabsAPI = {
   deleteTab: (id) => api.delete(`/tabs/${id}`)
 }
 
+// API pour gérer le profil utilisateur
+export const profileAPI = {
+  get: () => api.get('/profile'),
+  changePassword: (passwordData) => api.put('/profile/password', passwordData)
+}
+
 export default api

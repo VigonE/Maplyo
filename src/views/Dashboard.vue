@@ -129,6 +129,103 @@
           </div>
 
           <div class="space-y-4">
+            <!-- User Profile Section -->
+            <div class="border rounded-lg p-4">
+              <h4 class="text-md font-medium text-gray-800 mb-3">User Profile</h4>
+              
+              <!-- User Information -->
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Name</label>
+                  <p class="mt-1 text-sm text-gray-900">{{ userProfile?.name }}</p>
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Email</label>
+                  <p class="mt-1 text-sm text-gray-900">{{ userProfile?.email }}</p>
+                </div>
+                
+                <div v-if="userProfile?.company">
+                  <label class="block text-sm font-medium text-gray-700">Company</label>
+                  <p class="mt-1 text-sm text-gray-900">{{ userProfile?.company }}</p>
+                </div>
+              </div>
+
+              <!-- Change Password -->
+              <div class="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  @click="showChangePassword = !showChangePassword"
+                  class="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-3.586l6.879-6.88a6 6 0 0110.121-.12z" />
+                  </svg>
+                  Change Password
+                </button>
+                
+                <!-- Password Change Form -->
+                <div v-if="showChangePassword" class="mt-3 space-y-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Current Password</label>
+                    <input
+                      type="password"
+                      v-model="passwordForm.currentPassword"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">New Password</label>
+                    <input
+                      type="password"
+                      v-model="passwordForm.newPassword"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Enter new password (min 6 characters)"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                    <input
+                      type="password"
+                      v-model="passwordForm.confirmPassword"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  
+                  <!-- Password validation messages -->
+                  <div v-if="passwordForm.newPassword && passwordForm.newPassword.length < 6" class="text-xs text-red-600">
+                    Password must be at least 6 characters long
+                  </div>
+                  
+                  <div v-if="passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword" class="text-xs text-red-600">
+                    Passwords do not match
+                  </div>
+                  
+                  <!-- Action buttons -->
+                  <div class="flex space-x-2">
+                    <button
+                      @click="changePassword"
+                      :disabled="!canChangePassword || passwordChangeLoading"
+                      class="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div v-if="passwordChangeLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {{ passwordChangeLoading ? 'Changing...' : 'Change Password' }}
+                    </button>
+                    
+                    <button
+                      @click="cancelChangePassword"
+                      class="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Database Operations -->
             <div class="border rounded-lg p-4">
               <h4 class="text-md font-medium text-gray-800 mb-3">Database Operations</h4>
@@ -389,6 +486,7 @@ import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import ProspectModal from '@/components/ProspectModal.vue'
+import api, { profileAPI } from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -419,6 +517,16 @@ const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
+// User profile and password management
+const userProfile = ref(null)
+const showChangePassword = ref(false)
+const passwordChangeLoading = ref(false)
+const passwordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
   if (currentTabId.value === 'default') {
@@ -426,6 +534,16 @@ const visibleProspects = computed(() => {
   } else {
     return prospectsStore.prospects.filter(p => p.tabId === currentTabId.value)
   }
+})
+
+// Computed property to check if password can be changed
+const canChangePassword = computed(() => {
+  return (
+    passwordForm.value.currentPassword.length > 0 &&
+    passwordForm.value.newPassword.length >= 6 &&
+    passwordForm.value.confirmPassword.length > 0 &&
+    passwordForm.value.newPassword === passwordForm.value.confirmPassword
+  )
 })
 
 // Gérer les prospects filtrés depuis ProspectsList
@@ -587,14 +705,30 @@ function closeModal() {
 }
 
 // System Settings functions
-function openSystemSettings() {
+async function openSystemSettings() {
   showSettingsMenu.value = false
   showSystemSettings.value = true
   systemMessage.value = ''
+  
+  // Load user profile
+  try {
+    const response = await profileAPI.get()
+    userProfile.value = response.data
+  } catch (error) {
+    console.error('Error loading user profile:', error)
+    systemMessage.value = 'Error loading user profile'
+    systemMessageType.value = 'error'
+  }
 }
 
 function closeSystemSettings() {
   showSystemSettings.value = false
+  showChangePassword.value = false
+  passwordForm.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
   systemMessage.value = ''
 }
 
@@ -770,6 +904,55 @@ async function handleDatabaseImport(event) {
   } finally {
     importLoading.value = false
     event.target.value = '' // Reset the file input
+  }
+}
+
+// Password management functions
+async function changePassword() {
+  if (!canChangePassword.value) {
+    return
+  }
+  
+  passwordChangeLoading.value = true
+  systemMessage.value = ''
+  
+  try {
+    await profileAPI.changePassword({
+      currentPassword: passwordForm.value.currentPassword,
+      newPassword: passwordForm.value.newPassword
+    })
+    
+    // Success
+    systemMessage.value = 'Password changed successfully!'
+    systemMessageType.value = 'success'
+    
+    // Reset form and close
+    cancelChangePassword()
+    
+  } catch (error) {
+    console.error('Error changing password:', error)
+    let errorMessage = 'Failed to change password'
+    
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    systemMessage.value = errorMessage
+    systemMessageType.value = 'error'
+    
+  } finally {
+    passwordChangeLoading.value = false
+  }
+}
+
+function cancelChangePassword() {
+  showChangePassword.value = false
+  passwordForm.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   }
 }
 
