@@ -164,7 +164,7 @@
               </div>
 
               <!-- Import Progress -->
-              <div v-if="isImporting" class="space-y-4">
+              <div v-if="isImporting && !showDuplicateModal" class="space-y-4">
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div class="flex items-center">
                     <div class="flex-shrink-0">
@@ -602,7 +602,7 @@ const parseCSVLine = (line, separator = ';') => {
   return result
 }
 
-// Function to calculate string similarity using Levenshtein distance
+// Function to calculate string similarity using Jaro-Winkler algorithm (better for names)
 const calculateSimilarity = (str1, str2) => {
   if (!str1 || !str2) return 0
   
@@ -612,30 +612,80 @@ const calculateSimilarity = (str1, str2) => {
   
   if (cleanStr1 === cleanStr2) return 100
   
-  const len1 = cleanStr1.length
-  const len2 = cleanStr2.length
+  // Jaro-Winkler algorithm
+  const jaro = calculateJaro(cleanStr1, cleanStr2)
   
-  if (len1 === 0 || len2 === 0) return 0
+  // Calculate common prefix length (up to 4 characters)
+  let prefixLength = 0
+  const maxPrefix = Math.min(4, Math.min(cleanStr1.length, cleanStr2.length))
   
-  const matrix = Array(len1 + 1).fill().map(() => Array(len2 + 1).fill(0))
-  
-  for (let i = 0; i <= len1; i++) matrix[i][0] = i
-  for (let j = 0; j <= len2; j++) matrix[0][j] = j
-  
-  for (let i = 1; i <= len1; i++) {
-    for (let j = 1; j <= len2; j++) {
-      const cost = cleanStr1[i - 1] === cleanStr2[j - 1] ? 0 : 1
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,
-        matrix[i][j - 1] + 1,
-        matrix[i - 1][j - 1] + cost
-      )
+  for (let i = 0; i < maxPrefix; i++) {
+    if (cleanStr1[i] === cleanStr2[i]) {
+      prefixLength++
+    } else {
+      break
     }
   }
   
-  const distance = matrix[len1][len2]
-  const maxLength = Math.max(len1, len2)
-  return Math.round(((maxLength - distance) / maxLength) * 100)
+  // Jaro-Winkler = Jaro + (prefix_length * p * (1 - Jaro))
+  // where p is typically 0.1
+  const jaroWinkler = jaro + (prefixLength * 0.1 * (1 - jaro))
+  
+  return Math.round(jaroWinkler * 100)
+}
+
+// Helper function to calculate Jaro similarity
+const calculateJaro = (s1, s2) => {
+  const len1 = s1.length
+  const len2 = s2.length
+  
+  if (len1 === 0 && len2 === 0) return 1.0
+  if (len1 === 0 || len2 === 0) return 0.0
+  
+  // Calculate the maximum allowed distance for matches
+  const matchWindow = Math.floor(Math.max(len1, len2) / 2) - 1
+  if (matchWindow < 0) return s1 === s2 ? 1.0 : 0.0
+  
+  // Arrays to keep track of matches
+  const s1Matches = new Array(len1).fill(false)
+  const s2Matches = new Array(len2).fill(false)
+  
+  let matches = 0
+  
+  // Find matches
+  for (let i = 0; i < len1; i++) {
+    const start = Math.max(0, i - matchWindow)
+    const end = Math.min(i + matchWindow + 1, len2)
+    
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j] || s1[i] !== s2[j]) continue
+      
+      s1Matches[i] = true
+      s2Matches[j] = true
+      matches++
+      break
+    }
+  }
+  
+  if (matches === 0) return 0.0
+  
+  // Count transpositions
+  let transpositions = 0
+  let k = 0
+  
+  for (let i = 0; i < len1; i++) {
+    if (!s1Matches[i]) continue
+    
+    while (!s2Matches[k]) k++
+    
+    if (s1[i] !== s2[k]) transpositions++
+    k++
+  }
+  
+  // Calculate Jaro similarity
+  const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3.0
+  
+  return jaro
 }
 
 // Function to find duplicate prospects
@@ -868,7 +918,11 @@ watch(() => props.isOpen, (newValue) => {
 
 // Duplicate resolution functions
 const applyDuplicateResolution = async () => {
+  // Close duplicate modal first to show progress
   showDuplicateModal.value = false
+  
+  // Small delay to ensure UI updates
+  await new Promise(resolve => setTimeout(resolve, 100))
   
   // Apply the selected resolution strategy
   const processedRows = new Set()
