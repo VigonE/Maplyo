@@ -567,10 +567,6 @@ const availableTabs = computed(() => {
   return []
 })
 
-const currentTabId = computed(() => {
-  return tabsManager.value?.activeTabId || null
-})
-
 // Gérer les prospects filtrés depuis ProspectsList
 function onFilteredProspects(filteredProspects) {
   filteredProspectsForMap.value = filteredProspects

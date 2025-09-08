@@ -122,7 +122,8 @@
                     <label class="text-sm font-medium text-blue-700">Similarity threshold:</label>
                     <div class="flex items-center gap-2">
                       <input
-                        v-model.number="duplicateThreshold"
+                        :value="sliderThreshold"
+                        @input="updateThresholdFromSlider($event.target.value)"
                         type="range"
                         min="50"
                         max="100"
@@ -282,7 +283,8 @@
                   <div class="flex items-center gap-2">
                     <label class="text-sm font-medium text-gray-700">Similarity threshold:</label>
                     <input
-                      v-model.number="duplicateThreshold"
+                      :value="duplicateThreshold"
+                      @input="updateThresholdFromInput($event.target.value)"
                       type="number"
                       min="50"
                       max="100"
@@ -465,9 +467,23 @@ const importResults = ref(null)
 
 // Duplicate detection
 const duplicateThreshold = ref(80) // Similarity percentage threshold
+const sliderThreshold = ref(80) // Separate value for slider to prevent auto-movement
 const duplicateConflicts = ref([])
 const showDuplicateModal = ref(false)
 const duplicateResolution = ref('skip') // 'skip', 'merge_max', 'merge_sum', 'create_new'
+
+// Methods to handle threshold updates separately
+const updateThresholdFromSlider = (value) => {
+  const numValue = parseInt(value)
+  duplicateThreshold.value = numValue
+  sliderThreshold.value = numValue
+}
+
+const updateThresholdFromInput = (value) => {
+  const numValue = parseInt(value)
+  duplicateThreshold.value = numValue
+  // Don't update sliderThreshold to prevent slider movement
+}
 
 // Methods
 const closeModal = () => {
@@ -489,6 +505,9 @@ const resetModal = () => {
   duplicateConflicts.value = []
   showDuplicateModal.value = false
   duplicateResolution.value = 'skip'
+  // Reset threshold to default value on modal refresh
+  duplicateThreshold.value = 80
+  sliderThreshold.value = 80
 }
 
 const handleDrop = (event) => {
