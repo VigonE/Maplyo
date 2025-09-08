@@ -115,6 +115,28 @@
                   </select>
                 </div>
 
+                <!-- Duplicate Detection Settings -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <h4 class="text-sm font-medium text-blue-900">🔍 Duplicate Detection</h4>
+                  <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-blue-700">Similarity threshold:</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="duplicateThreshold"
+                        type="range"
+                        min="50"
+                        max="100"
+                        step="5"
+                        class="flex-1 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span class="text-sm font-medium text-blue-700 min-w-[3rem]">{{ duplicateThreshold }}%</span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-blue-600">
+                    Companies with names {{ duplicateThreshold }}% similar or more will be flagged as potential duplicates
+                  </p>
+                </div>
+
                 <!-- Data preview -->
                 <div class="space-y-2">
                   <h4 class="text-sm font-medium text-gray-900">📋 Data preview (first 5 rows):</h4>
@@ -233,6 +255,174 @@
       </div>
     </div>
   </div>
+
+  <!-- Duplicate Resolution Modal -->
+  <div
+    v-if="showDuplicateModal"
+    class="fixed inset-0 z-[70] overflow-y-auto"
+    aria-labelledby="duplicate-modal-title"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <!-- Background overlay -->
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-[70]" aria-hidden="true"></div>
+
+      <!-- Modal panel -->
+      <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full relative z-[71]">
+        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+          <div class="sm:flex sm:items-start">
+            <div class="w-full">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="duplicate-modal-title">
+                  🔍 Duplicate Companies Detected
+                </h3>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">Similarity threshold:</label>
+                    <input
+                      v-model.number="duplicateThreshold"
+                      type="number"
+                      min="50"
+                      max="100"
+                      step="5"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span class="text-sm text-gray-500">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resolution Strategy -->
+              <div class="mb-6">
+                <label class="text-sm font-medium text-gray-900 mb-3 block">📋 Resolution strategy for all duplicates:</label>
+                <div class="grid grid-cols-2 gap-3">
+                  <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      v-model="duplicateResolution"
+                      type="radio"
+                      value="skip"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span class="ml-3 text-sm font-medium text-gray-700">⏭️ Skip duplicates</span>
+                  </label>
+                  <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      v-model="duplicateResolution"
+                      type="radio"
+                      value="merge_max"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span class="ml-3 text-sm font-medium text-gray-700">📈 Keep max revenue</span>
+                  </label>
+                  <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      v-model="duplicateResolution"
+                      type="radio"
+                      value="merge_sum"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span class="ml-3 text-sm font-medium text-gray-700">➕ Sum revenues</span>
+                  </label>
+                  <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      v-model="duplicateResolution"
+                      type="radio"
+                      value="create_new"
+                      class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span class="ml-3 text-sm font-medium text-gray-700">➕ Create all as new</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Duplicates List -->
+              <div class="space-y-4 max-h-96 overflow-y-auto">
+                <h4 class="text-sm font-medium text-gray-900">
+                  Found {{ duplicateConflicts.length }} potential duplicate(s):
+                </h4>
+                
+                <div v-for="(conflict, index) in duplicateConflicts" :key="index" class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm font-medium text-gray-900">{{ conflict.similarity }}% similarity</span>
+                        <span class="px-2 py-1 text-xs rounded-full"
+                              :class="conflict.similarity >= 90 ? 'bg-red-100 text-red-800' : 
+                                     conflict.similarity >= 80 ? 'bg-yellow-100 text-yellow-800' : 
+                                     'bg-blue-100 text-blue-800'">
+                          {{ conflict.similarity >= 90 ? 'Very High' : 
+                             conflict.similarity >= 80 ? 'High' : 'Medium' }}
+                        </span>
+                      </div>
+                      
+                      <div class="grid grid-cols-2 gap-4">
+                        <!-- CSV Data -->
+                        <div class="bg-green-50 border border-green-200 rounded p-3">
+                          <h5 class="text-sm font-medium text-green-800 mb-2">📄 CSV Data:</h5>
+                          <p class="text-sm text-green-700 font-medium">{{ conflict.csvCompany }}</p>
+                          <p class="text-sm text-green-600">Revenue: {{ formatCurrency(conflict.csvRevenue) }}</p>
+                        </div>
+                        
+                        <!-- Existing/Other Data -->
+                        <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                          <h5 class="text-sm font-medium text-blue-800 mb-2">
+                            {{ conflict.isInternalDuplicate ? '📄 Other CSV Data:' : '💾 Existing Data:' }}
+                          </h5>
+                          <p class="text-sm text-blue-700 font-medium">
+                            {{ conflict.isInternalDuplicate ? conflict.otherCsvCompany : conflict.existingCompany }}
+                          </p>
+                          <p class="text-sm text-blue-600">
+                            Revenue: {{ formatCurrency(conflict.isInternalDuplicate ? conflict.otherRevenue : conflict.existingRevenue) }}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <!-- Resolution Preview -->
+                      <div class="mt-3 p-2 bg-gray-50 rounded text-sm">
+                        <span class="font-medium text-gray-700">Resolution preview: </span>
+                        <span v-if="duplicateResolution === 'skip'" class="text-orange-600">
+                          Skip importing "{{ conflict.csvCompany }}"
+                        </span>
+                        <span v-else-if="duplicateResolution === 'merge_max'" class="text-blue-600">
+                          Keep "{{ Math.max(conflict.csvRevenue, conflict.isInternalDuplicate ? conflict.otherRevenue : conflict.existingRevenue) === conflict.csvRevenue ? conflict.csvCompany : (conflict.isInternalDuplicate ? conflict.otherCsvCompany : conflict.existingCompany) }}" 
+                          with {{ formatCurrency(Math.max(conflict.csvRevenue, conflict.isInternalDuplicate ? conflict.otherRevenue : conflict.existingRevenue)) }}
+                        </span>
+                        <span v-else-if="duplicateResolution === 'merge_sum'" class="text-green-600">
+                          Merge with total revenue: {{ formatCurrency(conflict.csvRevenue + (conflict.isInternalDuplicate ? conflict.otherRevenue : conflict.existingRevenue)) }}
+                        </span>
+                        <span v-else class="text-purple-600">
+                          Create "{{ conflict.csvCompany }}" as new prospect
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer buttons -->
+        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <button 
+            @click="applyDuplicateResolution"
+            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            🚀 Apply & Continue Import
+          </button>
+          
+          <button 
+            @click="cancelDuplicateResolution"
+            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+          >
+            Cancel Import
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -269,6 +459,12 @@ const isImporting = ref(false)
 const importProgress = ref({ progress: 0, message: '' })
 const importResults = ref(null)
 
+// Duplicate detection
+const duplicateThreshold = ref(80) // Similarity percentage threshold
+const duplicateConflicts = ref([])
+const showDuplicateModal = ref(false)
+const duplicateResolution = ref('skip') // 'skip', 'merge_max', 'merge_sum', 'create_new'
+
 // Methods
 const closeModal = () => {
   if (!isImporting.value) {
@@ -286,6 +482,9 @@ const resetModal = () => {
   isImporting.value = false
   importProgress.value = { progress: 0, message: '' }
   importResults.value = null
+  duplicateConflicts.value = []
+  showDuplicateModal.value = false
+  duplicateResolution.value = 'skip'
 }
 
 const handleDrop = (event) => {
@@ -352,12 +551,22 @@ const parseCSV = (text) => {
     throw new Error('CSV file must contain at least one header line and one data line')
   }
 
-  const headers = parseCSVLine(lines[0])
+  // Auto-detect separator by analyzing the first line
+  const firstLine = lines[0]
+  const semicolonCount = (firstLine.match(/;/g) || []).length
+  const commaCount = (firstLine.match(/,/g) || []).length
+  
+  // Use semicolon if it appears more frequently than comma, or if there are semicolons at all
+  const separator = semicolonCount > 0 && semicolonCount >= commaCount ? ';' : ','
+  
+  console.log(`🔍 Auto-detected CSV separator: "${separator}" (semicolons: ${semicolonCount}, commas: ${commaCount})`)
+
+  const headers = parseCSVLine(lines[0], separator)
   const data = []
 
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].trim()) {
-      const values = parseCSVLine(lines[i])
+      const values = parseCSVLine(lines[i], separator)
       const row = {}
       
       headers.forEach((header, index) => {
@@ -371,7 +580,7 @@ const parseCSV = (text) => {
   return data
 }
 
-const parseCSVLine = (line) => {
+const parseCSVLine = (line, separator = ';') => {
   const result = []
   let current = ''
   let inQuotes = false
@@ -381,7 +590,7 @@ const parseCSVLine = (line) => {
 
     if (char === '"') {
       inQuotes = !inQuotes
-    } else if ((char === ',' || char === ';') && !inQuotes) {
+    } else if (char === separator && !inQuotes) {
       result.push(current.trim())
       current = ''
     } else {
@@ -393,12 +602,183 @@ const parseCSVLine = (line) => {
   return result
 }
 
+// Function to calculate string similarity using Levenshtein distance
+const calculateSimilarity = (str1, str2) => {
+  if (!str1 || !str2) return 0
+  
+  // Clean strings but preserve commas as they are part of company names
+  const cleanStr1 = str1.toLowerCase().trim()
+  const cleanStr2 = str2.toLowerCase().trim()
+  
+  if (cleanStr1 === cleanStr2) return 100
+  
+  const len1 = cleanStr1.length
+  const len2 = cleanStr2.length
+  
+  if (len1 === 0 || len2 === 0) return 0
+  
+  const matrix = Array(len1 + 1).fill().map(() => Array(len2 + 1).fill(0))
+  
+  for (let i = 0; i <= len1; i++) matrix[i][0] = i
+  for (let j = 0; j <= len2; j++) matrix[0][j] = j
+  
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = cleanStr1[i - 1] === cleanStr2[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      )
+    }
+  }
+  
+  const distance = matrix[len1][len2]
+  const maxLength = Math.max(len1, len2)
+  return Math.round(((maxLength - distance) / maxLength) * 100)
+}
+
+// Function to find duplicate prospects
+const findDuplicates = async (csvData, existingProspects) => {
+  const conflicts = []
+  
+  // Helper function to extract clean company name for comparison
+  const extractCompanyName = (fullName) => {
+    if (!fullName) return ''
+    
+    // For names like "ViscoTec France SASU, Adresse de facturation"
+    // Extract just the company part before the first comma if it contains address info
+    let cleanName = fullName.trim()
+    
+    // If there's a comma followed by address-like words, take only the part before
+    const addressPatterns = /,\s*(adresse|address|facturation|billing|siege|siège|domicile)/i
+    if (addressPatterns.test(cleanName)) {
+      cleanName = cleanName.split(',')[0].trim()
+    }
+    
+    // Remove common legal suffixes for better matching
+    cleanName = cleanName.replace(/\s+(sasu|sarl|sas|sa|eurl|sci|snc|scp|selarl)$/i, '').trim()
+    
+    return cleanName
+  }
+  
+  for (let i = 0; i < csvData.length; i++) {
+    const csvRow = csvData[i]
+    const csvCompanyFull = getColumnValue(csvRow, ['NAME', 'name', 'company', 'Company', 'COMPANY'])
+    const csvCompany = extractCompanyName(csvCompanyFull)
+    
+    if (!csvCompany) continue
+    
+    console.log(`🔍 Checking "${csvCompanyFull}" → extracted: "${csvCompany}"`)
+    
+    // Check against existing prospects
+    for (const existing of existingProspects) {
+      const existingCompanyFull = existing.company || existing.name
+      const existingCompany = extractCompanyName(existingCompanyFull)
+      if (!existingCompany) continue
+      
+      const similarity = calculateSimilarity(csvCompany, existingCompany)
+      
+      if (similarity >= duplicateThreshold.value) {
+        console.log(`📊 Found similarity ${similarity}% between "${csvCompany}" and "${existingCompany}"`)
+        conflicts.push({
+          csvRow: csvRow,
+          csvIndex: i,
+          csvCompany: csvCompanyFull,
+          existingProspect: existing,
+          existingCompany: existingCompanyFull,
+          similarity: similarity,
+          csvRevenue: parseRevenue(getColumnValue(csvRow, ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'])),
+          existingRevenue: existing.revenue || 0
+        })
+      }
+    }
+    
+    // Check against other CSV rows (internal duplicates)
+    for (let j = i + 1; j < csvData.length; j++) {
+      const otherRow = csvData[j]
+      const otherCompanyFull = getColumnValue(otherRow, ['NAME', 'name', 'company', 'Company', 'COMPANY'])
+      const otherCompany = extractCompanyName(otherCompanyFull)
+      
+      if (!otherCompany) continue
+      
+      const similarity = calculateSimilarity(csvCompany, otherCompany)
+      
+      if (similarity >= duplicateThreshold.value) {
+        console.log(`📊 Found internal similarity ${similarity}% between "${csvCompany}" and "${otherCompany}"`)
+        conflicts.push({
+          csvRow: csvRow,
+          csvIndex: i,
+          csvCompany: csvCompanyFull,
+          otherCsvRow: otherRow,
+          otherCsvIndex: j,
+          otherCsvCompany: otherCompanyFull,
+          similarity: similarity,
+          csvRevenue: parseRevenue(getColumnValue(csvRow, ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'])),
+          otherRevenue: parseRevenue(getColumnValue(otherRow, ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'])),
+          isInternalDuplicate: true
+        })
+      }
+    }
+  }
+  
+  return conflicts
+}
+
+// Helper function to get column value (already exists but need to expose it)
+const getColumnValue = (row, possibleNames) => {
+  for (const name of possibleNames) {
+    if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+      return row[name]
+    }
+  }
+  return ''
+}
+
+// Helper function to parse revenue (already exists but need to expose it)
+const parseRevenue = (value) => {
+  if (!value) return 0
+  const cleanValue = value.toString().replace(/\s/g, '').replace(',', '.')
+  const parsed = parseFloat(cleanValue)
+  return isNaN(parsed) ? 0 : parsed
+}
+
 const startImport = async () => {
   if (!selectedTabId.value || csvData.value.length === 0) {
     alert('Please select a target tab')
     return
   }
 
+  isImporting.value = true
+  importProgress.value = { progress: 0, message: 'Checking for duplicates...' }
+
+  try {
+    // First, get existing prospects to check for duplicates
+    await prospectsStore.fetchProspects()
+    const existingProspects = prospectsStore.prospects
+    
+    // Find potential duplicates
+    const conflicts = await findDuplicates(csvData.value, existingProspects)
+    
+    if (conflicts.length > 0) {
+      // Show duplicate resolution modal
+      duplicateConflicts.value = conflicts
+      showDuplicateModal.value = true
+      isImporting.value = false
+      return
+    }
+    
+    // No conflicts, proceed with import
+    await proceedWithImport()
+    
+  } catch (error) {
+    console.error('Import error:', error)
+    alert('Import error: ' + error.message)
+    isImporting.value = false
+  }
+}
+
+const proceedWithImport = async () => {
   isImporting.value = true
   importProgress.value = { progress: 0, message: 'Starting import...' }
 
@@ -409,9 +789,9 @@ const startImport = async () => {
       firstRow: csvData.value[0]
     })
 
-    // Use simple prospect creation instead of complex import
     let imported = 0
     let skipped = 0
+    let merged = 0
     
     for (let i = 0; i < csvData.value.length; i++) {
       const row = csvData.value[i]
@@ -424,25 +804,6 @@ const startImport = async () => {
       }
       
       try {
-        // Map CSV data to prospect format - handle different column names
-        const getColumnValue = (row, possibleNames) => {
-          for (const name of possibleNames) {
-            if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
-              return row[name]
-            }
-          }
-          return ''
-        }
-
-        // Parse revenue value (handle French decimal format)
-        const parseRevenue = (value) => {
-          if (!value) return 0
-          // Convert French format (123456,78) to US format (123456.78)
-          const cleanValue = value.toString().replace(/\s/g, '').replace(',', '.')
-          const parsed = parseFloat(cleanValue)
-          return isNaN(parsed) ? 0 : parsed
-        }
-
         const prospectData = {
           name: getColumnValue(row, ['NAME', 'name', 'company', 'Company', 'COMPANY']) || `Import ${i + 1}`,
           email: getColumnValue(row, ['email', 'Email', 'EMAIL', 'mail']) || '',
@@ -481,7 +842,7 @@ const startImport = async () => {
 
     importResults.value = {
       imported,
-      merged: 0,
+      merged,
       skipped
     }
 
@@ -504,6 +865,111 @@ watch(() => props.isOpen, (newValue) => {
     resetModal()
   }
 })
+
+// Duplicate resolution functions
+const applyDuplicateResolution = async () => {
+  showDuplicateModal.value = false
+  
+  // Apply the selected resolution strategy
+  const processedRows = new Set()
+  let modifiedData = [...csvData.value]
+  
+  for (const conflict of duplicateConflicts.value) {
+    const csvIndex = conflict.csvIndex
+    
+    if (processedRows.has(csvIndex)) continue
+    
+    switch (duplicateResolution.value) {
+      case 'skip':
+        // Mark row to be skipped
+        modifiedData[csvIndex] = null
+        break
+        
+      case 'merge_max':
+        // Keep the data with higher revenue
+        if (conflict.isInternalDuplicate) {
+          const keepCsv = conflict.csvRevenue >= conflict.otherRevenue
+          if (!keepCsv) {
+            modifiedData[csvIndex] = null
+          } else {
+            modifiedData[conflict.otherCsvIndex] = null
+          }
+          processedRows.add(conflict.otherCsvIndex)
+        } else {
+          // CSV vs existing - if existing has higher revenue, skip CSV
+          if (conflict.existingRevenue > conflict.csvRevenue) {
+            modifiedData[csvIndex] = null
+          }
+        }
+        break
+        
+      case 'merge_sum':
+        // Sum the revenues
+        if (conflict.isInternalDuplicate) {
+          // Merge internal duplicates
+          const sumRevenue = conflict.csvRevenue + conflict.otherRevenue
+          modifiedData[csvIndex] = {
+            ...modifiedData[csvIndex],
+            [Object.keys(modifiedData[csvIndex]).find(key => 
+              ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'].includes(key)
+            ) || 'REVENUE']: sumRevenue.toString().replace('.', ',')
+          }
+          modifiedData[conflict.otherCsvIndex] = null
+          processedRows.add(conflict.otherCsvIndex)
+        } else {
+          // Sum with existing prospect - update the revenue in CSV
+          const sumRevenue = conflict.csvRevenue + conflict.existingRevenue
+          modifiedData[csvIndex] = {
+            ...modifiedData[csvIndex],
+            [Object.keys(modifiedData[csvIndex]).find(key => 
+              ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'].includes(key)
+            ) || 'REVENUE']: sumRevenue.toString().replace('.', ',')
+          }
+          
+          // Also update the existing prospect
+          try {
+            await prospectsStore.updateProspect(conflict.existingProspect.id, {
+              ...conflict.existingProspect,
+              revenue: sumRevenue
+            })
+          } catch (error) {
+            console.error('Error updating existing prospect:', error)
+          }
+        }
+        break
+        
+      case 'create_new':
+        // Keep all as new - no modification needed
+        break
+    }
+    
+    processedRows.add(csvIndex)
+  }
+  
+  // Filter out null rows (skipped ones)
+  csvData.value = modifiedData.filter(row => row !== null)
+  
+  // Reset conflicts and proceed with import
+  duplicateConflicts.value = []
+  await proceedWithImport()
+}
+
+const cancelDuplicateResolution = () => {
+  showDuplicateModal.value = false
+  duplicateConflicts.value = []
+  isImporting.value = false
+}
+
+// Format currency helper
+const formatCurrency = (amount) => {
+  if (!amount) return '0 €'
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(amount)
+}
 </script>
 
 <style scoped>
