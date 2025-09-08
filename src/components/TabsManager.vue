@@ -91,10 +91,10 @@
         :tab-name="activeTab.name"
         :is-special-tab="activeTab.is_special"
         @add-prospect="$emit('add-prospect')"
-        @edit-prospect="$emit('edit-prospect', $event)"
-        @delete-prospect="$emit('delete-prospect', $event)"
-        @select-prospect="$emit('select-prospect', $event)"
-        @reorder-prospects="$emit('reorder-prospects', $event)"
+        @edit="$emit('edit-prospect', $event)"
+        @delete="$emit('delete-prospect', $event)"
+        @select="$emit('select-prospect', $event)"
+        @reorder="$emit('reorder-prospects', $event)"
         @filtered-prospects="$emit('filtered-prospects', $event)"
       />
     </div>
