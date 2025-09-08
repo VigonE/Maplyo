@@ -4,29 +4,69 @@
     <div class="flex items-center border-b border-gray-200 bg-white">
       <!-- Onglets existants -->
       <div class="flex flex-1 overflow-x-auto">
-        <button
+        <div
           v-for="tab in tabs"
           :key="tab.id"
-          @click="selectTab(tab.id)"
           :class="[
-            'flex items-center px-4 py-2 text-sm font-medium border-r border-gray-200 min-w-0 flex-shrink-0',
+            'flex items-center px-2 py-2 text-sm font-medium border-r border-gray-200 min-w-0 flex-shrink-0 group',
             activeTabId === tab.id
               ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
               : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800'
           ]"
         >
-          <span class="truncate max-w-24">{{ tab.name }}</span>
-          <button
-            v-if="tabs.length > 1 && !tab.is_special"
-            @click.stop="removeTab(tab.id)"
-            class="ml-2 p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600"
-            title="Delete tab"
-          >
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </button>
+          <!-- Tab name (editable or clickable) -->
+          <div class="flex items-center flex-1 min-w-0">
+            <div
+              v-if="!editingTab[tab.id]"
+              @click="selectTab(tab.id)"
+              @dblclick="startEditTab(tab)"
+              class="truncate max-w-24 cursor-pointer flex-1"
+              :title="tab.is_special && tab.name === 'All Leads' ? 'Double-click to select, cannot rename special tab' : 'Double-click to rename'"
+            >
+              {{ tab.name }}
+            </div>
+            
+            <!-- Edit mode -->
+            <input
+              v-else
+              v-model="editingTabName[tab.id]"
+              @blur="saveTabName(tab)"
+              @keyup.enter="saveTabName(tab)"
+              @keyup.escape="cancelEditTab(tab.id)"
+              :ref="el => editTabInputs[tab.id] = el"
+              class="bg-transparent border-none outline-none text-sm w-full max-w-24"
+              :class="activeTabId === tab.id ? 'text-blue-600' : 'text-gray-900'"
+              maxlength="30"
+            />
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex items-center ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <!-- Edit button (except for All Leads special tab) -->
+            <button
+              v-if="!editingTab[tab.id] && !(tab.is_special && tab.name === 'All Leads')"
+              @click.stop="startEditTab(tab)"
+              class="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 mr-1"
+              title="Rename tab"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+            </button>
+            
+            <!-- Delete button -->
+            <button
+              v-if="tabs.length > 1 && !tab.is_special"
+              @click.stop="removeTab(tab.id)"
+              class="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-600"
+              title="Delete tab"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Bouton ajouter onglet -->
@@ -136,6 +176,11 @@ export default {
     const showAddTabModal = ref(false)
     const newTabName = ref('')
     const newTabDescription = ref('')
+    
+    // Variables pour l'édition des onglets
+    const editingTab = ref({}) // { tabId: true/false }
+    const editingTabName = ref({}) // { tabId: 'new name' }
+    const editTabInputs = ref({}) // { tabId: inputElement }
 
     // Computed pour l'onglet actif
     const activeTab = computed(() => {
@@ -229,6 +274,73 @@ export default {
       }
     }
 
+    // Fonctions pour l'édition des onglets
+    const startEditTab = (tab) => {
+      // Ne pas permettre l'édition de l'onglet "All Leads"
+      if (tab.is_special && tab.name === 'All Leads') {
+        console.log('⚠️ Cannot edit special "All Leads" tab')
+        return
+      }
+      
+      console.log('📝 Starting edit for tab:', tab.name)
+      editingTab.value[tab.id] = true
+      editingTabName.value[tab.id] = tab.name
+      
+      // Focus sur l'input après le prochain tick
+      nextTick(() => {
+        const input = editTabInputs.value[tab.id]
+        if (input) {
+          input.focus()
+          input.select()
+        }
+      })
+    }
+
+    const cancelEditTab = (tabId) => {
+      console.log('❌ Cancelling edit for tab:', tabId)
+      editingTab.value[tabId] = false
+      delete editingTabName.value[tabId]
+    }
+
+    const saveTabName = async (tab) => {
+      const newName = editingTabName.value[tab.id]?.trim()
+      
+      if (!newName || newName === tab.name) {
+        cancelEditTab(tab.id)
+        return
+      }
+
+      try {
+        console.log(`💾 Saving tab name: ${tab.name} → ${newName}`)
+        
+        const response = await axios.put(`/api/tabs/${tab.id}`, {
+          name: newName,
+          description: tab.description
+        }, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        })
+
+        console.log('✅ Tab renamed successfully')
+        
+        // Mettre à jour localement
+        const tabIndex = tabs.value.findIndex(t => t.id === tab.id)
+        if (tabIndex !== -1) {
+          tabs.value[tabIndex] = response.data
+        }
+        
+        editingTab.value[tab.id] = false
+        delete editingTabName.value[tab.id]
+        
+        // Notifier les autres composants
+        window.dispatchEvent(new CustomEvent('tabsChanged'))
+        
+      } catch (error) {
+        console.error('❌ Error renaming tab:', error)
+        alert('Error renaming tab: ' + (error.response?.data?.error || error.message))
+        cancelEditTab(tab.id)
+      }
+    }
+
     // Supprimer un onglet
     const removeTab = async (tabId) => {
       console.log('🗑️ Attempting to delete tab:', tabId)
@@ -303,19 +415,12 @@ export default {
       window.removeEventListener('tabsChanged', handleTabsChanged)
     })
 
-    return {
-      tabs,
-      activeTabId,
-      activeTab,
-      showAddTabModal,
-      newTabName,
-      newTabDescription,
-      selectTab,
-      addTab,
-      removeTab,
-      switchToTab: selectTab, // Alias pour l'accès depuis le parent
+    // Exposer les méthodes pour l'accès depuis le parent
+    defineExpose({
+      switchToTab: selectTab,
+      get activeTabId() { return activeTabId.value },
       loadTabs
-    }
+    })
 
     return {
       tabs,
@@ -324,9 +429,15 @@ export default {
       showAddTabModal,
       newTabName,
       newTabDescription,
+      editingTab,
+      editingTabName,
+      editTabInputs,
       selectTab,
       addTab,
       removeTab,
+      startEditTab,
+      cancelEditTab,
+      saveTabName,
       getTabName
     }
   }

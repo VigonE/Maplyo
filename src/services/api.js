@@ -31,4 +31,19 @@ api.interceptors.response.use(
   }
 )
 
+// API functions for tabs
+export const tabsAPI = {
+  // Get all tabs
+  getTabs: () => api.get('/tabs'),
+  
+  // Create new tab
+  createTab: (data) => api.post('/tabs', data),
+  
+  // Update tab (rename)
+  updateTab: (id, data) => api.put(`/tabs/${id}`, data),
+  
+  // Delete tab
+  deleteTab: (id) => api.delete(`/tabs/${id}`)
+}
+
 export default api

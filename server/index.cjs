@@ -886,6 +886,75 @@ app.delete('/api/tabs/:id', authenticateToken, (req, res) => {
   );
 });
 
+// Mettre à jour un onglet (renommer et modifier description)
+app.put('/api/tabs/:id', authenticateToken, (req, res) => {
+  try {
+    const tabId = req.params.id;
+    const { name, description } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Tab name is required' });
+    }
+
+    console.log(`📝 Updating tab ${tabId} for user ${req.user.userId}`);
+
+    // Vérifier que l'onglet appartient à l'utilisateur
+    db.get(
+      'SELECT id, name, is_special FROM tabs WHERE id = ? AND user_id = ?',
+      [tabId, req.user.userId],
+      (err, tab) => {
+        if (err) {
+          console.error('Error checking tab ownership:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!tab) {
+          return res.status(404).json({ error: 'Tab not found' });
+        }
+
+        // Empêcher la modification du nom des onglets spéciaux "All Leads"
+        if (tab.is_special && tab.name === 'All Leads' && name !== 'All Leads') {
+          return res.status(400).json({ error: 'Cannot rename the "All Leads" special tab' });
+        }
+
+        // Mettre à jour l'onglet
+        db.run(
+          'UPDATE tabs SET name = ?, description = ? WHERE id = ? AND user_id = ?',
+          [name.trim(), description?.trim() || '', tabId, req.user.userId],
+          function(err) {
+            if (err) {
+              console.error('Error updating tab:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (this.changes === 0) {
+              return res.status(404).json({ error: 'Tab not found or no changes made' });
+            }
+
+            // Récupérer l'onglet mis à jour
+            db.get(
+              'SELECT * FROM tabs WHERE id = ?',
+              [tabId],
+              (err, updatedTab) => {
+                if (err) {
+                  console.error('Error retrieving updated tab:', err);
+                  return res.status(500).json({ error: 'Database error' });
+                }
+
+                console.log(`✅ Tab updated successfully: ${tab.name} → ${updatedTab.name}`);
+                res.json(updatedTab);
+              }
+            );
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Error updating tab:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Route de géocodage
 app.post('/api/geocode', authenticateToken, async (req, res) => {
   try {
