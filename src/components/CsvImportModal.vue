@@ -885,60 +885,75 @@ const applyDuplicateResolution = async () => {
         modifiedData[csvIndex] = null
         break
         
-      case 'merge_max':
-        // Keep the data with higher revenue
-        if (conflict.isInternalDuplicate) {
-          const keepCsv = conflict.csvRevenue >= conflict.otherRevenue
-          if (!keepCsv) {
-            modifiedData[csvIndex] = null
+        case 'merge_max':
+          // Keep the data with higher revenue
+          if (conflict.isInternalDuplicate) {
+            const keepCsv = conflict.csvRevenue >= conflict.otherRevenue
+            if (!keepCsv) {
+              modifiedData[csvIndex] = null
+            } else {
+              modifiedData[conflict.otherCsvIndex] = null
+            }
+            processedRows.add(conflict.otherCsvIndex)
           } else {
-            modifiedData[conflict.otherCsvIndex] = null
+            // CSV vs existing - compare revenues and keep the higher one
+            if (conflict.existingRevenue > conflict.csvRevenue) {
+              // Existing has higher revenue, skip CSV import
+              modifiedData[csvIndex] = null
+              console.log(`✅ Kept existing prospect "${conflict.existingCompany}" with higher revenue: ${conflict.existingRevenue}`)
+            } else {
+              // CSV has higher revenue, update existing prospect and skip CSV import
+              try {
+                await prospectsStore.updateProspect(conflict.existingProspect.id, {
+                  ...conflict.existingProspect,
+                  revenue: conflict.csvRevenue
+                })
+                modifiedData[csvIndex] = null
+                console.log(`✅ Updated existing prospect "${conflict.existingCompany}" with higher revenue from CSV: ${conflict.csvRevenue}`)
+              } catch (error) {
+                console.error('Error updating existing prospect:', error)
+                console.log('⚠️ Falling back to creating new prospect due to update error')
+              }
+            }
           }
-          processedRows.add(conflict.otherCsvIndex)
-        } else {
-          // CSV vs existing - if existing has higher revenue, skip CSV
-          if (conflict.existingRevenue > conflict.csvRevenue) {
-            modifiedData[csvIndex] = null
-          }
-        }
-        break
-        
-      case 'merge_sum':
-        // Sum the revenues
-        if (conflict.isInternalDuplicate) {
-          // Merge internal duplicates
-          const sumRevenue = conflict.csvRevenue + conflict.otherRevenue
-          modifiedData[csvIndex] = {
-            ...modifiedData[csvIndex],
-            [Object.keys(modifiedData[csvIndex]).find(key => 
-              ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'].includes(key)
-            ) || 'REVENUE']: sumRevenue.toString().replace('.', ',')
-          }
-          modifiedData[conflict.otherCsvIndex] = null
-          processedRows.add(conflict.otherCsvIndex)
-        } else {
-          // Sum with existing prospect - update the revenue in CSV
-          const sumRevenue = conflict.csvRevenue + conflict.existingRevenue
-          modifiedData[csvIndex] = {
-            ...modifiedData[csvIndex],
-            [Object.keys(modifiedData[csvIndex]).find(key => 
-              ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'].includes(key)
-            ) || 'REVENUE']: sumRevenue.toString().replace('.', ',')
-          }
+          break
           
-          // Also update the existing prospect
-          try {
-            await prospectsStore.updateProspect(conflict.existingProspect.id, {
-              ...conflict.existingProspect,
-              revenue: sumRevenue
-            })
-          } catch (error) {
-            console.error('Error updating existing prospect:', error)
+        case 'merge_sum':
+          // Sum the revenues
+          if (conflict.isInternalDuplicate) {
+            // Merge internal duplicates
+            const sumRevenue = conflict.csvRevenue + conflict.otherRevenue
+            modifiedData[csvIndex] = {
+              ...modifiedData[csvIndex],
+              [Object.keys(modifiedData[csvIndex]).find(key => 
+                ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'].includes(key)
+              ) || 'REVENUE']: sumRevenue.toString().replace('.', ',')
+            }
+            modifiedData[conflict.otherCsvIndex] = null
+            processedRows.add(conflict.otherCsvIndex)
+          } else {
+            // Sum with existing prospect - update the existing and skip CSV import
+            const sumRevenue = conflict.csvRevenue + conflict.existingRevenue
+            
+            try {
+              // Update the existing prospect with the summed revenue
+              await prospectsStore.updateProspect(conflict.existingProspect.id, {
+                ...conflict.existingProspect,
+                revenue: sumRevenue
+              })
+              
+              // Mark CSV row as skipped since we updated the existing one
+              modifiedData[csvIndex] = null
+              console.log(`✅ Updated existing prospect "${conflict.existingCompany}" with summed revenue: ${sumRevenue}`)
+            } catch (error) {
+              console.error('Error updating existing prospect:', error)
+              // If update fails, fall back to creating new prospect with original revenue
+              console.log('⚠️ Falling back to creating new prospect due to update error')
+            }
           }
-        }
-        break
-        
-      case 'create_new':
+          break
+          
+        case 'create_new':
         // Keep all as new - no modification needed
         break
     }
