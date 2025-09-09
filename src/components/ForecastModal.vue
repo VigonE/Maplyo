@@ -28,6 +28,23 @@
           <span class="ml-3 text-gray-600">Calcul du prévisionnel...</span>
         </div>
 
+        <!-- Empty Tab State -->
+        <div v-else-if="prospects.length === 0" class="text-center py-12">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">Aucun prospect dans l'onglet "{{ currentTabName }}"</h3>
+          <p class="mt-2 text-sm text-gray-500">Ajoutez des prospects à cet onglet ou basculez vers un autre onglet pour générer un prévisionnel.</p>
+          <div class="mt-6">
+            <button
+              @click="closeModal"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+
         <!-- Main Content -->
         <div v-else class="space-y-6">
           <!-- Debug Info -->

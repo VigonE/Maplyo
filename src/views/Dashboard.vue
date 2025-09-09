@@ -646,10 +646,20 @@ const passwordForm = ref({
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
+  console.log('=== FILTERING PROSPECTS ===')
+  console.log('Current tab ID:', currentTabId.value)
+  console.log('Total prospects:', prospectsStore.prospects.length)
+  
   if (currentTabId.value === 'default') {
+    console.log('Using default tab - returning all prospects')
     return prospectsStore.prospects
   } else {
-    return prospectsStore.prospects.filter(p => p.tabId === currentTabId.value)
+    const filtered = prospectsStore.prospects.filter(p => {
+      console.log(`Prospect ${p.name}: tabId="${p.tabId}", tab_id="${p.tab_id}", comparing with "${currentTabId.value}"`)
+      return p.tabId === currentTabId.value || p.tab_id === currentTabId.value
+    })
+    console.log(`Filtered ${filtered.length} prospects for tab "${currentTabId.value}"`)
+    return filtered
   }
 })
 
@@ -680,16 +690,11 @@ const currentTabName = computed(() => {
   return 'Tous les prospects'
 })
 
-// Prospects for forecast (current tab or all if empty)
+// Prospects for forecast (current tab only - strict)
 const forecastProspects = computed(() => {
-  const tabProspects = visibleProspects.value
-  // Si l'onglet courant est vide, utiliser tous les prospects
-  if (tabProspects.length === 0) {
-    console.log('Onglet courant vide, utilisation de tous les prospects pour le prévisionnel')
-    return prospectsStore.prospects
-  }
-  console.log(`Utilisation des ${tabProspects.length} prospects de l'onglet courant`)
-  return tabProspects
+  // Utiliser UNIQUEMENT les prospects de l'onglet courant, même si c'est vide
+  console.log(`Prévisionnel pour l'onglet "${currentTabName.value}": ${visibleProspects.value.length} prospects`)
+  return visibleProspects.value
 })
 
 // Gérer les prospects filtrés depuis ProspectsList
