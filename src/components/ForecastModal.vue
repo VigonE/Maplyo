@@ -31,7 +31,7 @@
             <svg class="h-8 w-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            📈 Prévisionnel CA - {{ currentTabName }}
+            📈 Revenue Forecast - {{ currentTabName }}
           </h3>
           <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +43,7 @@
         <!-- Loading State -->
         <div v-if="loading" class="flex items-center justify-center h-64">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span class="ml-3 text-gray-600">Calcul du prévisionnel...</span>
+          <span class="ml-3 text-gray-600">Calculating forecast...</span>
         </div>
 
         <!-- Empty Tab State -->
@@ -51,14 +51,14 @@
           <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">Aucun prospect dans l'onglet "{{ currentTabName }}"</h3>
-          <p class="mt-2 text-sm text-gray-500">Ajoutez des prospects à cet onglet ou basculez vers un autre onglet pour générer un prévisionnel.</p>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">No prospects in "{{ currentTabName }}" tab</h3>
+          <p class="mt-2 text-sm text-gray-500">Add prospects to this tab or switch to another tab to generate a forecast.</p>
           <div class="mt-6">
             <button
               @click="closeModal"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
             >
-              Fermer
+              Close
             </button>
           </div>
         </div>
@@ -85,22 +85,22 @@
               <div class="text-2xl font-bold text-blue-900">{{ formatCurrency(metrics.pipelineValue) }}</div>
             </div>
             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div class="text-sm font-medium text-green-600">CA Prévisionnel</div>
+              <div class="text-sm font-medium text-green-600">Forecasted Revenue</div>
               <div class="text-2xl font-bold text-green-900">{{ formatCurrency(metrics.forecastedRevenue) }}</div>
             </div>
             <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <div class="text-sm font-medium text-yellow-600">Taux de Conversion</div>
+              <div class="text-sm font-medium text-yellow-600">Conversion Rate</div>
               <div class="text-2xl font-bold text-yellow-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
             </div>
             <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <div class="text-sm font-medium text-purple-600">Score de Confiance</div>
+              <div class="text-sm font-medium text-purple-600">Confidence Score</div>
               <div class="text-2xl font-bold text-purple-900">{{ metrics.confidenceScore }}%</div>
             </div>
           </div>
 
           <!-- Chart Container -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Évolution du CA Prévisionnel</h4>
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">Revenue Forecast Evolution</h4>
             <div class="h-96 w-full">
               <canvas ref="chartCanvas" class="w-full h-full"></canvas>
             </div>
@@ -110,7 +110,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Monthly Breakdown -->
             <div class="bg-gray-50 p-4 rounded-lg">
-              <h4 class="text-lg font-semibold text-gray-800 mb-4">🗓️ Répartition Mensuelle</h4>
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">🗓️ Monthly Distribution</h4>
               <div class="max-h-64 overflow-y-auto space-y-2">
                 <div 
                   v-for="(month, index) in forecast.slice(0, 12)" 
@@ -125,7 +125,7 @@
 
             <!-- Risk Analysis -->
             <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-              <h4 class="text-lg font-semibold text-red-800 mb-4">⚠️ Analyse des Risques</h4>
+              <h4 class="text-lg font-semibold text-red-800 mb-4">⚠️ Risk Analysis</h4>
               <div class="space-y-3">
                 <div v-for="risk in metrics.riskFactors" :key="risk.type" class="flex items-start">
                   <div class="flex-shrink-0 w-2 h-2 bg-red-400 rounded-full mt-2 mr-3"></div>
@@ -140,13 +140,13 @@
 
           <!-- Category Analysis -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">📊 Analyse par Catégorie</h4>
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">📊 Category Analysis</h4>
             <div class="grid grid-cols-3 gap-4">
               <div v-for="(data, category) in categoryAnalysis" :key="category" class="text-center p-4 rounded-lg" :class="getCategoryClass(category)">
                 <div class="text-sm font-medium text-gray-600 uppercase">{{ category }}</div>
                 <div class="text-xl font-bold mt-1">{{ data.count }} prospects</div>
                 <div class="text-sm text-gray-500">{{ formatCurrency(data.value) }}</div>
-                <div class="text-xs text-gray-400">Avg: {{ data.avgMonths }} mois</div>
+                <div class="text-xs text-gray-400">Avg: {{ data.avgMonths }} months</div>
               </div>
             </div>
           </div>
@@ -165,13 +165,13 @@
             :disabled="loading"
             class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            🔄 Actualiser
+            🔄 Refresh
           </button>
           <button
             @click="closeModal"
             class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
           >
-            Fermer
+            Close
           </button>
         </div>
       </div>
@@ -251,9 +251,9 @@ const categoryAnalysis = computed(() => {
   return analysis
 })
 
-// Fonction pour convertir le status en catégorie de température
+// Function to convert status to temperature category
 const getProspectCategory = (status) => {
-  // Les statuts sont déjà hot/warm/cold dans votre système
+  // Statuses are already hot/warm/cold in your system
   const validCategories = ['hot', 'warm', 'cold']
   return validCategories.includes(status) ? status : 'cold'
 }
@@ -416,16 +416,16 @@ const identifyRiskFactors = () => {
   if (coldCount / totalCount > 0.7) {
     risks.push({
       type: 'concentration',
-      title: 'Concentration sur prospects froids',
-      description: 'Plus de 70% des prospects sont dans la catégorie "cold"'
+      title: 'Cold Prospects Concentration',
+      description: 'More than 70% of prospects are in the "cold" category'
     })
   }
   
   if (hotCount / totalCount < 0.1) {
     risks.push({
       type: 'pipeline',
-      title: 'Manque de prospects chauds',
-      description: 'Moins de 10% des prospects sont dans la catégorie "hot"'
+      title: 'Lack of Hot Prospects',
+      description: 'Less than 10% of prospects are in the "hot" category'
     })
   }
   
@@ -439,8 +439,8 @@ const identifyRiskFactors = () => {
   if (oldProspects.length / totalCount > 0.5) {
     risks.push({
       type: 'aging',
-      title: 'Prospects vieillissants',
-      description: 'Plus de 50% des prospects ont plus de 6 mois'
+      title: 'Aging Prospects',
+      description: 'More than 50% of prospects are older than 6 months'
     })
   }
   
@@ -464,7 +464,7 @@ const createChart = async () => {
       labels: forecast.value.map(f => formatMonth(f.date)),
       datasets: [
         {
-          label: 'CA Prévisionnel',
+          label: 'Revenue Forecast',
           data: forecast.value.map(f => f.revenue),
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
