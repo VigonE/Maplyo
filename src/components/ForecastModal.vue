@@ -5,7 +5,25 @@
     style="z-index: 10000;"
     @click="closeModal"
   >
-    <div class="relative top-4 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white" @click.stop>
+    <div class="relative top-4 mx-auto p-5 border w-11/12 mconst generateForecast = () => {
+  console.log('=== GENERATING FORECAST ===')
+  console.log('Props prospects count:', props.prospects.length)
+  console.log('First prospect COMPLETE:', props.prospects[0])
+  console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
+  console.log('Lead times:', props.leadTimes)
+  
+  // Debug: Let's check all prospects' status
+  console.log('🔍 STATUS ANALYSIS:')
+  const statusCount = {}
+  props.prospects.forEach(p => {
+    const status = p.status || 'unknown'
+    statusCount[status] = (statusCount[status] || 0) + 1
+  })
+  console.log('Status distribution:', statusCount)
+  
+  // Debug: Check hot prospects specifically
+  const hotProspects = props.prospects.filter(p => p.status === 'hot')
+  console.log('🔥 HOT PROSPECTS:', hotProspects.length, hotProspects.map(p => ({ name: p.name, status: p.status, revenue: p.revenue, tab_id: p.tab_id })))xl shadow-lg rounded-md bg-white" @click.stop>
       <div class="mt-3">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
@@ -248,13 +266,19 @@ const generateForecast = () => {
   console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
   console.log('Lead times:', props.leadTimes)
   
+  // 🚨 CRITICAL DEBUG: Count all statuses
+  const allStatuses = props.prospects.map(p => p.status).filter(s => s)
+  console.log('🚨 ALL STATUSES COUNT:', allStatuses.length, 'hot:', allStatuses.filter(s => s === 'hot').length)
+  const hotProspects = props.prospects.filter(p => p.status === 'hot')
+  console.log('🚨 HOT PROSPECTS:', hotProspects.map(p => ({ name: p.name, status: p.status, revenue: p.revenue, tab_id: p.tab_id })))
+  
   if (!props.prospects.length) {
     console.log('No prospects found, returning empty forecast')
     return []
   }
 
   // Debug: check prospects with revenue
-  const prospectsWithRevenue = props.prospects.filter(p => p.potential_revenue > 0)
+  const prospectsWithRevenue = props.prospects.filter(p => p.revenue > 0) // FIX: utiliser 'revenue' pas 'potential_revenue'
   console.log('Prospects with revenue > 0:', prospectsWithRevenue.length)
   console.log('Sample prospects with revenue:', prospectsWithRevenue.slice(0, 3))
 
@@ -374,8 +398,8 @@ const calculateConfidenceScore = () => {
   
   const categoryDistribution = {}
   props.prospects.forEach(p => {
-    const stage = p.stage || 'prospect'
-    const category = getProspectCategory(stage)
+    const status = p.status || 'cold' // FIX: utiliser 'status' pas 'stage'
+    const category = getProspectCategory(status)
     categoryDistribution[category] = (categoryDistribution[category] || 0) + 1
   })
   
@@ -392,8 +416,8 @@ const identifyRiskFactors = () => {
   const totalCount = props.prospects.length
   if (totalCount === 0) return risks
   
-  const hotCount = props.prospects.filter(p => getProspectCategory(p.stage || 'prospect') === 'hot').length
-  const coldCount = props.prospects.filter(p => getProspectCategory(p.stage || 'prospect') === 'cold').length
+  const hotCount = props.prospects.filter(p => getProspectCategory(p.status || 'cold') === 'hot').length
+  const coldCount = props.prospects.filter(p => getProspectCategory(p.status || 'cold') === 'cold').length
   
   if (coldCount / totalCount > 0.7) {
     risks.push({

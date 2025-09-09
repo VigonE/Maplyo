@@ -646,10 +646,24 @@ const passwordForm = ref({
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
-  console.log('=== FILTERING PROSPECTS ===')
+  console.log('🚨🚨🚨 FILTERING PROSPECTS - NEW CODE LOADED 🚨🚨🚨')
   console.log('Current tab ID:', currentTabId.value)
+  console.log('Current tab NAME:', currentTabName.value)
+  console.log('Is ALL LEADS?:', currentTabName.value === 'all leads')
+  console.log('Tab name length:', currentTabName.value.length)
+  console.log('Tab name chars:', JSON.stringify(currentTabName.value))
   console.log('Total prospects:', prospectsStore.prospects.length)
   
+  // Si on est sur "All Leads", retourner TOUS les prospects
+  if (currentTabName.value === 'All Leads') {
+    console.log('🌟 ALL LEADS mode - returning ALL prospects without filtering')
+    // Debug: count hot prospects in store
+    const hotInStore = prospectsStore.prospects.filter(p => p.status === 'hot')
+    console.log('🔥 HOT in STORE:', hotInStore.length, hotInStore.map(p => ({ name: p.name, status: p.status, tab_id: p.tab_id })))
+    return prospectsStore.prospects
+  }
+  
+  // Sinon, filtrer par onglet spécifique
   if (currentTabId.value === 'default') {
     console.log('Using default tab - returning all prospects')
     return prospectsStore.prospects
@@ -692,7 +706,13 @@ const currentTabName = computed(() => {
 
 // Prospects for forecast (current tab only - strict)
 const forecastProspects = computed(() => {
-  // Utiliser UNIQUEMENT les prospects de l'onglet courant, même si c'est vide
+  // Si on est sur "All Leads", utiliser TOUS les prospects du système
+  if (currentTabName.value === 'All Leads') {
+    console.log(`🌟 Prévisionnel "ALL LEADS": ${prospectsStore.prospects.length} prospects totaux`)
+    return prospectsStore.prospects
+  }
+  
+  // Sinon, utiliser UNIQUEMENT les prospects de l'onglet courant
   console.log(`Prévisionnel pour l'onglet "${currentTabName.value}": ${visibleProspects.value.length} prospects`)
   return visibleProspects.value
 })
