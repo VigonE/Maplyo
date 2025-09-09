@@ -95,6 +95,20 @@ async function initDatabase() {
       )
     `)
 
+    // Create settings table for system configuration
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        setting_key VARCHAR(255) NOT NULL,
+        setting_value JSON NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_setting (user_id, setting_key)
+      )
+    `)
+
     // Add probability_coefficient column if it doesn't exist (migration for existing databases)
     try {
       await db.execute(`
@@ -195,6 +209,157 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de la récupération du profil:', error)
     res.status(500).json({ message: 'Erreur serveur' })
+  }
+})
+
+// Settings routes
+// Get closing lead times
+app.get('/api/settings/closing-lead-times', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    const [settings] = await db.execute(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [req.user.id, 'closing_lead_times']
+    )
+    await db.end()
+
+    if (settings.length === 0) {
+      // Return default values if no settings found
+      return res.json({
+        success: true,
+        settings: {
+          cold: 12,
+          warm: 6,
+          hot: 3
+        }
+      })
+    }
+
+    res.json({
+      success: true,
+      settings: settings[0].setting_value
+    })
+  } catch (error) {
+    console.error('Error loading closing lead times:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur lors du chargement des paramètres' 
+    })
+  }
+})
+
+// Save closing lead times
+app.post('/api/settings/closing-lead-times', authenticateToken, async (req, res) => {
+  try {
+    const { cold, warm, hot } = req.body
+    
+    // Validate input
+    if (!cold || !warm || !hot || cold < 1 || warm < 1 || hot < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valeurs invalides pour les temps de closing'
+      })
+    }
+
+    const settingValue = { cold, warm, hot }
+    
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Use INSERT ... ON DUPLICATE KEY UPDATE to handle both insert and update
+    await db.execute(`
+      INSERT INTO settings (user_id, setting_key, setting_value) 
+      VALUES (?, ?, ?) 
+      ON DUPLICATE KEY UPDATE 
+      setting_value = VALUES(setting_value),
+      updated_at = CURRENT_TIMESTAMP
+    `, [req.user.id, 'closing_lead_times', JSON.stringify(settingValue)])
+    
+    await db.end()
+
+    res.json({
+      success: true,
+      message: 'Paramètres de closing lead time sauvegardés avec succès'
+    })
+  } catch (error) {
+    console.error('Error saving closing lead times:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur lors de la sauvegarde des paramètres' 
+    })
+  }
+})
+
+app.get('/api/settings/closing-lead-times', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    const [settings] = await db.execute(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [req.user.id, 'closing_lead_times']
+    )
+    await db.end()
+
+    if (settings.length === 0) {
+      // Return default values if no settings found
+      return res.json({
+        success: true,
+        settings: {
+          cold: 12,
+          warm: 6,
+          hot: 3
+        }
+      })
+    }
+
+    res.json({
+      success: true,
+      settings: settings[0].setting_value
+    })
+  } catch (error) {
+    console.error('Error fetching closing lead times:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    })
+  }
+})
+
+app.post('/api/settings/closing-lead-times', authenticateToken, async (req, res) => {
+  try {
+    const { cold, warm, hot } = req.body
+
+    // Validate input
+    if (!cold || !warm || !hot || cold < 1 || warm < 1 || hot < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid lead time values. All values must be positive numbers.'
+      })
+    }
+
+    const settingValue = { cold, warm, hot }
+
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Use ON DUPLICATE KEY UPDATE to handle insert or update
+    await db.execute(`
+      INSERT INTO settings (user_id, setting_key, setting_value) 
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE 
+      setting_value = VALUES(setting_value),
+      updated_at = CURRENT_TIMESTAMP
+    `, [req.user.id, 'closing_lead_times', JSON.stringify(settingValue)])
+    
+    await db.end()
+
+    res.json({
+      success: true,
+      message: 'Closing lead time settings saved successfully'
+    })
+  } catch (error) {
+    console.error('Error saving closing lead times:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error' 
+    })
   }
 })
 

@@ -112,10 +112,24 @@ function initializeDatabase() {
     )
   `;
 
+  const createSettingsTable = `
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      setting_key TEXT NOT NULL,
+      setting_value TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, setting_key)
+    )
+  `;
+
   db.serialize(() => {
     db.run(createUsersTable);
     db.run(createProspectsTable);
     db.run(createTabsTable);
+    db.run(createSettingsTable);
     
     // Migration pour ajouter tab_id aux bases de données existantes
     db.run(`ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'`, (err) => {
@@ -457,6 +471,96 @@ app.put('/api/profile/password', authenticateToken, async (req, res) => {
     console.error('Password change error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Routes pour les paramètres système
+app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
+  console.log('📊 Fetching closing lead times for user:', req.user.userId);
+  
+  db.get(
+    'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+    [req.user.userId, 'closing_lead_times'],
+    (err, row) => {
+      if (err) {
+        console.error('Error fetching closing lead times:', err);
+        return res.status(500).json({ success: false, error: 'Database error' });
+      }
+      
+      if (!row) {
+        // Return default values if no settings found
+        return res.json({
+          success: true,
+          settings: {
+            cold: 12,
+            warm: 6,
+            hot: 3
+          }
+        });
+      }
+      
+      try {
+        const settings = JSON.parse(row.setting_value);
+        res.json({
+          success: true,
+          settings: settings
+        });
+      } catch (parseError) {
+        console.error('Error parsing settings JSON:', parseError);
+        // Return default values if JSON is invalid
+        res.json({
+          success: true,
+          settings: {
+            cold: 12,
+            warm: 6,
+            hot: 3
+          }
+        });
+      }
+    }
+  );
+});
+
+app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
+  console.log('💾 Saving closing lead times for user:', req.user.userId);
+  
+  const { cold, warm, hot } = req.body;
+  
+  // Validate input
+  if (!cold || !warm || !hot || cold < 1 || warm < 1 || hot < 1) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid lead time values. All values must be positive numbers.'
+    });
+  }
+  
+  const settingValue = { cold, warm, hot };
+  
+  // Use INSERT OR REPLACE for SQLite (equivalent to MySQL's ON DUPLICATE KEY UPDATE)
+  db.run(
+    `INSERT OR REPLACE INTO settings (user_id, setting_key, setting_value, created_at, updated_at)
+     VALUES (?, ?, ?, 
+       COALESCE((SELECT created_at FROM settings WHERE user_id = ? AND setting_key = ?), CURRENT_TIMESTAMP),
+       CURRENT_TIMESTAMP)`,
+    [
+      req.user.userId, 
+      'closing_lead_times', 
+      JSON.stringify(settingValue),
+      req.user.userId,
+      'closing_lead_times'
+    ],
+    function(err) {
+      if (err) {
+        console.error('Error saving closing lead times:', err);
+        return res.status(500).json({ success: false, error: 'Database error' });
+      }
+      
+      console.log('✅ Closing lead times saved successfully');
+      res.json({
+        success: true,
+        message: 'Closing lead time settings saved successfully'
+      });
+    }
+  );
 });
 
 // Routes pour les prospects

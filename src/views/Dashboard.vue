@@ -286,6 +286,80 @@
               </div>
             </div>
 
+            <!-- Closing Lead Time Settings -->
+            <div class="border rounded-lg p-4">
+              <h4 class="text-md font-medium text-gray-800 mb-3">⏱️ Closing Lead Time</h4>
+              <p class="text-sm text-gray-600 mb-4">Set average time in months to close leads by category</p>
+              
+              <div class="space-y-4">
+                <!-- Cold Leads -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
+                    <label class="text-sm font-medium text-gray-700">Cold Leads</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model.number="closingLeadTimes.cold"
+                      type="number"
+                      min="1"
+                      max="60"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span class="text-sm text-gray-500">months</span>
+                  </div>
+                </div>
+
+                <!-- Warm Leads -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
+                    <label class="text-sm font-medium text-gray-700">Warm Leads</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model.number="closingLeadTimes.warm"
+                      type="number"
+                      min="1"
+                      max="60"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span class="text-sm text-gray-500">months</span>
+                  </div>
+                </div>
+
+                <!-- Hot Leads -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                    <label class="text-sm font-medium text-gray-700">Hot Leads</label>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model.number="closingLeadTimes.hot"
+                      type="number"
+                      min="1"
+                      max="60"
+                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span class="text-sm text-gray-500">months</span>
+                  </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="pt-3 border-t border-gray-200">
+                  <button
+                    @click="saveClosingLeadTimes"
+                    :disabled="leadTimeLoading"
+                    class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div v-if="leadTimeLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {{ leadTimeLoading ? 'Saving...' : 'Save Lead Time Settings' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Danger Zone -->
             <div class="border border-red-200 rounded-lg p-4 bg-red-50">
               <h4 class="text-md font-medium text-red-800 mb-3">🚨 Danger Zone</h4>
@@ -527,6 +601,14 @@ const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
+// Closing Lead Time Settings
+const closingLeadTimes = ref({
+  cold: 12,  // mois
+  warm: 6,   // mois
+  hot: 3     // mois
+})
+const leadTimeLoading = ref(false)
+
 // CSV Import Modal
 const showCsvImportModal = ref(false)
 
@@ -740,6 +822,9 @@ async function openSystemSettings() {
     systemMessage.value = 'Error loading user profile'
     systemMessageType.value = 'error'
   }
+  
+  // Load closing lead times
+  await loadClosingLeadTimes()
 }
 
 function closeSystemSettings() {
@@ -974,6 +1059,67 @@ function cancelChangePassword() {
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
+  }
+}
+
+// Closing Lead Time functions
+async function loadClosingLeadTimes() {
+  try {
+    const response = await fetch('/api/settings/closing-lead-times', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.settings) {
+        closingLeadTimes.value = {
+          cold: data.settings.cold || 12,
+          warm: data.settings.warm || 6,
+          hot: data.settings.hot || 3
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading closing lead times:', error)
+  }
+}
+
+async function saveClosingLeadTimes() {
+  leadTimeLoading.value = true
+  systemMessage.value = ''
+  
+  try {
+    const response = await fetch('/api/settings/closing-lead-times', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        cold: closingLeadTimes.value.cold,
+        warm: closingLeadTimes.value.warm,
+        hot: closingLeadTimes.value.hot
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      systemMessage.value = 'Closing lead time settings saved successfully!'
+      systemMessageType.value = 'success'
+    } else {
+      throw new Error(data.error || 'Failed to save settings')
+    }
+  } catch (error) {
+    console.error('Error saving closing lead times:', error)
+    systemMessage.value = 'Error saving closing lead time settings: ' + error.message
+    systemMessageType.value = 'error'
+  } finally {
+    leadTimeLoading.value = false
   }
 }
 
