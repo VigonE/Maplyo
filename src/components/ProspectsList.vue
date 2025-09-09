@@ -168,13 +168,17 @@
                           <span v-html="highlightSearchTerm(prospect.name, searchQuery)"></span>
                         </h3>
                         <!-- Badge d'onglet d'origine (seulement dans la vue "All Leads") -->
-                        <span 
+                        <button
                           v-if="isAllLeadsView && getProspectTabName(prospect)"
-                          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0"
-                          :title="'From tab: ' + getProspectTabName(prospect)"
+                          @click.stop="navigateToProspectTab(prospect)"
+                          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 flex-shrink-0 transition-colors cursor-pointer"
+                          :title="'Click to go to tab: ' + getProspectTabName(prospect)"
                         >
+                          <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
                           {{ getProspectTabName(prospect) }}
-                        </span>
+                        </button>
                       </div>
                       
                       <p class="text-xs text-gray-500 mb-2 truncate">
@@ -587,7 +591,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects'])
+const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects', 'navigate-to-tab'])
 
 const prospectsStore = useProspectsStore()
 const localProspects = ref([])
@@ -615,6 +619,15 @@ const getProspectTabName = (prospect) => {
   
   const tab = props.allTabs.find(t => t.id === prospectTabId)
   return tab ? tab.name : 'Unknown Tab'
+}
+
+// Fonction pour naviguer vers l'onglet d'origine d'un prospect
+const navigateToProspectTab = (prospect) => {
+  const prospectTabId = prospect.tabId || prospect.tab_id
+  if (prospectTabId && prospectTabId !== 'default') {
+    // Émettre un événement pour changer d'onglet
+    emit('navigate-to-tab', prospectTabId, prospect.id)
+  }
 }
 
 // Variables pour l'édition du montant directement sur la carte

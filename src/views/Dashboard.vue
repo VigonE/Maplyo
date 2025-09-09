@@ -86,6 +86,7 @@
           @reorder-prospects="reorderProspects"
           @tab-changed="onTabChanged"
           @filtered-prospects="onFilteredProspects"
+          @navigate-to-tab="onNavigateToTab"
         />
       </div>
     </div>
@@ -646,12 +647,9 @@ const passwordForm = ref({
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
-  console.log('🚨🚨🚨 FILTERING PROSPECTS - NEW CODE LOADED 🚨🚨🚨')
+  console.log('=== FILTERING PROSPECTS ===')
   console.log('Current tab ID:', currentTabId.value)
   console.log('Current tab NAME:', currentTabName.value)
-  console.log('Is ALL LEADS?:', currentTabName.value === 'all leads')
-  console.log('Tab name length:', currentTabName.value.length)
-  console.log('Tab name chars:', JSON.stringify(currentTabName.value))
   console.log('Total prospects:', prospectsStore.prospects.length)
   
   // Si on est sur "All Leads", retourner TOUS les prospects
@@ -720,6 +718,15 @@ const forecastProspects = computed(() => {
 // Gérer les prospects filtrés depuis ProspectsList
 function onFilteredProspects(filteredProspects) {
   filteredProspectsForMap.value = filteredProspects
+}
+
+// Naviguer vers l'onglet d'origine d'un prospect
+function onNavigateToTab(tabId, prospectId) {
+  console.log('🎯 Navigate to tab:', tabId, 'for prospect:', prospectId)
+  if (tabsManager.value && tabsManager.value.switchToTab) {
+    tabsManager.value.switchToTab(tabId)
+    // TODO: Optionnellement, faire défiler vers le prospect spécifique
+  }
 }
 
 // Basculer entre carte et prospects sur mobile
@@ -1483,7 +1490,7 @@ const handleLogout = () => {
 }
 
 onMounted(async () => {
-  await prospectsStore.fetchProspets()
+  await prospectsStore.fetchProspects()
   
   // Charger les paramètres de closing lead times
   await loadClosingLeadTimes()

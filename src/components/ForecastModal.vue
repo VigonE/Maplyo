@@ -266,12 +266,6 @@ const generateForecast = () => {
   console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
   console.log('Lead times:', props.leadTimes)
   
-  // 🚨 CRITICAL DEBUG: Count all statuses
-  const allStatuses = props.prospects.map(p => p.status).filter(s => s)
-  console.log('🚨 ALL STATUSES COUNT:', allStatuses.length, 'hot:', allStatuses.filter(s => s === 'hot').length)
-  const hotProspects = props.prospects.filter(p => p.status === 'hot')
-  console.log('🚨 HOT PROSPECTS:', hotProspects.map(p => ({ name: p.name, status: p.status, revenue: p.revenue, tab_id: p.tab_id })))
-  
   if (!props.prospects.length) {
     console.log('No prospects found, returning empty forecast')
     return []

@@ -90,12 +90,15 @@
         :tab-id="activeTabId"
         :tab-name="activeTab.name"
         :is-special-tab="activeTab.is_special"
+        :is-all-leads-view="activeTab.name === 'All Leads'"
+        :all-tabs="tabs"
         @add-prospect="$emit('add-prospect')"
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
         @select="$emit('select-prospect', $event)"
         @reorder="$emit('reorder-prospects', $event)"
         @filtered-prospects="$emit('filtered-prospects', $event)"
+        @navigate-to-tab="onNavigateToTab"
       />
     </div>
 
@@ -402,6 +405,13 @@ export default {
       loadTabs
     })
 
+    // Fonction pour naviguer vers un onglet spécifique
+    const onNavigateToTab = (tabId, prospectId) => {
+      console.log('🎯 TabsManager: Navigate to tab:', tabId, 'for prospect:', prospectId)
+      selectTab(tabId)
+      // TODO: Optionnellement, faire défiler vers le prospect spécifique
+    }
+
     return {
       tabs,
       activeTab,
@@ -418,7 +428,8 @@ export default {
       startEditTab,
       cancelEditTab,
       saveTabName,
-      getTabName
+      getTabName,
+      onNavigateToTab
     }
   }
 }
