@@ -522,8 +522,9 @@
     <!-- Forecast Modal -->
     <ForecastModal
       :is-visible="showForecastModal"
-      :prospects="currentProspects"
+      :prospects="forecastProspects"
       :lead-times="closingLeadTimes"
+      :current-tab-name="currentTabName"
       @close="closeForecastModal"
     />
   </div>
@@ -668,6 +669,27 @@ const availableTabs = computed(() => {
     return tabsManager.value.tabs
   }
   return []
+})
+
+// Current tab name for display
+const currentTabName = computed(() => {
+  if (tabsManager.value && tabsManager.value.tabs && currentTabId.value) {
+    const currentTab = tabsManager.value.tabs.find(tab => tab.id === currentTabId.value)
+    return currentTab ? currentTab.name : 'Tous les prospects'
+  }
+  return 'Tous les prospects'
+})
+
+// Prospects for forecast (current tab or all if empty)
+const forecastProspects = computed(() => {
+  const tabProspects = visibleProspects.value
+  // Si l'onglet courant est vide, utiliser tous les prospects
+  if (tabProspects.length === 0) {
+    console.log('Onglet courant vide, utilisation de tous les prospects pour le prévisionnel')
+    return prospectsStore.prospects
+  }
+  console.log(`Utilisation des ${tabProspects.length} prospects de l'onglet courant`)
+  return tabProspects
 })
 
 // Gérer les prospects filtrés depuis ProspectsList
@@ -1436,7 +1458,10 @@ const handleLogout = () => {
 }
 
 onMounted(async () => {
-  await prospectsStore.fetchProspects()
+  await prospectsStore.fetchProspets()
+  
+  // Charger les paramètres de closing lead times
+  await loadClosingLeadTimes()
   
   // Écouter les événements des onglets
   if (tabsManager.value) {

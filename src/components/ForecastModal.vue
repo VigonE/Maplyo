@@ -13,7 +13,7 @@
             <svg class="h-8 w-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            📈 Prévisionnel CA
+            📈 Prévisionnel CA - {{ currentTabName }}
           </h3>
           <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +30,19 @@
 
         <!-- Main Content -->
         <div v-else class="space-y-6">
+          <!-- Debug Info -->
+          <div class="bg-gray-100 p-4 rounded-lg border">
+            <h4 class="text-sm font-semibold text-gray-800 mb-2">🐛 Debug Info</h4>
+            <div class="text-xs text-gray-600 space-y-1">
+              <div>Total prospects: {{ prospects.length }}</div>
+              <div>Prospects with potential_revenue > 0: {{ prospects.filter(p => p.potential_revenue > 0).length }}</div>
+              <div>Prospects with revenue > 0: {{ prospects.filter(p => p.revenue > 0).length }}</div>
+              <div>Sample prospect fields: {{ prospects[0] ? Object.keys(prospects[0]).join(', ') : 'None' }}</div>
+              <div>Sample values: {{ prospects[0] ? `${prospects[0].name} - pot:${prospects[0].potential_revenue} rev:${prospects[0].revenue} st:${prospects[0].stage} stat:${prospects[0].status}` : 'None' }}</div>
+              <div>Lead times: {{ JSON.stringify(leadTimes) }}</div>
+            </div>
+          </div>
+
           <!-- Metrics Summary -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -152,6 +165,10 @@ const props = defineProps({
       warm: 6,
       cold: 12
     })
+  },
+  currentTabName: {
+    type: String,
+    default: 'Prospects'
   }
 })
 
@@ -180,20 +197,49 @@ const categoryAnalysis = computed(() => {
     cold: { count: 0, value: 0, avgMonths: props.leadTimes.cold }
   }
 
+  console.log('Analyzing prospects:', props.prospects)
+  
   props.prospects.forEach(prospect => {
-    const category = prospect.status || 'warm'
+    // Utiliser le bon champ: status au lieu de stage
+    const status = prospect.status || 'cold'
+    const category = getProspectCategory(status)
+    
+    console.log('Prospect:', prospect.name, 'Status:', status, 'Category:', category, 'Revenue:', prospect.revenue)
+    
     if (analysis[category]) {
       analysis[category].count++
-      analysis[category].value += prospect.potential_revenue || 0
+      analysis[category].value += prospect.revenue || 0
     }
   })
 
+  console.log('Category analysis result:', analysis)
   return analysis
 })
 
+// Fonction pour convertir le status en catégorie de température
+const getProspectCategory = (status) => {
+  // Les statuts sont déjà hot/warm/cold dans votre système
+  const validCategories = ['hot', 'warm', 'cold']
+  return validCategories.includes(status) ? status : 'cold'
+}
+
 // Methods
 const generateForecast = () => {
-  if (!props.prospects.length) return []
+  console.log('=== GENERATING FORECAST ===')
+  console.log('Props prospects count:', props.prospects.length)
+  console.log('First prospect COMPLETE:', props.prospects[0])
+  console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
+  console.log('Lead times:', props.leadTimes)
+  
+  if (!props.prospects.length) {
+    console.log('No prospects found, returning empty forecast')
+    return []
+  }
+
+  // Debug: check prospects with revenue
+  const prospectsWithRevenue = props.prospects.filter(p => p.potential_revenue > 0)
+  console.log('Prospects with revenue > 0:', prospectsWithRevenue.length)
+  console.log('Sample prospects with revenue:', prospectsWithRevenue.slice(0, 3))
 
   const forecastMonths = 24
   const today = new Date()
@@ -209,60 +255,66 @@ const generateForecast = () => {
     })
   }
 
-  // Process each prospect
+  // Process each prospect with SIMPLIFIED algorithm
   props.prospects.forEach(prospect => {
-    const revenue = prospect.potential_revenue || 0
-    const category = prospect.status || 'warm'
+    const revenue = prospect.revenue || 0 // Utiliser 'revenue' au lieu de 'potential_revenue'
+    const status = prospect.status || 'cold' // Utiliser 'status' au lieu de 'stage'
+    const category = getProspectCategory(status)
     const leadTimeMonths = props.leadTimes[category] || 6
     const probability = getCategoryProbability(category)
     
-    // Get prospect age
-    const createdDate = new Date(prospect.created_at || today)
-    const ageInMonths = getMonthsDiff(createdDate, today)
-
-    // Apply Gaussian distribution around lead time
-    const stdDev = leadTimeMonths * 0.3
+    console.log('Processing prospect:', {
+      name: prospect.name,
+      revenue: revenue,
+      status: status,
+      category: category,
+      leadTime: leadTimeMonths,
+      probability: probability
+    })
     
-    for (let month = 0; month < forecastMonths; month++) {
-      const monthsFromCreation = ageInMonths + month
-      
-      // Gaussian probability for this month
-      const gaussianProb = gaussianPDF(monthsFromCreation, leadTimeMonths, stdDev)
-      
-      // Age penalty (older prospects less likely to close)
-      const agePenalty = Math.max(0.1, 1 - (ageInMonths * 0.03))
-      
-      // Seasonal multiplier
-      const seasonalMultiplier = getSeasonalMultiplier(forecastData[month].date)
-      
-      // Final probability and revenue
-      const finalProbability = probability * gaussianProb * agePenalty * seasonalMultiplier
-      const expectedRevenue = revenue * finalProbability * 0.01 // Scale down for better distribution
-      
-      forecastData[month].revenue += expectedRevenue
-      
-      if (expectedRevenue > 100) { // Only add significant contributions
-        forecastData[month].prospects.push({
-          id: prospect.id,
-          name: prospect.name,
-          expectedRevenue,
-          probability: finalProbability
-        })
-      }
+    if (revenue <= 0) {
+      console.log('Skipping prospect with zero revenue:', prospect.name)
+      return
     }
+    
+    // SIMPLE ALGORITHM: Just put the weighted revenue in the expected closing month
+    const targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
+    const expectedRevenue = revenue * probability
+    
+    console.log(`Adding ${expectedRevenue} to month ${targetMonth}`)
+    
+    forecastData[targetMonth].revenue += expectedRevenue
+    forecastData[targetMonth].prospects.push({
+      id: prospect.id,
+      name: prospect.name,
+      expectedRevenue,
+      probability: probability
+    })
   })
 
+  console.log('Final forecast data:', forecastData.map(f => ({ date: f.date, revenue: f.revenue })))
   return forecastData
 }
 
 const calculateMetrics = (forecastData) => {
-  const totalPipeline = props.prospects.reduce((sum, p) => sum + (p.potential_revenue || 0), 0)
+  console.log('=== CALCULATING METRICS ===')
+  
+  const totalPipeline = props.prospects.reduce((sum, p) => sum + (p.revenue || 0), 0)
   const weightedPipeline = props.prospects.reduce((sum, p) => {
-    const category = p.status || 'warm'
-    return sum + ((p.potential_revenue || 0) * getCategoryProbability(category))
+    const status = p.status || 'cold'
+    const category = getProspectCategory(status)
+    const weight = (p.revenue || 0) * getCategoryProbability(category)
+    console.log(`Prospect ${p.name}: ${p.revenue} * ${getCategoryProbability(category)} = ${weight}`)
+    return sum + weight
   }, 0)
   
   const forecastTotal = forecastData.reduce((sum, f) => sum + f.revenue, 0)
+  
+  console.log('Metrics calculated:', {
+    totalPipeline,
+    weightedPipeline,
+    forecastTotal
+  })
   
   return {
     pipelineValue: totalPipeline,
@@ -305,7 +357,8 @@ const calculateConfidenceScore = () => {
   
   const categoryDistribution = {}
   props.prospects.forEach(p => {
-    const category = p.status || 'warm'
+    const stage = p.stage || 'prospect'
+    const category = getProspectCategory(stage)
     categoryDistribution[category] = (categoryDistribution[category] || 0) + 1
   })
   
@@ -322,8 +375,8 @@ const identifyRiskFactors = () => {
   const totalCount = props.prospects.length
   if (totalCount === 0) return risks
   
-  const hotCount = props.prospects.filter(p => p.status === 'hot').length
-  const coldCount = props.prospects.filter(p => p.status === 'cold').length
+  const hotCount = props.prospects.filter(p => getProspectCategory(p.stage || 'prospect') === 'hot').length
+  const coldCount = props.prospects.filter(p => getProspectCategory(p.stage || 'prospect') === 'cold').length
   
   if (coldCount / totalCount > 0.7) {
     risks.push({
