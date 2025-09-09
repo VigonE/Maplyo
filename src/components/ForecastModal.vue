@@ -100,7 +100,28 @@
 
           <!-- Chart Container -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 class="text-lg font-semibold text-gray-800 mb-4">Revenue Forecast Evolution</h4>
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="text-lg font-semibold text-gray-800">Revenue Forecast Evolution</h4>
+              
+              <!-- Chart Controls -->
+              <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                  <label class="text-sm text-gray-600">Smoothing:</label>
+                  <select v-model="chartSmoothness" @change="updateChart" class="text-sm border border-gray-300 rounded px-2 py-1">
+                    <option value="0">None</option>
+                    <option value="0.1">Low</option>
+                    <option value="0.4">Medium</option>
+                    <option value="0.7">High</option>
+                  </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <label class="flex items-center text-sm text-gray-600">
+                    <input type="checkbox" v-model="showBars" @change="updateChart" class="mr-1">
+                    Show Bars
+                  </label>
+                </div>
+              </div>
+            </div>
             <div class="h-96 w-full">
               <canvas ref="chartCanvas" class="w-full h-full"></canvas>
             </div>
@@ -214,6 +235,8 @@ const emit = defineEmits(['close'])
 const loading = ref(false)
 const chartCanvas = ref(null)
 const chart = ref(null)
+const chartSmoothness = ref(0.4) // Default to medium smoothing
+const showBars = ref(true) // Show bars by default
 const forecast = ref([])
 const metrics = ref({
   pipelineValue: 0,
@@ -464,27 +487,49 @@ const createChart = async () => {
   
   const ctx = chartCanvas.value.getContext('2d')
   
-  chart.value = new Chart(ctx, {
+  const datasets = []
+  
+  // Add bar chart if enabled
+  if (showBars.value) {
+    datasets.push({
+      type: 'bar',
+      label: 'Monthly Revenue',
+      data: forecast.value.map(f => f.revenue),
+      backgroundColor: 'rgba(59, 130, 246, 0.3)',
+      borderColor: 'rgba(59, 130, 246, 0.6)',
+      borderWidth: 1,
+      yAxisID: 'y'
+    })
+  }
+  
+  // Add smooth line chart
+  datasets.push({
     type: 'line',
+    label: 'Trend Line',
+    data: forecast.value.map(f => f.revenue),
+    borderColor: '#ef4444',
+    backgroundColor: 'transparent',
+    fill: false,
+    tension: parseFloat(chartSmoothness.value),
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    borderWidth: 2,
+    yAxisID: 'y'
+  })
+
+  chart.value = new Chart(ctx, {
+    type: 'bar',
     data: {
       labels: forecast.value.map(f => formatMonth(f.date)),
-      datasets: [
-        {
-          label: 'Revenue Forecast',
-          data: forecast.value.map(f => f.revenue),
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          fill: true,
-          tension: 0.4
-        }
-      ]
+      datasets: datasets
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'top'
         }
       },
       scales: {
@@ -504,6 +549,12 @@ const createChart = async () => {
       }
     }
   })
+}
+
+const updateChart = async () => {
+  if (forecast.value.length > 0) {
+    await createChart()
+  }
 }
 
 const refreshForecast = async () => {
