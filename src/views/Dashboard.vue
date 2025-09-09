@@ -39,6 +39,15 @@
                     </svg>
                     System Settings
                   </button>
+                  <button
+                    @click="openForecastModal"
+                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    📈 Prévisionnel CA
+                  </button>
                   <div class="border-t border-gray-100"></div>
                   <button
                     @click="triggerFileImport"
@@ -509,6 +518,14 @@
       @change="handleDatabaseImport"
       class="hidden"
     />
+
+    <!-- Forecast Modal -->
+    <ForecastModal
+      :is-visible="showForecastModal"
+      :prospects="currentProspects"
+      :lead-times="closingLeadTimes"
+      @close="closeForecastModal"
+    />
   </div>
 </template>
 
@@ -570,6 +587,7 @@ import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import ProspectModal from '@/components/ProspectModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
+import ForecastModal from '@/components/ForecastModal.vue'
 import api, { profileAPI } from '@/services/api'
 
 const router = useRouter()
@@ -611,6 +629,9 @@ const leadTimeLoading = ref(false)
 
 // CSV Import Modal
 const showCsvImportModal = ref(false)
+
+// Forecast Modal
+const showForecastModal = ref(false)
 
 // User profile and password management
 const userProfile = ref(null)
@@ -718,6 +739,9 @@ function onTabChanged(tabId) {
 
 onMounted(async () => {
   await prospectsStore.fetchProspects()
+  
+  // Charger les paramètres de closing lead times
+  await loadClosingLeadTimes()
   
   // Écouter les événements des onglets
   if (tabsManager.value) {
@@ -1224,6 +1248,16 @@ function triggerFileImport() {
 
 function closeCsvImportModal() {
   showCsvImportModal.value = false
+}
+
+// Fonctions pour le prévisionnel
+function openForecastModal() {
+  showSettingsMenu.value = false
+  showForecastModal.value = true
+}
+
+function closeForecastModal() {
+  showForecastModal.value = false
 }
 
 function onCsvImported(results) {
