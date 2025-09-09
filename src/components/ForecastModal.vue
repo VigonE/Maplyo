@@ -296,7 +296,11 @@ const generateForecast = () => {
     const status = prospect.status || 'cold' // Utiliser 'status' au lieu de 'stage'
     const category = getProspectCategory(status)
     const leadTimeMonths = props.leadTimes[category] || 6
-    const probability = getCategoryProbability(category)
+    const categoryProbability = getCategoryProbability(category)
+    
+    // Use individual probability coefficient if available, otherwise use category probability
+    const prospectProbability = (prospect.probability_coefficient || 100) / 100 // Convert percentage to decimal
+    const finalProbability = categoryProbability * prospectProbability // Combine both probabilities
     
     console.log('Processing prospect:', {
       name: prospect.name,
@@ -304,7 +308,9 @@ const generateForecast = () => {
       status: status,
       category: category,
       leadTime: leadTimeMonths,
-      probability: probability
+      categoryProbability: categoryProbability,
+      prospectProbability: prospectProbability,
+      finalProbability: finalProbability
     })
     
     if (revenue <= 0) {
@@ -312,9 +318,9 @@ const generateForecast = () => {
       return
     }
     
-    // SIMPLE ALGORITHM: Just put the weighted revenue in the expected closing month
+    // ENHANCED ALGORITHM: Use both category and individual probabilities
     const targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
-    const expectedRevenue = revenue * probability
+    const expectedRevenue = revenue * finalProbability
     
     console.log(`Adding ${expectedRevenue} to month ${targetMonth}`)
     
@@ -323,7 +329,7 @@ const generateForecast = () => {
       id: prospect.id,
       name: prospect.name,
       expectedRevenue,
-      probability: probability
+      probability: finalProbability
     })
   })
 
