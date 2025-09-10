@@ -133,19 +133,19 @@
                       </span>
                     </label>
                     <div class="flex items-center space-x-2">
-                      <span class="text-xs text-gray-500">-10%</span>
+                      <span class="text-xs text-gray-500">-50%</span>
                       <input
                         type="range"
                         v-model.number="leadTimeAdjustment"
-                        min="-10"
-                        max="10"
-                        step="1"
+                        min="-50"
+                        max="50"
+                        step="5"
                         @input="updateChart"
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
-                      <span class="text-xs text-gray-500">+10%</span>
+                      <span class="text-xs text-gray-500">+50%</span>
                     </div>
-                    <p class="text-xs text-gray-500">Adjust closing lead times by ±10%</p>
+                    <p class="text-xs text-gray-500">Adjust closing lead times by ±50%</p>
                   </div>
                   
                   <div class="space-y-2">
@@ -156,19 +156,19 @@
                       </span>
                     </label>
                     <div class="flex items-center space-x-2">
-                      <span class="text-xs text-gray-500">-10%</span>
+                      <span class="text-xs text-gray-500">-50%</span>
                       <input
                         type="range"
                         v-model.number="probabilityAdjustment"
-                        min="-10"
-                        max="10"
-                        step="1"
+                        min="-50"
+                        max="50"
+                        step="5"
                         @input="updateChart"
                         class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
-                      <span class="text-xs text-gray-500">+10%</span>
+                      <span class="text-xs text-gray-500">+50%</span>
                     </div>
-                    <p class="text-xs text-gray-500">Adjust conversion probabilities by ±10%</p>
+                    <p class="text-xs text-gray-500">Adjust conversion probabilities by ±50%</p>
                   </div>
                 </div>
               </div>
@@ -303,8 +303,8 @@ const isCreatingChart = ref(false)
 let chartUpdateTimeout = null
 
 // Sliders pour ajustement dynamique (centré à 0 = 100% des valeurs par défaut)
-const leadTimeAdjustment = ref(0) // -10% à +10%
-const probabilityAdjustment = ref(0) // -10% à +10%
+const leadTimeAdjustment = ref(0) // -50% à +50%
+const probabilityAdjustment = ref(0) // -50% à +50%
 
 // Fonction pour détruire le graphique de manière sûre
 const safeDestroyChart = () => {
@@ -425,8 +425,13 @@ const generateForecast = () => {
     let targetMonth = 0
     if (prospect.estimated_completion_date) {
       const estimatedDate = new Date(prospect.estimated_completion_date)
-      const monthsDiff = (estimatedDate.getFullYear() - today.getFullYear()) * 12 + 
-                        (estimatedDate.getMonth() - today.getMonth())
+      let monthsDiff = (estimatedDate.getFullYear() - today.getFullYear()) * 12 + 
+                       (estimatedDate.getMonth() - today.getMonth())
+      
+      // Apply lead time adjustment to the estimated completion date
+      const leadTimeAdjustmentFactor = 1 + (leadTimeAdjustment.value / 100)
+      monthsDiff = Math.round(monthsDiff * leadTimeAdjustmentFactor)
+      
       targetMonth = Math.max(0, Math.min(monthsDiff, forecastMonths - 1))
     } else {
       // Fallback to adjusted lead time if no estimated date
