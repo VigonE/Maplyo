@@ -36,39 +36,7 @@ const geocoder = NodeGeocoder({
   apikey: process.env.GEOCODING_API_KEY, // Optionnel pour certains providers
 });
 
-// Fonction de géocodage robuste avec timeout et fallback
-async function geocodeAddressSafely(address, timeout = 10000) {
-  if (!address || typeof address !== 'string' || address.trim() === '') {
-    console.log('⚠️ No address provided for geocoding');
-    return null;
-  }
-
-  console.log('🌍 Starting geocoding for address:', address);
-  
-  try {
-    // Créer une promesse avec timeout personnalisé
-    const geocodePromise = geocoder.geocode(address.trim());
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Geocoding timeout')), timeout)
-    );
-    
-    // Utiliser Promise.race pour gérer le timeout
-    const result = await Promise.race([geocodePromise, timeoutPromise]);
-    
-    if (result && result.length > 0) {
-      const { latitude, longitude, formattedAddress } = result[0];
-      console.log('✅ Geocoding successful:', { latitude, longitude });
-      return { latitude, longitude, formattedAddress };
-    } else {
-      console.log('⚠️ No geocoding results found for address:', address);
-      return null;
-    }
-  } catch (error) {
-    console.error('❌ Geocoding error:', error.message);
-    console.error('🌐 Network connectivity issue or API limit reached');
-    return null; // Ne pas faire échouer la création du prospect
-  }
-}
+// Note: La fonction geocodeAddressSafely est définie plus bas avec les statistiques
 
 // Test de connectivité réseau au démarrage
 async function testNetworkConnectivity() {
@@ -118,8 +86,8 @@ if (process.env.NODE_ENV === 'production') {
   setInterval(logGeocodingStats, 10 * 60 * 1000);
 }
 
-// Fonction mise à jour pour inclure le monitoring
-async function geocodeAddressSafelyWithStats(address, timeout = 10000) {
+// Fonction de géocodage robuste avec timeout, fallback et monitoring
+async function geocodeAddressSafely(address, timeout = 10000) {
   geocodingStats.total++;
   
   if (!address || typeof address !== 'string' || address.trim() === '') {
@@ -164,9 +132,6 @@ async function geocodeAddressSafelyWithStats(address, timeout = 10000) {
     return null; // Ne pas faire échouer la création du prospect
   }
 }
-
-// Remplacer l'ancienne fonction par la nouvelle avec stats
-const geocodeAddressSafely = geocodeAddressSafelyWithStats;
 
 // Middleware
 app.use(cors());
