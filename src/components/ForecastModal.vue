@@ -492,15 +492,48 @@ const identifyRiskFactors = () => {
 }
 
 const createChart = async () => {
-  if (!chartCanvas.value || !forecast.value.length) return
+  // Vérifications initiales
+  if (!forecast.value.length || !props.isVisible || loading.value || props.prospects.length === 0) {
+    console.log('❌ Chart creation aborted - missing requirements:', {
+      canvas: !!chartCanvas.value,
+      forecast: forecast.value.length,
+      visible: props.isVisible,
+      loading: loading.value,
+      prospects: props.prospects.length
+    })
+    return
+  }
   
   await nextTick()
   
-  if (chart.value) {
-    chart.value.destroy()
+  // Attendre que le canvas soit disponible avec plusieurs tentatives
+  let attempts = 0
+  const maxAttempts = 10
+  
+  while (!chartCanvas.value && attempts < maxAttempts) {
+    console.log(`⏳ Waiting for canvas... attempt ${attempts + 1}/${maxAttempts}`)
+    await new Promise(resolve => setTimeout(resolve, 200))
+    attempts++
   }
   
-  const ctx = chartCanvas.value.getContext('2d')
+  // Vérifier à nouveau après les tentatives
+  if (!chartCanvas.value) {
+    console.log('❌ Canvas not available after', maxAttempts, 'attempts')
+    return
+  }
+  
+  try {
+    // Détruire l'ancien graphique s'il existe
+    if (chart.value) {
+      chart.value.destroy()
+      chart.value = null
+    }
+    
+    const ctx = chartCanvas.value.getContext('2d')
+    if (!ctx) {
+      console.log('❌ Failed to get 2D context')
+      return
+    }
   
   const datasets = []
   
@@ -564,15 +597,31 @@ const createChart = async () => {
       }
     }
   })
+  
+  console.log('✅ Chart created successfully')
+  
+  } catch (error) {
+    console.error('❌ Error creating chart:', error)
+    if (chart.value) {
+      chart.value.destroy()
+      chart.value = null
+    }
+  }
 }
 
 const updateChart = async () => {
-  if (forecast.value.length > 0) {
-    await createChart()
+  if (forecast.value.length > 0 && props.isVisible) {
+    try {
+      await createChart()
+    } catch (error) {
+      console.error('❌ Error updating chart:', error)
+    }
   }
 }
 
 const refreshForecast = async () => {
+  if (!props.isVisible) return
+  
   loading.value = true
   
   try {
@@ -581,7 +630,11 @@ const refreshForecast = async () => {
     forecast.value = generateForecast()
     metrics.value = calculateMetrics(forecast.value)
     
-    await createChart()
+    if (props.isVisible) {
+      await createChart()
+    }
+  } catch (error) {
+    console.error('❌ Error refreshing forecast:', error)
   } finally {
     loading.value = false
   }
@@ -634,9 +687,37 @@ const closeModal = () => {
 }
 
 // Watch for visibility changes
-watch(() => props.isVisible, (newValue) => {
+watch(() => props.isVisible, async (newValue) => {
   if (newValue) {
-    refreshForecast()
+    // Attendre que le DOM soit prêt avant de créer le graphique
+    await nextTick()
+    // Délai supplémentaire pour s'assurer que toutes les conditions sont remplies
+    setTimeout(() => {
+      refreshForecast()
+    }, 300)
+  } else {
+    // Nettoyer le graphique quand le modal se ferme
+    if (chart.value) {
+      try {
+        chart.value.destroy()
+        chart.value = null
+        console.log('✅ Chart destroyed on modal close')
+      } catch (error) {
+        console.error('❌ Error destroying chart:', error)
+        chart.value = null
+      }
+    }
+  }
+})
+
+// Watcher supplémentaire pour créer le graphique quand les données sont prêtes
+watch([() => loading.value, () => forecast.value.length], async ([newLoading, newForecastLength]) => {
+  if (!newLoading && newForecastLength > 0 && props.isVisible && !chart.value) {
+    console.log('🎯 Data ready, attempting to create chart...')
+    await nextTick()
+    setTimeout(() => {
+      createChart()
+    }, 200)
   }
 })
 
