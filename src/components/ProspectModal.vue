@@ -163,6 +163,21 @@
           </div>
 
           <div>
+            <label for="estimated_completion_date" class="block text-sm font-medium text-gray-700 mb-1">
+              Estimated Completion Date
+            </label>
+            <input
+              id="estimated_completion_date"
+              v-model="form.estimated_completion_date"
+              type="date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              If left empty, will be calculated based on current date + lead time for the selected category
+            </p>
+          </div>
+
+          <div>
             <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
               Notes
             </label>
@@ -267,7 +282,8 @@ const form = reactive({
   probability_coefficient: 100,
   status: 'cold',
   tabId: '',
-  notes: ''
+  notes: '',
+  estimated_completion_date: ''
 })
 
 // Lifecycle hooks
@@ -293,7 +309,8 @@ watch(() => props.prospect, (newLead) => {
       probability_coefficient: newLead.probability_coefficient || 100,
       status: newLead.status || 'cold',
       tabId: newLead.tab_id || newLead.tabId || '',
-      notes: newLead.notes || ''
+      notes: newLead.notes || '',
+      estimated_completion_date: newLead.estimated_completion_date || ''
     })
   } else {
     // Reset form for new lead
@@ -308,7 +325,8 @@ watch(() => props.prospect, (newLead) => {
       probability_coefficient: 100,
       status: 'cold',
       tabId: '',
-      notes: ''
+      notes: '',
+      estimated_completion_date: ''
     })
     // Re-set default tab for new prospect
     if (availableTabsRef.value.length > 0) {

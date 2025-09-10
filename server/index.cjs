@@ -93,6 +93,7 @@ function initializeDatabase() {
       notes TEXT,
       tab_id TEXT DEFAULT 'default',
       display_order INTEGER DEFAULT 0,
+      estimated_completion_date DATE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -131,34 +132,81 @@ function initializeDatabase() {
     db.run(createTabsTable);
     db.run(createSettingsTable);
     
-    // Migration pour ajouter tab_id aux bases de données existantes
-    db.run(`ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'`, (err) => {
-      if (err && !err.message.includes('duplicate column name')) {
-        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
-      } else if (!err) {
-        console.log('✅ Migration applied: added tab_id column');
-      }
-    });
-    
-    // Migration pour ajouter display_order aux bases de données existantes
-    db.run(`ALTER TABLE prospects ADD COLUMN display_order INTEGER DEFAULT 0`, (err) => {
-      if (err && !err.message.includes('duplicate column name')) {
-        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
-      } else if (!err) {
-        console.log('✅ Migration applied: added display_order column');
-      }
-    });
-    
-    // Migration pour ajouter probability_coefficient aux bases de données existantes
-    db.run(`ALTER TABLE prospects ADD COLUMN probability_coefficient REAL DEFAULT 100`, (err) => {
-      if (err && !err.message.includes('duplicate column name')) {
-        console.warn('⚠️  Migration warning (this is normal for new databases):', err.message);
-      } else if (!err) {
-        console.log('✅ Migration applied: added probability_coefficient column');
-      }
+    // Migrations pour ajouter les colonnes manquantes aux bases de données existantes
+    const migrations = [
+      { name: 'tab_id', sql: `ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'` },
+      { name: 'display_order', sql: `ALTER TABLE prospects ADD COLUMN display_order INTEGER DEFAULT 0` },
+      { name: 'probability_coefficient', sql: `ALTER TABLE prospects ADD COLUMN probability_coefficient REAL DEFAULT 100` },
+      { name: 'estimated_completion_date', sql: `ALTER TABLE prospects ADD COLUMN estimated_completion_date DATE` }
+    ];
+
+    migrations.forEach(migration => {
+      db.run(migration.sql, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.warn(`⚠️  Migration warning for ${migration.name} (this is normal for new databases):`, err.message);
+        } else if (!err) {
+          console.log(`✅ Migration applied: added ${migration.name} column`);
+        }
+      });
     });
     
     console.log('✅ SQLite database initialized successfully');
+  });
+}
+
+// Helper function to calculate estimated completion date
+function calculateEstimatedCompletionDate(userId, status, providedDate = null) {
+  return new Promise((resolve, reject) => {
+    if (providedDate) {
+      resolve(providedDate);
+      return;
+    }
+
+    // Get user's lead times settings
+    db.get(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [userId, 'closing_lead_times'],
+      (err, row) => {
+        try {
+          // Default lead times if no settings found or error
+          const defaultLeadTimes = { cold: 12, warm: 6, hot: 3 };
+          let leadTimes = defaultLeadTimes;
+          
+          if (!err && row) {
+            try {
+              leadTimes = JSON.parse(row.setting_value);
+            } catch (parseError) {
+              console.warn('⚠️ Error parsing lead times, using defaults:', parseError);
+              leadTimes = defaultLeadTimes;
+            }
+          }
+          
+          // Get lead time for the status (category)
+          let leadTimeMonths = defaultLeadTimes.cold; // Default to cold
+          if (status === 'hot') {
+            leadTimeMonths = leadTimes.hot || 3;
+          } else if (status === 'warm') {
+            leadTimeMonths = leadTimes.warm || 6;
+          } else if (status === 'cold') {
+            leadTimeMonths = leadTimes.cold || 12;
+          }
+          
+          // Calculate estimated completion date: current date + lead time
+          const estimatedDate = new Date();
+          estimatedDate.setMonth(estimatedDate.getMonth() + leadTimeMonths);
+          
+          // Return YYYY-MM-DD format
+          const formattedDate = estimatedDate.toISOString().split('T')[0];
+          resolve(formattedDate);
+        } catch (error) {
+          console.error('Error calculating estimated completion date:', error);
+          // Fallback to 6 months from now
+          const fallbackDate = new Date();
+          fallbackDate.setMonth(fallbackDate.getMonth() + 6);
+          resolve(fallbackDate.toISOString().split('T')[0]);
+        }
+      }
+    );
   });
 }
 
@@ -599,7 +647,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId } = req.body;
+    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
@@ -625,6 +673,14 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
       }
     }
 
+    // Calculate estimated completion date
+    const estimatedDate = await calculateEstimatedCompletionDate(
+      req.user.userId, 
+      status || 'cold', 
+      estimated_completion_date
+    );
+    console.log('📅 Calculated estimated completion date:', estimatedDate);
+
     // Décaler tous les prospects existants de l'utilisateur vers le bas
     db.run(
       'UPDATE prospects SET display_order = display_order + 1 WHERE user_id = ?',
@@ -638,12 +694,12 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             position || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0 // Nouveau prospect en haut
+            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0, estimatedDate // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
@@ -679,7 +735,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId } = req.body;
+    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -687,7 +743,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
 
     // Vérifier que le prospect appartient à l'utilisateur
     db.get(
-      'SELECT id FROM prospects WHERE id = ? AND user_id = ?',
+      'SELECT * FROM prospects WHERE id = ? AND user_id = ?',
       [prospectId, req.user.userId],
       async (err, prospect) => {
         if (err) {
@@ -715,16 +771,31 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           }
         }
 
+        // Calculate estimated completion date if status changed or not provided
+        let estimatedDate = prospect.estimated_completion_date;
+        if (estimated_completion_date !== undefined) {
+          estimatedDate = estimated_completion_date;
+        } else if (status !== prospect.status) {
+          // Status changed, recalculate estimated date
+          estimatedDate = await calculateEstimatedCompletionDate(
+            req.user.userId, 
+            status || prospect.status, 
+            null
+          );
+          console.log('📅 Recalculated estimated completion date due to status change:', estimatedDate);
+        }
+
         db.run(
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, position = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
-           probability_coefficient = ?, notes = ?, tab_id = ?, updated_at = CURRENT_TIMESTAMP
+           probability_coefficient = ?, notes = ?, tab_id = ?, estimated_completion_date = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', position || '',
             address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', tabId || 'default', prospectId, req.user.userId
+            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
+            notes || '', tabId || 'default', estimatedDate, prospectId, req.user.userId
           ],
           function(err) {
             if (err) {

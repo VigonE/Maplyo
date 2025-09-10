@@ -30,6 +30,44 @@ const geocoder = NodeGeocoder({
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
 
+// Helper function to calculate estimated completion date
+const calculateEstimatedCompletionDate = async (userId, status, providedDate = null) => {
+  if (providedDate) {
+    return providedDate
+  }
+
+  // Get user's lead times settings
+  const db = await mysql.createConnection(dbConfig)
+  try {
+    const [settings] = await db.execute(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [userId, 'closing_lead_times']
+    )
+    
+    // Default lead times if no settings found
+    const defaultLeadTimes = { cold: 12, warm: 6, hot: 3 }
+    const leadTimes = settings.length > 0 ? settings[0].setting_value : defaultLeadTimes
+    
+    // Get lead time for the status (category)
+    let leadTimeMonths = defaultLeadTimes.cold // Default to cold
+    if (status === 'hot') {
+      leadTimeMonths = leadTimes.hot || 3
+    } else if (status === 'warm') {
+      leadTimeMonths = leadTimes.warm || 6
+    } else if (status === 'cold') {
+      leadTimeMonths = leadTimes.cold || 12
+    }
+    
+    // Calculate estimated completion date: current date + lead time
+    const estimatedDate = new Date()
+    estimatedDate.setMonth(estimatedDate.getMonth() + leadTimeMonths)
+    
+    return estimatedDate.toISOString().split('T')[0] // Return YYYY-MM-DD format
+  } finally {
+    await db.end()
+  }
+}
+
 // Auth middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization']
@@ -81,14 +119,21 @@ async function initDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        phone VARCHAR(255),
+        company VARCHAR(255),
+        position VARCHAR(255),
         address TEXT NOT NULL,
         latitude DECIMAL(10, 8),
         longitude DECIMAL(11, 8),
-        potential_revenue DECIMAL(12, 2) NOT NULL,
+        revenue DECIMAL(12, 2) NOT NULL,
         probability_coefficient DECIMAL(5, 2) DEFAULT 100.00,
-        stage ENUM('prospect', 'quote', 'order_1m', 'order_6m', 'won', 'lost') DEFAULT 'prospect',
+        status ENUM('cold', 'warm', 'hot', 'won', 'lost') DEFAULT 'cold',
+        tabId VARCHAR(255),
+        notes TEXT,
         color VARCHAR(7) DEFAULT '#3b82f6',
         sort_order INT DEFAULT 0,
+        estimated_completion_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -121,6 +166,82 @@ async function initDatabase() {
       if (!error.message.includes('Duplicate column name')) {
         console.log('Column probability_coefficient may already exist:', error.message)
       }
+    }
+
+    // Add estimated_completion_date column if it doesn't exist (migration for existing databases)
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        ADD COLUMN estimated_completion_date DATE
+      `)
+      console.log('Added estimated_completion_date column to prospects table')
+    } catch (error) {
+      // Column already exists or other error - ignore
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('Column estimated_completion_date may already exist:', error.message)
+      }
+    }
+
+    // Migrate potential_revenue to revenue column if needed
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        ADD COLUMN revenue DECIMAL(12, 2) DEFAULT 0
+      `)
+      console.log('Added revenue column to prospects table')
+      
+      // Copy data from potential_revenue to revenue if potential_revenue exists
+      try {
+        await db.execute(`
+          UPDATE prospects 
+          SET revenue = potential_revenue 
+          WHERE revenue IS NULL OR revenue = 0
+        `)
+        console.log('Migrated data from potential_revenue to revenue')
+      } catch (migrateError) {
+        console.log('Data migration skipped:', migrateError.message)
+      }
+    } catch (error) {
+      // Column already exists - ignore
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('Column revenue may already exist:', error.message)
+      }
+    }
+
+    // Add missing columns for complete prospect data
+    const columnsToAdd = [
+      { name: 'email', type: 'VARCHAR(255)' },
+      { name: 'phone', type: 'VARCHAR(255)' },
+      { name: 'company', type: 'VARCHAR(255)' },
+      { name: 'position', type: 'VARCHAR(255)' },
+      { name: 'tabId', type: 'VARCHAR(255)' },
+      { name: 'notes', type: 'TEXT' }
+    ]
+
+    for (const column of columnsToAdd) {
+      try {
+        await db.execute(`
+          ALTER TABLE prospects 
+          ADD COLUMN ${column.name} ${column.type}
+        `)
+        console.log(`Added ${column.name} column to prospects table`)
+      } catch (error) {
+        // Column already exists - ignore
+        if (!error.message.includes('Duplicate column name')) {
+          console.log(`Column ${column.name} may already exist:`, error.message)
+        }
+      }
+    }
+
+    // Update status column to use new ENUM values if needed
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        MODIFY COLUMN status ENUM('cold', 'warm', 'hot', 'won', 'lost') DEFAULT 'cold'
+      `)
+      console.log('Updated status column ENUM values')
+    } catch (error) {
+      console.log('Status column update may have failed (this is normal for new tables):', error.message)
     }
 
     return db
@@ -391,7 +512,8 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
       probability_coefficient, 
       status, 
       tabId, 
-      notes 
+      notes,
+      estimated_completion_date 
     } = req.body
     const db = await mysql.createConnection(dbConfig)
 
@@ -414,11 +536,18 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     )
     const sortOrder = (maxOrder[0].max_order || 0) + 1
 
+    // Calculate estimated completion date
+    const estimatedDate = await calculateEstimatedCompletionDate(
+      req.user.id, 
+      status || 'cold', 
+      estimated_completion_date
+    )
+
     // Insert prospect with probability coefficient (default to 100% if not provided)
     const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : 100.00
     const [result] = await db.execute(
-      'INSERT INTO prospects (user_id, name, email, phone, company, position, address, latitude, longitude, revenue, probability_coefficient, status, tabId, notes, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.id, name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, sortOrder]
+      'INSERT INTO prospects (user_id, name, email, phone, company, position, address, latitude, longitude, revenue, probability_coefficient, status, tabId, notes, sort_order, estimated_completion_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.id, name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, sortOrder, estimatedDate]
     )
 
     // Get created prospect
@@ -446,7 +575,8 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
       probability_coefficient, 
       status, 
       tabId, 
-      notes 
+      notes,
+      estimated_completion_date 
     } = req.body
     const db = await mysql.createConnection(dbConfig)
 
@@ -480,10 +610,23 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
     // Use existing probability coefficient if not provided
     const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : prospect.probability_coefficient
 
+    // Calculate estimated completion date if status changed or not provided
+    let estimatedDate = prospect.estimated_completion_date
+    if (estimated_completion_date !== undefined) {
+      estimatedDate = estimated_completion_date
+    } else if (status !== prospect.status) {
+      // Status changed, recalculate estimated date
+      estimatedDate = await calculateEstimatedCompletionDate(
+        req.user.id, 
+        status || prospect.status, 
+        null
+      )
+    }
+
     // Update prospect
     await db.execute(
-      'UPDATE prospects SET name = ?, email = ?, phone = ?, company = ?, position = ?, address = ?, latitude = ?, longitude = ?, revenue = ?, probability_coefficient = ?, status = ?, tabId = ?, notes = ? WHERE id = ? AND user_id = ?',
-      [name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, id, req.user.id]
+      'UPDATE prospects SET name = ?, email = ?, phone = ?, company = ?, position = ?, address = ?, latitude = ?, longitude = ?, revenue = ?, probability_coefficient = ?, status = ?, tabId = ?, notes = ?, estimated_completion_date = ? WHERE id = ? AND user_id = ?',
+      [name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, estimatedDate, id, req.user.id]
     )
 
     // Get updated prospect

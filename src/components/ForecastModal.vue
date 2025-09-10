@@ -313,24 +313,37 @@ const generateForecast = () => {
     })
   }
 
-  // Process each prospect with SIMPLIFIED algorithm
+  // Process each prospect with ENHANCED algorithm using estimated_completion_date
   props.prospects.forEach(prospect => {
     const revenue = prospect.revenue || 0 // Utiliser 'revenue' au lieu de 'potential_revenue'
     const status = prospect.status || 'cold' // Utiliser 'status' au lieu de 'stage'
     const category = getProspectCategory(status)
-    const leadTimeMonths = props.leadTimes[category] || 6
     const categoryProbability = getCategoryProbability(category)
     
     // Use individual probability coefficient if available, otherwise use category probability
     const prospectProbability = (prospect.probability_coefficient || 100) / 100 // Convert percentage to decimal
     const finalProbability = categoryProbability * prospectProbability // Combine both probabilities
     
+    // Calculate target month using estimated_completion_date if available
+    let targetMonth = 0
+    if (prospect.estimated_completion_date) {
+      const estimatedDate = new Date(prospect.estimated_completion_date)
+      const monthsDiff = (estimatedDate.getFullYear() - today.getFullYear()) * 12 + 
+                        (estimatedDate.getMonth() - today.getMonth())
+      targetMonth = Math.max(0, Math.min(monthsDiff, forecastMonths - 1))
+    } else {
+      // Fallback to lead time if no estimated date
+      const leadTimeMonths = props.leadTimes[category] || 6
+      targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
+    }
+    
     console.log('Processing prospect:', {
       name: prospect.name,
       revenue: revenue,
       status: status,
       category: category,
-      leadTime: leadTimeMonths,
+      estimatedCompletionDate: prospect.estimated_completion_date,
+      targetMonth: targetMonth,
       categoryProbability: categoryProbability,
       prospectProbability: prospectProbability,
       finalProbability: finalProbability
@@ -341,18 +354,18 @@ const generateForecast = () => {
       return
     }
     
-    // ENHANCED ALGORITHM: Use both category and individual probabilities
-    const targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
+    // ENHANCED ALGORITHM: Use estimated_completion_date for more accurate forecasting
     const expectedRevenue = revenue * finalProbability
     
-    console.log(`Adding ${expectedRevenue} to month ${targetMonth}`)
+    console.log(`Adding ${expectedRevenue} to month ${targetMonth} (${prospect.estimated_completion_date || 'calculated'})`)
     
     forecastData[targetMonth].revenue += expectedRevenue
     forecastData[targetMonth].prospects.push({
       id: prospect.id,
       name: prospect.name,
       expectedRevenue,
-      probability: finalProbability
+      probability: finalProbability,
+      estimatedDate: prospect.estimated_completion_date
     })
   })
 
