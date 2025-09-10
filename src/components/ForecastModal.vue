@@ -104,21 +104,72 @@
               <h4 class="text-lg font-semibold text-gray-800">Revenue Forecast Evolution</h4>
               
               <!-- Chart Controls -->
-              <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                  <label class="text-sm text-gray-600">Smoothing:</label>
-                  <select v-model="chartSmoothness" @change="updateChart" class="text-sm border border-gray-300 rounded px-2 py-1">
-                    <option value="0">None</option>
-                    <option value="0.1">Low</option>
-                    <option value="0.4">Medium</option>
-                    <option value="0.7">High</option>
-                  </select>
+              <div class="space-y-3">
+                <div class="flex items-center space-x-4">
+                  <div class="flex items-center space-x-2">
+                    <label class="text-sm text-gray-600">Smoothing:</label>
+                    <select v-model="chartSmoothness" @change="updateChart" class="text-sm border border-gray-300 rounded px-2 py-1">
+                      <option value="0">None</option>
+                      <option value="0.1">Low</option>
+                      <option value="0.4">Medium</option>
+                      <option value="0.7">High</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <label class="flex items-center text-sm text-gray-600">
+                      <input type="checkbox" v-model="showBars" @change="updateChart" class="mr-1">
+                      Show Bars
+                    </label>
+                  </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <label class="flex items-center text-sm text-gray-600">
-                    <input type="checkbox" v-model="showBars" @change="updateChart" class="mr-1">
-                    Show Bars
-                  </label>
+                
+                <!-- Sliders d'ajustement dynamique -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-600 flex items-center">
+                      ⏱️ Lead Time Adjustment
+                      <span class="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                        {{ leadTimeAdjustment > 0 ? '+' : '' }}{{ leadTimeAdjustment }}%
+                      </span>
+                    </label>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-gray-500">-10%</span>
+                      <input
+                        type="range"
+                        v-model.number="leadTimeAdjustment"
+                        min="-10"
+                        max="10"
+                        step="1"
+                        @input="updateChart"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span class="text-xs text-gray-500">+10%</span>
+                    </div>
+                    <p class="text-xs text-gray-500">Adjust closing lead times by ±10%</p>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-600 flex items-center">
+                      🎯 Probability Adjustment
+                      <span class="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                        {{ probabilityAdjustment > 0 ? '+' : '' }}{{ probabilityAdjustment }}%
+                      </span>
+                    </label>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-gray-500">-10%</span>
+                      <input
+                        type="range"
+                        v-model.number="probabilityAdjustment"
+                        min="-10"
+                        max="10"
+                        step="1"
+                        @input="updateChart"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span class="text-xs text-gray-500">+10%</span>
+                    </div>
+                    <p class="text-xs text-gray-500">Adjust conversion probabilities by ±10%</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -251,6 +302,10 @@ const metrics = ref({
 const isCreatingChart = ref(false)
 let chartUpdateTimeout = null
 
+// Sliders pour ajustement dynamique (centré à 0 = 100% des valeurs par défaut)
+const leadTimeAdjustment = ref(0) // -10% à +10%
+const probabilityAdjustment = ref(0) // -10% à +10%
+
 // Fonction pour détruire le graphique de manière sûre
 const safeDestroyChart = () => {
   if (!chart.value) return
@@ -266,6 +321,26 @@ const safeDestroyChart = () => {
     console.error('Error destroying chart:', error)
   } finally {
     chart.value = null
+  }
+}
+
+// Calculer les lead times ajustés
+const getAdjustedLeadTimes = () => {
+  const adjustment = 1 + (leadTimeAdjustment.value / 100)
+  return {
+    hot: Math.max(1, Math.round((props.leadTimes.hot || 3) * adjustment)),
+    warm: Math.max(1, Math.round((props.leadTimes.warm || 6) * adjustment)),
+    cold: Math.max(1, Math.round((props.leadTimes.cold || 12) * adjustment))
+  }
+}
+
+// Calculer les probabilités ajustées
+const getAdjustedProbabilities = () => {
+  const adjustment = 1 + (probabilityAdjustment.value / 100)
+  return {
+    hot: Math.min(100, Math.max(1, (props.leadTimes.hotProbability || 80) * adjustment)) / 100,
+    warm: Math.min(100, Math.max(1, (props.leadTimes.warmProbability || 45) * adjustment)) / 100,
+    cold: Math.min(100, Math.max(1, (props.leadTimes.coldProbability || 15) * adjustment)) / 100
   }
 }
 
@@ -354,8 +429,9 @@ const generateForecast = () => {
                         (estimatedDate.getMonth() - today.getMonth())
       targetMonth = Math.max(0, Math.min(monthsDiff, forecastMonths - 1))
     } else {
-      // Fallback to lead time if no estimated date
-      const leadTimeMonths = props.leadTimes[category] || 6
+      // Fallback to adjusted lead time if no estimated date
+      const adjustedLeadTimes = getAdjustedLeadTimes()
+      const leadTimeMonths = adjustedLeadTimes[category] || 6
       targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
     }
     
@@ -426,14 +502,11 @@ const calculateMetrics = (forecastData) => {
 }
 
 const getCategoryProbability = (category) => {
-  // Utiliser les probabilités configurables depuis les leadTimes (en pourcentage)
-  const probabilities = {
-    hot: (props.leadTimes.hotProbability || 80) / 100,
-    warm: (props.leadTimes.warmProbability || 45) / 100,
-    cold: (props.leadTimes.coldProbability || 15) / 100
-  }
-  console.log('📊 Using probability for', category, ':', probabilities[category] * 100, '%')
-  return probabilities[category] || 0.3
+  // Utiliser les probabilités ajustées
+  const adjustedProbabilities = getAdjustedProbabilities()
+  const probability = adjustedProbabilities[category] || 0.3
+  console.log('📊 Using adjusted probability for', category, ':', Math.round(probability * 100), '%')
+  return probability
 }
 
 const gaussianPDF = (x, mean, stdDev) => {
@@ -513,51 +586,11 @@ const identifyRiskFactors = () => {
   return risks
 }
 
-const updateExistingChart = () => {
-  if (!chart.value || !forecast.value.length) return false
-  
-  try {
-    // Mettre à jour les données sans recréer le graphique
-    const datasets = []
-    
-    // Add bar chart if enabled
-    if (showBars.value) {
-      datasets.push({
-        type: 'bar',
-        label: 'Monthly Revenue',
-        data: forecast.value.map(f => f.revenue),
-        backgroundColor: 'rgba(59, 130, 246, 0.3)',
-        borderColor: 'rgba(59, 130, 246, 0.6)',
-        borderWidth: 1,
-        yAxisID: 'y'
-      })
-    }
-    
-    // Add smooth line chart
-    datasets.push({
-      type: 'line',
-      label: 'Trend Line',
-      data: forecast.value.map(f => f.revenue),
-      borderColor: '#ef4444',
-      backgroundColor: 'transparent',
-      fill: false,
-      tension: parseFloat(chartSmoothness.value),
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      borderWidth: 2,
-      yAxisID: 'y'
-    })
-    
-    chart.value.data.datasets = datasets
-    chart.value.data.labels = forecast.value.map(f => formatMonth(f.date))
-    chart.value.update('none') // Mise à jour sans animation pour éviter les conflits
-    
-    console.log('✅ Chart updated successfully')
-    return true
-  } catch (error) {
-    console.error('❌ Error updating existing chart:', error)
-    return false
-  }
+// Fonction pour recalculer le forecast avec les ajustements des sliders
+const recalculateForecastWithAdjustments = () => {
+  console.log('🔄 Recalculating forecast with adjustments...')
+  forecast.value = generateForecast()
+  metrics.value = calculateMetrics(forecast.value)
 }
 
 const createChart = async () => {
@@ -579,10 +612,7 @@ const createChart = async () => {
     return
   }
   
-  // Essayer de mettre à jour le graphique existant d'abord
-  if (chart.value && updateExistingChart()) {
-    return
-  }
+  // Toujours recréer le graphique pour éviter les conflits de réactivité
   
   isCreatingChart.value = true
   
@@ -706,14 +736,13 @@ const updateChart = async () => {
       try {
         console.log('🔄 Updating chart after debounce...')
         
-        // Essayer de mettre à jour le graphique existant d'abord
-        if (chart.value && updateExistingChart()) {
-          console.log('✅ Chart updated via data refresh')
-          return
-        }
+        // Régénérer les données de prévision avec les nouveaux ajustements
+        console.log('🔄 Regenerating forecast data with adjustments...')
+        forecast.value = generateForecast()
+        metrics.value = calculateMetrics(forecast.value)
         
-        // Si la mise à jour échoue, recréer le graphique
-        console.log('🔄 Recreating chart...')
+        // Recréer le graphique avec les nouvelles données
+        console.log('🔄 Recreating chart with updated data...')
         await createChart()
       } catch (error) {
         console.error('❌ Error updating chart:', error)
@@ -821,6 +850,17 @@ watch([() => loading.value, () => forecast.value.length], async ([newLoading, ne
     setTimeout(() => {
       createChart()
     }, 200)
+  }
+})
+
+// Watcher pour les ajustements en temps réel
+watch([leadTimeAdjustment, probabilityAdjustment], () => {
+  if (chart.value && forecast.value.length > 0) {
+    console.log('🎛️ Adjustment changed, updating chart...', {
+      leadTime: leadTimeAdjustment.value + '%',
+      probability: probabilityAdjustment.value + '%'
+    })
+    updateChart()
   }
 })
 
