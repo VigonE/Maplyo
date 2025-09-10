@@ -2,9 +2,9 @@ services:
   - type: web
     name: maplyo
     env: node
-    plan: free
+    plan: starter  # Upgrade from free for better performance and timeouts
     buildCommand: npm install && npm run build
-    startCommand: npm run server
+    startCommand: node server/index.cjs  # Direct command for better reliability
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,6 +12,13 @@ services:
         generateValue: true
       - key: PORT
         value: 10000
+      - key: REQUEST_TIMEOUT
+        value: 30000
+      - key: GEOCODING_TIMEOUT
+        value: 10000
+      - key: LOG_LEVEL
+        value: info
+    healthCheckPath: /api/prospects  # Health check endpoint
     disk:
       name: maplyo-disk
       mountPath: /opt/render/project/src/database

@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "server": "node server/index.cjs",
     "server:dev": "nodemon server/index.cjs",
-    "start": "npm run build && npm run server"
+    "start": "npm run build && npm run server",
+    "test:geocoding": "node scripts/test-geocoding.js",
+    "test:geocoding:prod": "node scripts/test-geocoding.js https://your-app.onrender.com",
+    "diagnostic": "node scripts/test-geocoding.js http://localhost:3001"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.16",

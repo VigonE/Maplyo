@@ -27,12 +27,146 @@ const io = new Server(server, {
 // Stocker les connexions socket par utilisateur
 const userSockets = new Map();
 
-// Configuration du géocodeur
+// Configuration du géocodeur avec fallback et gestion d'erreurs robuste
 const geocoder = NodeGeocoder({
   provider: 'openstreetmap',
   httpAdapter: 'https',
   formatter: null,
+  timeout: 8000, // 8 secondes de timeout
+  apikey: process.env.GEOCODING_API_KEY, // Optionnel pour certains providers
 });
+
+// Fonction de géocodage robuste avec timeout et fallback
+async function geocodeAddressSafely(address, timeout = 10000) {
+  if (!address || typeof address !== 'string' || address.trim() === '') {
+    console.log('⚠️ No address provided for geocoding');
+    return null;
+  }
+
+  console.log('🌍 Starting geocoding for address:', address);
+  
+  try {
+    // Créer une promesse avec timeout personnalisé
+    const geocodePromise = geocoder.geocode(address.trim());
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Geocoding timeout')), timeout)
+    );
+    
+    // Utiliser Promise.race pour gérer le timeout
+    const result = await Promise.race([geocodePromise, timeoutPromise]);
+    
+    if (result && result.length > 0) {
+      const { latitude, longitude, formattedAddress } = result[0];
+      console.log('✅ Geocoding successful:', { latitude, longitude });
+      return { latitude, longitude, formattedAddress };
+    } else {
+      console.log('⚠️ No geocoding results found for address:', address);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Geocoding error:', error.message);
+    console.error('🌐 Network connectivity issue or API limit reached');
+    return null; // Ne pas faire échouer la création du prospect
+  }
+}
+
+// Test de connectivité réseau au démarrage
+async function testNetworkConnectivity() {
+  console.log('🌐 Testing network connectivity...');
+  try {
+    const testUrl = 'https://httpbin.org/get';
+    const response = await fetch(testUrl, { timeout: 5000 });
+    if (response.ok) {
+      console.log('✅ Network connectivity: OK');
+    } else {
+      console.warn('⚠️ Network connectivity: Limited');
+    }
+  } catch (error) {
+    console.error('❌ Network connectivity test failed:', error.message);
+    console.error('🔧 This may affect geocoding functionality on deployment');
+  }
+}
+
+// Variables d'environnement pour diagnostique
+console.log('🔑 Environment check for geocoding:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('GEOCODING_API_KEY exists:', !!process.env.GEOCODING_API_KEY);
+console.log('PORT:', process.env.PORT || 'not set (using 3001)');
+
+// Lancer le test de connectivité
+testNetworkConnectivity();
+
+// Statistiques de monitoring geocoding
+let geocodingStats = {
+  total: 0,
+  success: 0,
+  failed: 0,
+  timeout: 0,
+  lastReset: new Date()
+};
+
+// Fonction pour afficher les stats de geocoding
+function logGeocodingStats() {
+  if (geocodingStats.total > 0) {
+    const successRate = (geocodingStats.success / geocodingStats.total * 100).toFixed(1);
+    console.log(`📊 Geocoding Stats: ${geocodingStats.success}/${geocodingStats.total} success (${successRate}%), ${geocodingStats.failed} failed, ${geocodingStats.timeout} timeouts`);
+  }
+}
+
+// Afficher les stats toutes les 10 minutes en production
+if (process.env.NODE_ENV === 'production') {
+  setInterval(logGeocodingStats, 10 * 60 * 1000);
+}
+
+// Fonction mise à jour pour inclure le monitoring
+async function geocodeAddressSafelyWithStats(address, timeout = 10000) {
+  geocodingStats.total++;
+  
+  if (!address || typeof address !== 'string' || address.trim() === '') {
+    console.log('⚠️ No address provided for geocoding');
+    return null;
+  }
+
+  console.log('🌍 Starting geocoding for address:', address);
+  const startTime = Date.now();
+  
+  try {
+    // Créer une promesse avec timeout personnalisé
+    const geocodePromise = geocoder.geocode(address.trim());
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Geocoding timeout')), timeout)
+    );
+    
+    // Utiliser Promise.race pour gérer le timeout
+    const result = await Promise.race([geocodePromise, timeoutPromise]);
+    const duration = Date.now() - startTime;
+    
+    if (result && result.length > 0) {
+      const { latitude, longitude, formattedAddress } = result[0];
+      geocodingStats.success++;
+      console.log(`✅ Geocoding successful in ${duration}ms:`, { latitude, longitude });
+      return { latitude, longitude, formattedAddress };
+    } else {
+      geocodingStats.failed++;
+      console.log('⚠️ No geocoding results found for address:', address);
+      return null;
+    }
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    if (error.message === 'Geocoding timeout') {
+      geocodingStats.timeout++;
+      console.error(`❌ Geocoding timeout after ${duration}ms for:`, address);
+    } else {
+      geocodingStats.failed++;
+      console.error(`❌ Geocoding error after ${duration}ms:`, error.message);
+    }
+    console.error('🌐 Network connectivity issue or API limit reached');
+    return null; // Ne pas faire échouer la création du prospect
+  }
+}
+
+// Remplacer l'ancienne fonction par la nouvelle avec stats
+const geocodeAddressSafely = geocodeAddressSafelyWithStats;
 
 // Middleware
 app.use(cors());
@@ -682,19 +816,24 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     let latitude = null;
     let longitude = null;
 
-    // Géocodage de l'adresse si elle est fournie
-    if (address) {
+    // Géocodage de l'adresse si elle est fournie avec fonction robuste
+    if (address && address.trim()) {
       try {
-        console.log('🗺️  Geocoding address:', address);
-        const geoResult = await geocoder.geocode(address);
-        if (geoResult && geoResult.length > 0) {
-          latitude = geoResult[0].latitude;
-          longitude = geoResult[0].longitude;
-          console.log('📍 Geocoding successful:', latitude, longitude);
+        console.log('🗺️ Starting geocoding for address:', address);
+        const geoResult = await geocodeAddressSafely(address, 8000);
+        if (geoResult) {
+          latitude = geoResult.latitude;
+          longitude = geoResult.longitude;
+          console.log('📍 Geocoding successful:', { latitude, longitude });
+        } else {
+          console.log('⚠️ Geocoding returned no results, creating prospect without coordinates');
         }
       } catch (geoError) {
-        console.warn('⚠️  Geocoding failed:', geoError.message);
+        console.warn('⚠️ Geocoding failed, continuing without coordinates:', geoError.message);
+        // Continue creating prospect without coordinates rather than failing
       }
+    } else {
+      console.log('📍 No address provided, creating prospect without coordinates');
     }
 
     // Calculate estimated completion date
@@ -840,17 +979,30 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
         let latitude = null;
         let longitude = null;
 
-        // Géocodage de l'adresse si elle est fournie
-        if (address) {
+        // Géocodage de l'adresse si elle est fournie avec fonction robuste
+        if (address && address.trim()) {
           try {
-            const geoResult = await geocoder.geocode(address);
-            if (geoResult && geoResult.length > 0) {
-              latitude = geoResult[0].latitude;
-              longitude = geoResult[0].longitude;
+            console.log('🗺️ Updating prospect - geocoding address:', address);
+            const geoResult = await geocodeAddressSafely(address, 8000);
+            if (geoResult) {
+              latitude = geoResult.latitude;
+              longitude = geoResult.longitude;
+              console.log('📍 Update geocoding successful:', { latitude, longitude });
+            } else {
+              console.log('⚠️ Update geocoding returned no results, keeping existing coordinates');
+              // Garder les coordonnées existantes si le nouveau géocodage échoue
+              latitude = prospect.latitude;
+              longitude = prospect.longitude;
             }
           } catch (geoError) {
-            console.warn('Geocoding failed:', geoError.message);
+            console.warn('⚠️ Update geocoding failed, keeping existing coordinates:', geoError.message);
+            latitude = prospect.latitude;
+            longitude = prospect.longitude;
           }
+        } else {
+          // Pas d'adresse fournie, garder les coordonnées existantes
+          latitude = prospect.latitude;
+          longitude = prospect.longitude;
         }
 
         // Calculate estimated completion date if status changed or not provided
@@ -1176,29 +1328,112 @@ app.put('/api/tabs/:id', authenticateToken, (req, res) => {
   }
 });
 
-// Route de géocodage
+// Route de diagnostic système (pour débogage)
+app.get('/api/system/diagnostic', authenticateToken, async (req, res) => {
+  try {
+    const diagnostics = {
+      server: {
+        environment: process.env.NODE_ENV,
+        port: PORT,
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: process.version
+      },
+      database: {
+        path: dbPath,
+        exists: require('fs').existsSync(dbPath),
+        size: require('fs').existsSync(dbPath) ? require('fs').statSync(dbPath).size : 0
+      },
+      geocoding: {
+        provider: 'openstreetmap',
+        stats: geocodingStats,
+        lastTest: null
+      },
+      network: {
+        testUrl: 'https://httpbin.org/get',
+        lastTest: null
+      }
+    };
+
+    // Test rapide de geocoding
+    try {
+      const testStart = Date.now();
+      const testResult = await geocodeAddressSafely('Paris, France', 5000);
+      diagnostics.geocoding.lastTest = {
+        success: !!testResult,
+        duration: Date.now() - testStart,
+        result: testResult
+      };
+    } catch (error) {
+      diagnostics.geocoding.lastTest = {
+        success: false,
+        error: error.message
+      };
+    }
+
+    // Test rapide réseau
+    try {
+      const networkStart = Date.now();
+      const response = await fetch('https://httpbin.org/get', { timeout: 5000 });
+      diagnostics.network.lastTest = {
+        success: response.ok,
+        status: response.status,
+        duration: Date.now() - networkStart
+      };
+    } catch (error) {
+      diagnostics.network.lastTest = {
+        success: false,
+        error: error.message
+      };
+    }
+
+    res.json(diagnostics);
+  } catch (error) {
+    console.error('Diagnostic error:', error);
+    res.status(500).json({ error: 'Diagnostic failed' });
+  }
+});
+
+// Route de géocodage avec gestion d'erreurs robuste
 app.post('/api/geocode', authenticateToken, async (req, res) => {
   try {
     const { address } = req.body;
     
-    if (!address) {
-      return res.status(400).json({ error: 'Address is required' });
+    if (!address || typeof address !== 'string' || address.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Valid address is required',
+        success: false 
+      });
     }
 
-    const geoResult = await geocoder.geocode(address);
+    console.log('🌍 API geocoding request for:', address);
     
-    if (!geoResult || geoResult.length === 0) {
-      return res.status(404).json({ error: 'Address not found' });
+    const geoResult = await geocodeAddressSafely(address.trim(), 10000);
+    
+    if (!geoResult) {
+      console.log('❌ API geocoding failed for address:', address);
+      return res.status(404).json({ 
+        error: 'Address not found or geocoding service unavailable',
+        success: false,
+        address: address.trim()
+      });
     }
 
+    console.log('✅ API geocoding successful:', geoResult);
     res.json({
-      latitude: geoResult[0].latitude,
-      longitude: geoResult[0].longitude,
-      formattedAddress: geoResult[0].formattedAddress
+      success: true,
+      latitude: geoResult.latitude,
+      longitude: geoResult.longitude,
+      formattedAddress: geoResult.formattedAddress || address.trim(),
+      address: address.trim()
     });
   } catch (error) {
-    console.error('Geocoding error:', error);
-    res.status(500).json({ error: 'Geocoding failed' });
+    console.error('❌ API geocoding error:', error);
+    res.status(500).json({ 
+      error: 'Geocoding service temporarily unavailable',
+      success: false,
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 
@@ -2034,11 +2269,30 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-// Démarrage du serveur
+// Démarrage du serveur avec diagnostique complet
 server.listen(PORT, () => {
-  console.log(`🚀 Serveur Maplyo démarré sur le port ${PORT}`);
+  console.log('='.repeat(50));
+  console.log('🚀 MAPLYO SERVER STARTED SUCCESSFULLY');
+  console.log('='.repeat(50));
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Port: ${PORT}`);
   console.log(`📱 Frontend: http://localhost:3000`);
   console.log(`🔗 API: http://localhost:${PORT}/api`);
   console.log(`🔌 WebSocket: http://localhost:${PORT}`);
-  console.log(`💾 Base de données: SQLite (${dbPath})`);
+  console.log(`💾 Database: SQLite (${dbPath})`);
+  console.log(`🗺️ Geocoding: OpenStreetMap with enhanced error handling`);
+  console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? 'Set' : 'Using default (not secure for production)'}`);
+  console.log(`📡 Network: Testing connectivity on startup`);
+  
+  // Test final de la configuration
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⚡ PRODUCTION MODE - Enhanced error handling active');
+    console.log('🛡️ Security: CORS and authentication enabled');
+  } else {
+    console.log('🔧 DEVELOPMENT MODE - Full logging enabled');
+  }
+  
+  console.log('='.repeat(50));
+  console.log('✅ Server ready to handle requests');
+  console.log('📊 Monitoring geocoding performance...');
 });
