@@ -94,7 +94,7 @@
             </div>
             <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <div class="text-sm font-medium text-purple-600">Confidence Score</div>
-              <div class="text-2xl font-bold text-purple-900">{{ metrics.confidenceScore }}%</div>
+              <div class="text-2xl font-bold text-purple-900">{{ metrics.confidenceScore.toFixed(1) }}%</div>
             </div>
           </div>
 
