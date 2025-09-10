@@ -400,6 +400,7 @@ export default {
     // Exposer les méthodes pour l'accès depuis le parent
     defineExpose({
       switchToTab: selectTab,
+      selectTab: selectTab, // Alias pour compatibilité
       get activeTabId() { return activeTabId.value },
       get tabs() { return tabs.value },
       loadTabs

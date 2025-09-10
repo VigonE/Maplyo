@@ -772,9 +772,33 @@ function onFilteredProspects(filteredProspects) {
 // Naviguer vers l'onglet d'origine d'un prospect
 function onNavigateToTab(tabId, prospectId) {
   console.log('🎯 Navigate to tab:', tabId, 'for prospect:', prospectId)
-  if (tabsManager.value && tabsManager.value.switchToTab) {
-    tabsManager.value.switchToTab(tabId)
+  console.log('🔍 tabsManager.value:', tabsManager.value)
+  console.log('🔍 tabsManager.value?.switchToTab:', tabsManager.value?.switchToTab)
+  
+  if (!tabsManager.value) {
+    console.error('❌ tabsManager.value is null or undefined')
+    return
+  }
+  
+  // Essayer différentes méthodes de navigation
+  let navigationMethod = null
+  if (tabsManager.value.switchToTab && typeof tabsManager.value.switchToTab === 'function') {
+    navigationMethod = tabsManager.value.switchToTab
+  } else if (tabsManager.value.selectTab && typeof tabsManager.value.selectTab === 'function') {
+    navigationMethod = tabsManager.value.selectTab
+  }
+  
+  if (!navigationMethod) {
+    console.error('❌ No navigation method available')
+    console.log('🔍 Available methods:', Object.keys(tabsManager.value))
+    return
+  }
+  
+  try {
+    navigationMethod(tabId)
     // TODO: Optionnellement, faire défiler vers le prospect spécifique
+  } catch (error) {
+    console.error('❌ Error calling navigation method:', error)
   }
 }
 
@@ -880,12 +904,31 @@ async function scrollToProspectInList(prospect) {
   
   // Basculer vers l'onglet approprié si nécessaire
   if (tabsManager.value && currentTabId.value !== prospectTabId) {
-    // Changer d'onglet
-    tabsManager.value.switchToTab(prospectTabId)
-    currentTabId.value = prospectTabId
+    // Essayer différentes méthodes de navigation
+    let navigationMethod = null
+    if (tabsManager.value.switchToTab && typeof tabsManager.value.switchToTab === 'function') {
+      navigationMethod = tabsManager.value.switchToTab
+    } else if (tabsManager.value.selectTab && typeof tabsManager.value.selectTab === 'function') {
+      navigationMethod = tabsManager.value.selectTab
+    }
     
-    // Attendre que le DOM soit mis à jour
-    await nextTick()
+    if (!navigationMethod) {
+      console.error('❌ No navigation method available in scrollToProspectInList')
+      console.log('🔍 Available methods:', Object.keys(tabsManager.value))
+      return
+    }
+    
+    try {
+      // Changer d'onglet
+      navigationMethod(prospectTabId)
+      currentTabId.value = prospectTabId
+      
+      // Attendre que le DOM soit mis à jour
+      await nextTick()
+    } catch (error) {
+      console.error('❌ Error calling navigation method in scrollToProspectInList:', error)
+      return
+    }
   }
   
   // Attendre un peu plus pour s'assurer que les composants sont rendus
