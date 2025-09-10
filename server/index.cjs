@@ -32,8 +32,17 @@ const geocoder = NodeGeocoder({
   provider: 'openstreetmap',
   httpAdapter: 'https',
   formatter: null,
-  timeout: 8000, // 8 secondes de timeout
+  timeout: 15000, // Augmenté à 15 secondes pour Render
   apikey: process.env.GEOCODING_API_KEY, // Optionnel pour certains providers
+});
+
+// Geocoder alternatif avec MapQuest (gratuit)
+const geocoderFallback = NodeGeocoder({
+  provider: 'mapquest',
+  httpAdapter: 'https',
+  apiKey: process.env.MAPQUEST_API_KEY || 'demo_key', // Utilise une clé demo si pas configuré
+  formatter: null,
+  timeout: 15000
 });
 
 // Note: La fonction geocodeAddressSafely est définie plus bas avec les statistiques
@@ -87,7 +96,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Fonction de géocodage robuste avec timeout, fallback et monitoring
-async function geocodeAddressSafely(address, timeout = 10000) {
+async function geocodeAddressSafely(address, timeout = 15000) {
   geocodingStats.total++;
   
   if (!address || typeof address !== 'string' || address.trim() === '') {
@@ -98,38 +107,67 @@ async function geocodeAddressSafely(address, timeout = 10000) {
   console.log('🌍 Starting geocoding for address:', address);
   const startTime = Date.now();
   
+  // Essayer d'abord avec OpenStreetMap
   try {
-    // Créer une promesse avec timeout personnalisé
+    console.log('🔄 Trying OpenStreetMap geocoder...');
     const geocodePromise = geocoder.geocode(address.trim());
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Geocoding timeout')), timeout)
     );
     
-    // Utiliser Promise.race pour gérer le timeout
     const result = await Promise.race([geocodePromise, timeoutPromise]);
     const duration = Date.now() - startTime;
     
     if (result && result.length > 0) {
       const { latitude, longitude, formattedAddress } = result[0];
       geocodingStats.success++;
-      console.log(`✅ Geocoding successful in ${duration}ms:`, { latitude, longitude });
+      console.log(`✅ OpenStreetMap geocoding successful in ${duration}ms:`, { latitude, longitude });
       return { latitude, longitude, formattedAddress };
     } else {
-      geocodingStats.failed++;
-      console.log('⚠️ No geocoding results found for address:', address);
-      return null;
+      console.log('⚠️ OpenStreetMap returned no results, trying fallback...');
+      throw new Error('No results from OpenStreetMap');
     }
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    if (error.message === 'Geocoding timeout') {
-      geocodingStats.timeout++;
-      console.error(`❌ Geocoding timeout after ${duration}ms for:`, address);
-    } else {
+  } catch (osmError) {
+    const osmDuration = Date.now() - startTime;
+    console.log(`⚠️ OpenStreetMap failed in ${osmDuration}ms:`, osmError.message);
+    
+    // Fallback vers MapQuest si OpenStreetMap échoue
+    try {
+      console.log('🔄 Trying MapQuest geocoder fallback...');
+      const fallbackStart = Date.now();
+      const fallbackPromise = geocoderFallback.geocode(address.trim());
+      const fallbackTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Fallback geocoding timeout')), timeout / 2)
+      );
+      
+      const fallbackResult = await Promise.race([fallbackPromise, fallbackTimeoutPromise]);
+      const fallbackDuration = Date.now() - fallbackStart;
+      
+      if (fallbackResult && fallbackResult.length > 0) {
+        const { latitude, longitude, formattedAddress } = fallbackResult[0];
+        geocodingStats.success++;
+        console.log(`✅ MapQuest fallback successful in ${fallbackDuration}ms:`, { latitude, longitude });
+        return { latitude, longitude, formattedAddress };
+      } else {
+        throw new Error('No results from fallback geocoder');
+      }
+    } catch (fallbackError) {
+      const totalDuration = Date.now() - startTime;
       geocodingStats.failed++;
-      console.error(`❌ Geocoding error after ${duration}ms:`, error.message);
+      
+      if (osmError.message.includes('timeout') || fallbackError.message.includes('timeout')) {
+        geocodingStats.timeout++;
+        console.error(`❌ Both geocoders timed out after ${totalDuration}ms for:`, address);
+      } else {
+        console.error(`❌ Both geocoders failed after ${totalDuration}ms:`, {
+          osm: osmError.message,
+          fallback: fallbackError.message
+        });
+      }
+      
+      console.error('🌐 All geocoding options exhausted');
+      return null; // Ne pas faire échouer la création du prospect
     }
-    console.error('🌐 Network connectivity issue or API limit reached');
-    return null; // Ne pas faire échouer la création du prospect
   }
 }
 
@@ -1291,6 +1329,48 @@ app.put('/api/tabs/:id', authenticateToken, (req, res) => {
     console.error('Error updating tab:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Route de test geocoding sans authentification (pour diagnostic uniquement)
+app.get('/api/test/geocoding', async (req, res) => {
+  try {
+    const testAddress = req.query.address || 'Paris, France';
+    console.log('🧪 Testing geocoding for:', testAddress);
+    
+    const startTime = Date.now();
+    const result = await geocodeAddressSafely(testAddress, 20000);
+    const duration = Date.now() - startTime;
+    
+    res.json({
+      success: !!result,
+      address: testAddress,
+      duration: duration,
+      result: result,
+      stats: geocodingStats,
+      providers: ['openstreetmap', 'mapquest-fallback'],
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('🧪 Test geocoding error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      address: req.query.address || 'Paris, France',
+      stats: geocodingStats,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Route de test simple pour vérifier que l'API fonctionne
+app.get('/api/test/ping', (req, res) => {
+  res.json({
+    message: 'Maplyo API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime()
+  });
 });
 
 // Route de diagnostic système (pour débogage)
