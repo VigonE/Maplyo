@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 
 // Props
@@ -246,6 +246,28 @@ const metrics = ref({
   confidenceScore: 0,
   riskFactors: []
 })
+
+// Variables de contrôle pour éviter les conflits
+const isCreatingChart = ref(false)
+let chartUpdateTimeout = null
+
+// Fonction pour détruire le graphique de manière sûre
+const safeDestroyChart = () => {
+  if (!chart.value) return
+  
+  try {
+    // Arrêter toutes les animations en cours
+    chart.value.stop()
+    
+    // Détruire le graphique
+    chart.value.destroy()
+    console.log('📊 Chart safely destroyed')
+  } catch (error) {
+    console.error('Error destroying chart:', error)
+  } finally {
+    chart.value = null
+  }
+}
 
 // Computed
 const categoryAnalysis = computed(() => {
@@ -491,7 +513,60 @@ const identifyRiskFactors = () => {
   return risks
 }
 
+const updateExistingChart = () => {
+  if (!chart.value || !forecast.value.length) return false
+  
+  try {
+    // Mettre à jour les données sans recréer le graphique
+    const datasets = []
+    
+    // Add bar chart if enabled
+    if (showBars.value) {
+      datasets.push({
+        type: 'bar',
+        label: 'Monthly Revenue',
+        data: forecast.value.map(f => f.revenue),
+        backgroundColor: 'rgba(59, 130, 246, 0.3)',
+        borderColor: 'rgba(59, 130, 246, 0.6)',
+        borderWidth: 1,
+        yAxisID: 'y'
+      })
+    }
+    
+    // Add smooth line chart
+    datasets.push({
+      type: 'line',
+      label: 'Trend Line',
+      data: forecast.value.map(f => f.revenue),
+      borderColor: '#ef4444',
+      backgroundColor: 'transparent',
+      fill: false,
+      tension: parseFloat(chartSmoothness.value),
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 2,
+      yAxisID: 'y'
+    })
+    
+    chart.value.data.datasets = datasets
+    chart.value.data.labels = forecast.value.map(f => formatMonth(f.date))
+    chart.value.update('none') // Mise à jour sans animation pour éviter les conflits
+    
+    console.log('✅ Chart updated successfully')
+    return true
+  } catch (error) {
+    console.error('❌ Error updating existing chart:', error)
+    return false
+  }
+}
+
 const createChart = async () => {
+  // Éviter les créations multiples simultanées
+  if (isCreatingChart.value) {
+    console.log('⏳ Chart creation already in progress, skipping...')
+    return
+  }
+  
   // Vérifications initiales
   if (!forecast.value.length || !props.isVisible || loading.value || props.prospects.length === 0) {
     console.log('❌ Chart creation aborted - missing requirements:', {
@@ -503,6 +578,13 @@ const createChart = async () => {
     })
     return
   }
+  
+  // Essayer de mettre à jour le graphique existant d'abord
+  if (chart.value && updateExistingChart()) {
+    return
+  }
+  
+  isCreatingChart.value = true
   
   await nextTick()
   
@@ -524,10 +606,7 @@ const createChart = async () => {
   
   try {
     // Détruire l'ancien graphique s'il existe
-    if (chart.value) {
-      chart.value.destroy()
-      chart.value = null
-    }
+    safeDestroyChart()
     
     const ctx = chartCanvas.value.getContext('2d')
     if (!ctx) {
@@ -574,6 +653,13 @@ const createChart = async () => {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 0 // Désactiver les animations par défaut
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
       plugins: {
         legend: {
           display: true,
@@ -602,21 +688,38 @@ const createChart = async () => {
   
   } catch (error) {
     console.error('❌ Error creating chart:', error)
-    if (chart.value) {
-      chart.value.destroy()
-      chart.value = null
-    }
+    safeDestroyChart()
+  } finally {
+    isCreatingChart.value = false
   }
 }
 
 const updateChart = async () => {
-  if (forecast.value.length > 0 && props.isVisible) {
-    try {
-      await createChart()
-    } catch (error) {
-      console.error('❌ Error updating chart:', error)
-    }
+  // Annuler le timeout précédent s'il existe (debounce)
+  if (chartUpdateTimeout) {
+    clearTimeout(chartUpdateTimeout)
   }
+  
+  // Programmer la mise à jour avec un délai pour éviter les appels trop fréquents
+  chartUpdateTimeout = setTimeout(async () => {
+    if (forecast.value.length > 0 && props.isVisible && !isCreatingChart.value) {
+      try {
+        console.log('🔄 Updating chart after debounce...')
+        
+        // Essayer de mettre à jour le graphique existant d'abord
+        if (chart.value && updateExistingChart()) {
+          console.log('✅ Chart updated via data refresh')
+          return
+        }
+        
+        // Si la mise à jour échoue, recréer le graphique
+        console.log('🔄 Recreating chart...')
+        await createChart()
+      } catch (error) {
+        console.error('❌ Error updating chart:', error)
+      }
+    }
+  }, 150) // Délai réduit à 150ms pour une meilleure réactivité
 }
 
 const refreshForecast = async () => {
@@ -696,17 +799,17 @@ watch(() => props.isVisible, async (newValue) => {
       refreshForecast()
     }, 300)
   } else {
-    // Nettoyer le graphique quand le modal se ferme
-    if (chart.value) {
-      try {
-        chart.value.destroy()
-        chart.value = null
-        console.log('✅ Chart destroyed on modal close')
-      } catch (error) {
-        console.error('❌ Error destroying chart:', error)
-        chart.value = null
-      }
+    // Annuler les mises à jour en attente
+    if (chartUpdateTimeout) {
+      clearTimeout(chartUpdateTimeout)
+      chartUpdateTimeout = null
     }
+    
+    // Réinitialiser le verrou
+    isCreatingChart.value = false
+    
+    // Nettoyer le graphique quand le modal se ferme
+    safeDestroyChart()
   }
 })
 
@@ -722,12 +825,14 @@ watch([() => loading.value, () => forecast.value.length], async ([newLoading, ne
 })
 
 // Cleanup chart on unmount
-onMounted(() => {
-  return () => {
-    if (chart.value) {
-      chart.value.destroy()
-    }
+onUnmounted(() => {
+  // Nettoyer le timeout
+  if (chartUpdateTimeout) {
+    clearTimeout(chartUpdateTimeout)
   }
+  
+  // Nettoyer le graphique
+  safeDestroyChart()
 })
 </script>
 
