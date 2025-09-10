@@ -731,6 +731,64 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   }
 });
 
+// Réorganiser les prospects dans une catégorie (status) - DOIT ÊTRE AVANT /:id
+app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
+  console.log('🎯 Reorder-category route called!');
+  console.log('📦 Request body:', req.body);
+  console.log('👤 User ID:', req.user?.userId);
+  
+  try {
+    const { status, order } = req.body;
+    
+    console.log(`📋 Reordering prospects in category: ${status}`);
+    console.log('📄 New order:', order);
+
+    // Validation des paramètres
+    if (!status || !Array.isArray(order)) {
+      return res.status(400).json({ error: 'Status and order array are required' });
+    }
+
+    if (!['hot', 'warm', 'cold', 'won', 'lost'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    // Mettre à jour l'ordre d'affichage pour chaque prospect
+    db.serialize(() => {
+      const stmt = db.prepare(`
+        UPDATE prospects 
+        SET display_order = ? 
+        WHERE id = ? AND user_id = ? AND status = ?
+      `);
+
+      order.forEach((prospectId, index) => {
+        stmt.run(index, prospectId, req.user.userId, status, (err) => {
+          if (err) {
+            console.error(`Error updating display order for prospect ${prospectId}:`, err);
+          }
+        });
+      });
+
+      stmt.finalize((err) => {
+        if (err) {
+          console.error('Error finalizing reorder statement:', err);
+          return res.status(500).json({ error: 'Database error during reordering' });
+        }
+
+        console.log(`✅ Successfully reordered ${order.length} prospects in category: ${status}`);
+        res.json({ 
+          message: 'Prospects reordered successfully',
+          status: status,
+          count: order.length
+        });
+      });
+    });
+
+  } catch (error) {
+    console.error('Error in reorder-category route:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Mettre à jour un prospect
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
@@ -859,6 +917,7 @@ app.delete('/api/prospects/:id', authenticateToken, (req, res) => {
     }
   );
 });
+
 
 // Routes pour les onglets
 
@@ -1375,58 +1434,10 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
       let importedTabs = 0;
       let importedSettings = 0;
 
-      // Importer les prospects
-      if (importData.prospects && Array.isArray(importData.prospects)) {
-        const prospectStmt = db.prepare(`
-          INSERT INTO prospects 
-          (user_id, name, email, phone, company, position, address, latitude, longitude, 
-           status, revenue, probability_coefficient, notes, tab_id, display_order, 
-           estimated_completion_date, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        importData.prospects.forEach((prospect, index) => {
-          try {
-            // Validation des données prospect
-            const name = prospect.name || prospect.company || `Imported Prospect ${index + 1}`;
-            const status = ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold';
-            const revenue = isNaN(parseFloat(prospect.revenue)) ? 0 : parseFloat(prospect.revenue);
-            const probability = isNaN(parseFloat(prospect.probability_coefficient)) ? 100 : parseFloat(prospect.probability_coefficient);
-            
-            prospectStmt.run(
-              req.user.userId,
-              name,
-              prospect.email || '',
-              prospect.phone || '',
-              prospect.company || '',
-              prospect.position || '',
-              prospect.address || '',
-              prospect.latitude || null,
-              prospect.longitude || null,
-              status,
-              revenue,
-              probability,
-              prospect.notes || '',
-              prospect.tab_id || 'default',
-              prospect.display_order || index,
-              prospect.estimated_completion_date || null,
-              prospect.created_at || new Date().toISOString(),
-              prospect.updated_at || new Date().toISOString()
-            );
-            importedProspects++;
-          } catch (error) {
-            console.error('Error importing prospect:', error);
-            console.error('Prospect data:', prospect);
-          }
-        });
-
-        prospectStmt.finalize();
-      }
-
       // Créer un mapping des anciens IDs vers les nouveaux pour préserver les assignations
       const tabIdMapping = {};
 
-      // Importer les tabs
+      // ÉTAPE 1: Importer les tabs EN PREMIER pour créer le mapping
       if (importData.tabs && Array.isArray(importData.tabs)) {
         const tabStmt = db.prepare(`
           INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at)
@@ -1469,6 +1480,76 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
         });
 
         tabStmt.finalize();
+      }
+
+      // ÉTAPE 2: Maintenant importer les prospects en utilisant le mapping des tabs
+      if (importData.prospects && Array.isArray(importData.prospects)) {
+        console.log(`🔄 Importing ${importData.prospects.length} prospects with tab mapping`);
+        console.log(`🗂️ Tab ID mapping:`, tabIdMapping);
+        
+        const prospectStmt = db.prepare(`
+          INSERT INTO prospects 
+          (user_id, name, email, phone, company, position, address, latitude, longitude, 
+           status, revenue, probability_coefficient, notes, tab_id, display_order, 
+           estimated_completion_date, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        importData.prospects.forEach((prospect, index) => {
+          try {
+            // Validation des données prospect
+            const name = prospect.name || prospect.company || `Imported Prospect ${index + 1}`;
+            const status = ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold';
+            const revenue = isNaN(parseFloat(prospect.revenue)) ? 0 : parseFloat(prospect.revenue);
+            const probability = isNaN(parseFloat(prospect.probability_coefficient)) ? 100 : parseFloat(prospect.probability_coefficient);
+            
+            // Utiliser le mapping des tabs pour préserver l'assignation
+            let mappedTabId = prospect.tab_id || 'default';
+            console.log(`🔍 Processing prospect: ${name}, original tab_id: ${prospect.tab_id}`);
+            
+            if (tabIdMapping[prospect.tab_id]) {
+              mappedTabId = tabIdMapping[prospect.tab_id];
+              console.log(`✅ Mapped ${prospect.tab_id} -> ${mappedTabId}`);
+            } else if (importedTabs > 0) {
+              // Si le tab_id original n'existe pas, assigner au premier tab disponible
+              const availableTabIds = Object.values(tabIdMapping);
+              if (availableTabIds.length > 0) {
+                mappedTabId = availableTabIds[0];
+                console.log(`⚠️ No mapping found for ${prospect.tab_id}, using first available: ${mappedTabId}`);
+              }
+            } else {
+              console.log(`❌ No tabs imported, keeping default: ${mappedTabId}`);
+            }
+            
+            prospectStmt.run(
+              req.user.userId,
+              name,
+              prospect.email || '',
+              prospect.phone || '',
+              prospect.company || '',
+              prospect.position || '',
+              prospect.address || '',
+              prospect.latitude || null,
+              prospect.longitude || null,
+              status,
+              revenue,
+              probability,
+              prospect.notes || '',
+              mappedTabId,
+              prospect.display_order || index,
+              prospect.estimated_completion_date || null,
+              prospect.created_at || new Date().toISOString(),
+              prospect.updated_at || new Date().toISOString()
+            );
+            importedProspects++;
+            console.log(`✅ Imported prospect: ${name} -> tab: ${mappedTabId}`);
+          } catch (error) {
+            console.error('Error importing prospect:', error);
+            console.error('Prospect data:', prospect);
+          }
+        });
+
+        prospectStmt.finalize();
       }
 
       // Importer les settings

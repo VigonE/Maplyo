@@ -1037,14 +1037,20 @@ async function handleDatabaseImport(event) {
     const result = await response.json()
     
     // Tabs are now handled by the backend database, no need to manage localStorage
-    // Refresh the tabs list to show the imported tabs
+    // Refresh the tabs list FIRST to show the imported tabs
     await nextTick()
     if (tabsManager.value && tabsManager.value.loadTabs) {
       await tabsManager.value.loadTabs()
     }
     
-    // Refresh prospects data
+    // Wait a bit more to ensure tabs are fully loaded
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    // Refresh prospects AFTER tabs are loaded
     await prospectsStore.fetchProspects()
+    
+    // Additional delay to ensure UI updates
+    await nextTick()
     
     systemMessage.value = `Database imported successfully! ${result.imported?.prospects || 0} prospects, ${result.imported?.tabs || 0} tabs, and ${result.imported?.settings || 0} settings imported.`
     systemMessageType.value = 'success'
