@@ -934,18 +934,8 @@ async function exportDatabase() {
     
     const data = await response.json()
     
-    // Add tabs from localStorage to the export data
-    const savedTabs = localStorage.getItem('maplyo_tabs')
-    if (savedTabs) {
-      try {
-        data.tabs = JSON.parse(savedTabs)
-      } catch (error) {
-        console.warn('Failed to parse tabs from localStorage:', error)
-        data.tabs = []
-      }
-    } else {
-      data.tabs = []
-    }
+    // The backend now includes tabs in the export data automatically
+    // No need to add from localStorage anymore
     
     // Create and download the file
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -962,7 +952,7 @@ async function exportDatabase() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
     
-    systemMessage.value = `Database exported successfully! Included ${data.prospects?.length || 0} prospects and ${data.tabs?.length || 0} tabs.`
+    systemMessage.value = `Database exported successfully! Included ${data.prospects?.length || 0} prospects, ${data.tabs?.length || 0} tabs, and ${data.settings?.length || 0} settings.`
     systemMessageType.value = 'success'
     
   } catch (error) {
@@ -1013,9 +1003,9 @@ async function handleDatabaseImport(event) {
       throw new Error('Invalid JSON format')
     }
 
-    // Validate the structure
-    if (!importData.users || !importData.prospects) {
-      throw new Error('Invalid backup file format. Missing required data sections.')
+    // Validate the structure - more flexible validation for different backup versions
+    if (!importData.prospects && !importData.users) {
+      throw new Error('Invalid backup file format. File must contain at least prospects data.')
     }
 
     const response = await fetch('/api/database/import', {
@@ -1046,17 +1036,17 @@ async function handleDatabaseImport(event) {
 
     const result = await response.json()
     
-    // Restore tabs to localStorage if they exist in the backup
-    if (importData.tabs && Array.isArray(importData.tabs)) {
-      localStorage.setItem('maplyo_tabs', JSON.stringify(importData.tabs))
-      console.log(`✅ Restored ${importData.tabs.length} tabs to localStorage`)
-    } else {
-      // Clear existing tabs if none in backup
-      localStorage.removeItem('maplyo_tabs')
-      console.log('🗑️ No tabs in backup, cleared existing tabs')
+    // Tabs are now handled by the backend database, no need to manage localStorage
+    // Refresh the tabs list to show the imported tabs
+    await nextTick()
+    if (tabsManager.value && tabsManager.value.loadTabs) {
+      await tabsManager.value.loadTabs()
     }
     
-    systemMessage.value = `Database imported successfully! ${result.imported?.prospects || 0} prospects and ${importData.tabs?.length || 0} tabs imported.`
+    // Refresh prospects data
+    await prospectsStore.fetchProspects()
+    
+    systemMessage.value = `Database imported successfully! ${result.imported?.prospects || 0} prospects, ${result.imported?.tabs || 0} tabs, and ${result.imported?.settings || 0} settings imported.`
     systemMessageType.value = 'success'
     
     // Reload prospects data

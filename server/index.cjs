@@ -674,7 +674,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     }
 
     // Calculate estimated completion date
-    const estimatedDate = await calculateEstimatedCompletionDate(
+    const estimatedDate = await getEstimatedCompletionDate(
       req.user.userId, 
       status || 'cold', 
       estimated_completion_date
@@ -777,7 +777,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           estimatedDate = estimated_completion_date;
         } else if (status !== prospect.status) {
           // Status changed, recalculate estimated date
-          estimatedDate = await calculateEstimatedCompletionDate(
+          estimatedDate = await getEstimatedCompletionDate(
             req.user.userId, 
             status || prospect.status, 
             null
@@ -1276,6 +1276,287 @@ async function createProspectFromCSV(prospectData, userId, options) {
   });
 }
 
+// Route pour exporter la base de données
+app.get('/api/database/export', authenticateToken, (req, res) => {
+  try {
+    console.log(`📤 Exporting database for user ${req.user.userId}`);
+    
+    // Récupérer tous les prospects de l'utilisateur
+    db.all(
+      'SELECT * FROM prospects WHERE user_id = ?',
+      [req.user.userId],
+      (err, prospects) => {
+        if (err) {
+          console.error('Error retrieving prospects for export:', err);
+          return res.status(500).json({ error: 'Database error while retrieving prospects' });
+        }
+
+        // Récupérer tous les tabs de l'utilisateur
+        db.all(
+          'SELECT * FROM tabs WHERE user_id = ?',
+          [req.user.userId],
+          (err, tabs) => {
+            if (err) {
+              console.error('Error retrieving tabs for export:', err);
+              return res.status(500).json({ error: 'Database error while retrieving tabs' });
+            }
+
+            // Récupérer les paramètres de l'utilisateur
+            db.all(
+              'SELECT * FROM settings WHERE user_id = ?',
+              [req.user.userId],
+              (err, settings) => {
+                if (err) {
+                  console.error('Error retrieving settings for export:', err);
+                  return res.status(500).json({ error: 'Database error while retrieving settings' });
+                }
+
+                // Récupérer les informations utilisateur (sans le mot de passe)
+                db.get(
+                  'SELECT id, email, name, company, created_at FROM users WHERE id = ?',
+                  [req.user.userId],
+                  (err, user) => {
+                    if (err) {
+                      console.error('Error retrieving user for export:', err);
+                      return res.status(500).json({ error: 'Database error while retrieving user' });
+                    }
+
+                    const exportData = {
+                      version: '2.0',
+                      exported_at: new Date().toISOString(),
+                      user: user,
+                      prospects: prospects,
+                      tabs: tabs,
+                      settings: settings
+                    };
+
+                    console.log(`✅ Export completed: ${prospects.length} prospects, ${tabs.length} tabs, ${settings.length} settings`);
+                    res.json(exportData);
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Error in database export:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Route pour importer la base de données
+app.post('/api/database/import', authenticateToken, (req, res) => {
+  try {
+    console.log(`📥 Importing database for user ${req.user.userId}`);
+    const importData = req.body;
+
+    // Validation des données d'import
+    if (!importData || typeof importData !== 'object') {
+      return res.status(400).json({ error: 'Invalid import data format' });
+    }
+
+    // Vérifier la version et la compatibilité
+    const version = importData.version || '1.0';
+    console.log(`📄 Import data version: ${version}`);
+
+    // Commencer une transaction pour s'assurer de la cohérence
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      try {
+      // Supprimer TOUTES les données existantes de l'utilisateur (y compris les tabs spéciaux)
+      db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId]);
+      db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId]); // Supprimer TOUS les tabs
+      db.run('DELETE FROM settings WHERE user_id = ?', [req.user.userId]);
+      
+      let importedProspects = 0;
+      let importedTabs = 0;
+      let importedSettings = 0;
+
+      // Importer les prospects
+      if (importData.prospects && Array.isArray(importData.prospects)) {
+        const prospectStmt = db.prepare(`
+          INSERT INTO prospects 
+          (user_id, name, email, phone, company, position, address, latitude, longitude, 
+           status, revenue, probability_coefficient, notes, tab_id, display_order, 
+           estimated_completion_date, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        importData.prospects.forEach((prospect, index) => {
+          try {
+            // Validation des données prospect
+            const name = prospect.name || prospect.company || `Imported Prospect ${index + 1}`;
+            const status = ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold';
+            const revenue = isNaN(parseFloat(prospect.revenue)) ? 0 : parseFloat(prospect.revenue);
+            const probability = isNaN(parseFloat(prospect.probability_coefficient)) ? 100 : parseFloat(prospect.probability_coefficient);
+            
+            prospectStmt.run(
+              req.user.userId,
+              name,
+              prospect.email || '',
+              prospect.phone || '',
+              prospect.company || '',
+              prospect.position || '',
+              prospect.address || '',
+              prospect.latitude || null,
+              prospect.longitude || null,
+              status,
+              revenue,
+              probability,
+              prospect.notes || '',
+              prospect.tab_id || 'default',
+              prospect.display_order || index,
+              prospect.estimated_completion_date || null,
+              prospect.created_at || new Date().toISOString(),
+              prospect.updated_at || new Date().toISOString()
+            );
+            importedProspects++;
+          } catch (error) {
+            console.error('Error importing prospect:', error);
+            console.error('Prospect data:', prospect);
+          }
+        });
+
+        prospectStmt.finalize();
+      }
+
+      // Créer un mapping des anciens IDs vers les nouveaux pour préserver les assignations
+      const tabIdMapping = {};
+
+      // Importer les tabs
+      if (importData.tabs && Array.isArray(importData.tabs)) {
+        const tabStmt = db.prepare(`
+          INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        importData.tabs.forEach(tab => {
+          try {
+            const originalTabId = tab.id;
+            let newTabId = tab.id;
+            
+            // Pour éviter les doublons d'onglet "All Leads"
+            if (tab.is_special && tab.name === 'All Leads') {
+              newTabId = `all-leads-${req.user.userId}`;
+            } else if (!newTabId || typeof newTabId !== 'string') {
+              newTabId = `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            } else {
+              // S'assurer que l'ID est unique pour ce user
+              newTabId = `${newTabId}_${req.user.userId}`;
+            }
+
+            // Enregistrer le mapping ancien ID -> nouveau ID
+            tabIdMapping[originalTabId] = newTabId;
+
+            tabStmt.run(
+              newTabId,
+              req.user.userId,
+              tab.name || 'Imported Tab',
+              tab.description || '',
+              tab.is_special ? 1 : 0,
+              tab.display_order || 0,
+              tab.created_at || new Date().toISOString()
+            );
+            importedTabs++;
+            console.log(`✅ Imported tab: ${tab.name} (${originalTabId} -> ${newTabId})`);
+          } catch (error) {
+            console.error('Error importing tab:', error);
+            console.error('Tab data:', tab);
+          }
+        });
+
+        tabStmt.finalize();
+      }
+
+      // Importer les settings
+      if (importData.settings && Array.isArray(importData.settings)) {
+        const settingStmt = db.prepare(`
+          INSERT INTO settings (user_id, setting_key, setting_value, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?)
+        `);
+
+        importData.settings.forEach(setting => {
+          try {
+            settingStmt.run(
+              req.user.userId,
+              setting.setting_key || '',
+              setting.setting_value || '{}',
+              setting.created_at || new Date().toISOString(),
+              setting.updated_at || new Date().toISOString()
+            );
+            importedSettings++;
+          } catch (error) {
+            console.error('Error importing setting:', error);
+          }
+        });
+
+        settingStmt.finalize();
+      }
+
+      // S'assurer que l'utilisateur a au moins un onglet "All Leads"
+      if (importedTabs === 0) {
+        console.log('🔧 No tabs imported, creating default tabs');
+        createDefaultTabsForUser(req.user.userId);
+        importedTabs = 2; // All Leads + Main Pipeline
+      } else {
+        // Vérifier si un onglet "All Leads" existe après l'import
+        db.get(
+          'SELECT id FROM tabs WHERE user_id = ? AND is_special = 1 AND name = ?',
+          [req.user.userId, 'All Leads'],
+          (err, existingAllLeads) => {
+            if (err || !existingAllLeads) {
+              console.log('🔧 Creating missing "All Leads" tab after import');
+              const allLeadsTab = {
+                id: `all-leads-${req.user.userId}`,
+                name: 'All Leads',
+                description: 'View all prospects from all tabs',
+                is_special: 1,
+                display_order: -1
+              };
+              
+              db.run(
+                'INSERT INTO tabs (id, user_id, name, description, is_special, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+                [allLeadsTab.id, req.user.userId, allLeadsTab.name, allLeadsTab.description, allLeadsTab.is_special, allLeadsTab.display_order],
+                (err) => {
+                  if (err) {
+                    console.error('Error creating All Leads tab after import:', err);
+                  } else {
+                    console.log('✅ Created missing "All Leads" tab');
+                  }
+                }
+              );
+            }
+          }
+        );
+      }
+
+        db.run('COMMIT');
+        
+        console.log(`✅ Import completed: ${importedProspects} prospects, ${importedTabs} tabs, ${importedSettings} settings`);
+        
+        res.json({
+          message: 'Database imported successfully',
+          imported: {
+            prospects: importedProspects,
+            tabs: importedTabs,
+            settings: importedSettings
+          }
+        });
+      } catch (transactionError) {
+        db.run('ROLLBACK');
+        console.error('Transaction failed:', transactionError);
+        res.status(500).json({ error: 'Import transaction failed' });
+      }
+    });
+  } catch (error) {
+    console.error('Error in database import:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Endpoint pour supprimer toutes les données de l'utilisateur
 app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
   try {
@@ -1320,6 +1601,325 @@ app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
     );
   } catch (error) {
     console.error('Error in delete-all endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Helper function to calculate estimated completion date based on status and lead times
+function calculateEstimatedCompletionDate(status, leadTimes) {
+  const today = new Date();
+  const leadTimeMonths = leadTimes[status] || leadTimes.cold || 12;
+  
+  const estimatedDate = new Date(today);
+  estimatedDate.setMonth(estimatedDate.getMonth() + leadTimeMonths);
+  
+  return estimatedDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+}
+
+// Async helper function to get lead times and calculate estimated completion date
+async function getEstimatedCompletionDate(userId, status, providedDate = null) {
+  if (providedDate) {
+    return providedDate;
+  }
+
+  return new Promise((resolve) => {
+    db.get(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [userId, 'closing_lead_times'],
+      (err, row) => {
+        let leadTimes = { cold: 12, warm: 6, hot: 3 }; // Default values
+        if (!err && row) {
+          try {
+            leadTimes = JSON.parse(row.setting_value);
+          } catch (parseError) {
+            console.warn('Failed to parse lead times, using defaults');
+          }
+        }
+        
+        const estimatedDate = calculateEstimatedCompletionDate(status || 'cold', leadTimes);
+        resolve(estimatedDate);
+      }
+    );
+  });
+}
+
+// Export database endpoint
+app.get('/api/database/export', authenticateToken, (req, res) => {
+  try {
+    console.log(`📤 Exporting database for user ${req.user.userId}`);
+    
+    const exportData = {
+      version: '2.0', // Version for backward compatibility
+      exported_at: new Date().toISOString(),
+      user_id: req.user.userId,
+      schema: {
+        prospects: [
+          'id', 'user_id', 'name', 'email', 'phone', 'company', 'position', 
+          'address', 'latitude', 'longitude', 'status', 'revenue', 
+          'probability_coefficient', 'notes', 'tab_id', 'display_order',
+          'estimated_completion_date', 'created_at', 'updated_at'
+        ],
+        tabs: [
+          'id', 'user_id', 'name', 'description', 'is_special', 'display_order', 'created_at'
+        ],
+        users: [
+          'id', 'email', 'name', 'company', 'created_at'
+        ],
+        settings: [
+          'id', 'user_id', 'setting_key', 'setting_value', 'created_at', 'updated_at'
+        ]
+      }
+    };
+
+    // Get user data (without password)
+    db.get(
+      'SELECT id, email, name, company, created_at FROM users WHERE id = ?',
+      [req.user.userId],
+      (err, user) => {
+        if (err) {
+          console.error('Error retrieving user for export:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+
+        exportData.users = [user];
+
+        // Get all prospects for the user
+        db.all(
+          'SELECT * FROM prospects WHERE user_id = ?',
+          [req.user.userId],
+          (err, prospects) => {
+            if (err) {
+              console.error('Error retrieving prospects for export:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+
+            exportData.prospects = prospects;
+
+            // Get all tabs for the user
+            db.all(
+              'SELECT * FROM tabs WHERE user_id = ?',
+              [req.user.userId],
+              (err, tabs) => {
+                if (err) {
+                  console.error('Error retrieving tabs for export:', err);
+                  return res.status(500).json({ error: 'Database error' });
+                }
+
+                exportData.tabs = tabs;
+
+                // Get all settings for the user
+                db.all(
+                  'SELECT * FROM settings WHERE user_id = ?',
+                  [req.user.userId],
+                  (err, settings) => {
+                    if (err) {
+                      console.error('Error retrieving settings for export:', err);
+                      return res.status(500).json({ error: 'Database error' });
+                    }
+
+                    exportData.settings = settings;
+
+                    console.log(`✅ Database exported successfully: ${prospects.length} prospects, ${tabs.length} tabs, ${settings.length} settings`);
+                    res.json(exportData);
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  } catch (error) {
+    console.error('Error in export endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Import database endpoint
+app.post('/api/database/import', authenticateToken, (req, res) => {
+  try {
+    console.log(`📥 Importing database for user ${req.user.userId}`);
+    const importData = req.body;
+
+    // Validate import data structure
+    if (!importData || typeof importData !== 'object') {
+      return res.status(400).json({ error: 'Invalid import data format' });
+    }
+
+    const results = {
+      imported: {
+        prospects: 0,
+        tabs: 0,
+        settings: 0
+      },
+      errors: []
+    };
+
+    // Get user's lead times for calculating estimated completion dates
+    db.get(
+      'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
+      [req.user.userId, 'closing_lead_times'],
+      (err, leadTimesRow) => {
+        let leadTimes = { cold: 12, warm: 6, hot: 3 }; // Default values
+        if (!err && leadTimesRow) {
+          try {
+            leadTimes = JSON.parse(leadTimesRow.setting_value);
+          } catch (parseError) {
+            console.warn('Failed to parse lead times, using defaults');
+          }
+        }
+
+        // Start transaction
+        db.serialize(() => {
+          // Clear existing data for the user
+          db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId]);
+          db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId]);
+          db.run('DELETE FROM settings WHERE user_id = ? AND setting_key != ?', [req.user.userId, 'closing_lead_times']);
+
+          // Import prospects with enhanced data handling
+          if (importData.prospects && Array.isArray(importData.prospects)) {
+            importData.prospects.forEach(prospect => {
+              try {
+                // Calculate estimated_completion_date if not present
+                let estimatedDate = prospect.estimated_completion_date;
+                if (!estimatedDate && prospect.status) {
+                  estimatedDate = calculateEstimatedCompletionDate(prospect.status, leadTimes);
+                }
+
+                db.run(
+                  `INSERT INTO prospects 
+                   (user_id, name, email, phone, company, position, address, latitude, longitude, 
+                    status, revenue, probability_coefficient, notes, tab_id, display_order, 
+                    estimated_completion_date, created_at, updated_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                           COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+                  [
+                    req.user.userId,
+                    prospect.name || '',
+                    prospect.email || '',
+                    prospect.phone || '',
+                    prospect.company || '',
+                    prospect.position || '',
+                    prospect.address || '',
+                    prospect.latitude || null,
+                    prospect.longitude || null,
+                    prospect.status || 'cold',
+                    prospect.revenue || 0,
+                    prospect.probability_coefficient || 100,
+                    prospect.notes || '',
+                    prospect.tab_id || 'default',
+                    prospect.display_order || 0,
+                    estimatedDate,
+                    prospect.created_at,
+                    prospect.updated_at
+                  ],
+                  function(err) {
+                    if (err) {
+                      console.error('Error importing prospect:', err);
+                      results.errors.push(`Prospect ${prospect.name}: ${err.message}`);
+                    } else {
+                      results.imported.prospects++;
+                    }
+                  }
+                );
+              } catch (error) {
+                console.error('Error processing prospect:', error);
+                results.errors.push(`Prospect ${prospect.name}: ${error.message}`);
+              }
+            });
+          }
+
+          // Import tabs
+          if (importData.tabs && Array.isArray(importData.tabs)) {
+            importData.tabs.forEach(tab => {
+              try {
+                db.run(
+                  `INSERT INTO tabs 
+                   (id, user_id, name, description, is_special, display_order, created_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+                  [
+                    tab.id || `tab_${Date.now()}_${req.user.userId}`,
+                    req.user.userId,
+                    tab.name || 'Unnamed Tab',
+                    tab.description || '',
+                    tab.is_special || 0,
+                    tab.display_order || 0,
+                    tab.created_at
+                  ],
+                  function(err) {
+                    if (err) {
+                      console.error('Error importing tab:', err);
+                      results.errors.push(`Tab ${tab.name}: ${err.message}`);
+                    } else {
+                      results.imported.tabs++;
+                    }
+                  }
+                );
+              } catch (error) {
+                console.error('Error processing tab:', error);
+                results.errors.push(`Tab ${tab.name}: ${error.message}`);
+              }
+            });
+          }
+
+          // Import settings (except lead times to preserve user's current settings)
+          if (importData.settings && Array.isArray(importData.settings)) {
+            importData.settings.forEach(setting => {
+              try {
+                // Skip lead times to preserve user's current configuration
+                if (setting.setting_key === 'closing_lead_times') {
+                  return;
+                }
+
+                db.run(
+                  `INSERT INTO settings 
+                   (user_id, setting_key, setting_value, created_at, updated_at) 
+                   VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+                  [
+                    req.user.userId,
+                    setting.setting_key,
+                    setting.setting_value,
+                    setting.created_at,
+                    setting.updated_at
+                  ],
+                  function(err) {
+                    if (err) {
+                      console.error('Error importing setting:', err);
+                      results.errors.push(`Setting ${setting.setting_key}: ${err.message}`);
+                    } else {
+                      results.imported.settings++;
+                    }
+                  }
+                );
+              } catch (error) {
+                console.error('Error processing setting:', error);
+                results.errors.push(`Setting ${setting.setting_key}: ${error.message}`);
+              }
+            });
+          }
+
+          // Create default tabs if none were imported
+          if (!importData.tabs || importData.tabs.length === 0) {
+            createDefaultTabsForUser(req.user.userId);
+            results.imported.tabs = 2; // All Leads + Main Pipeline
+          }
+
+          console.log(`✅ Database imported successfully for user ${req.user.userId}`);
+          console.log(`📊 Results:`, results);
+          
+          res.json({
+            message: 'Database imported successfully',
+            ...results
+          });
+        });
+      }
+    );
+  } catch (error) {
+    console.error('Error in import endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
