@@ -541,13 +541,17 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
           settings: {
             cold: 12,
             warm: 6,
-            hot: 3
+            hot: 3,
+            coldProbability: 15,
+            warmProbability: 45,
+            hotProbability: 80
           }
         });
       }
       
       try {
         const settings = JSON.parse(row.setting_value);
+        console.log('📊 Loaded settings from DB:', settings);
         res.json({
           success: true,
           settings: settings
@@ -560,7 +564,10 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
           settings: {
             cold: 12,
             warm: 6,
-            hot: 3
+            hot: 3,
+            coldProbability: 15,
+            warmProbability: 45,
+            hotProbability: 80
           }
         });
       }
@@ -570,8 +577,11 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
 
 app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
   console.log('💾 Saving closing lead times for user:', req.user.userId);
+  console.log('📦 Request body:', req.body);
   
-  const { cold, warm, hot } = req.body;
+  const { cold, warm, hot, coldProbability, warmProbability, hotProbability } = req.body;
+  
+  console.log('🔍 Extracted values:', { cold, warm, hot, coldProbability, warmProbability, hotProbability });
   
   // Validate input
   if (!cold || !warm || !hot || cold < 1 || warm < 1 || hot < 1) {
@@ -581,7 +591,21 @@ app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
     });
   }
   
-  const settingValue = { cold, warm, hot };
+  // Validate probabilities (optional, use defaults if not provided)
+  const probabilities = {
+    coldProbability: (coldProbability >= 1 && coldProbability <= 100) ? coldProbability : 15,
+    warmProbability: (warmProbability >= 1 && warmProbability <= 100) ? warmProbability : 45,
+    hotProbability: (hotProbability >= 1 && hotProbability <= 100) ? hotProbability : 80
+  };
+  
+  const settingValue = { 
+    cold, 
+    warm, 
+    hot,
+    ...probabilities
+  };
+  
+  console.log('💾 Final settingValue to save:', settingValue);
   
   // Use INSERT OR REPLACE for SQLite (equivalent to MySQL's ON DUPLICATE KEY UPDATE)
   db.run(

@@ -404,11 +404,13 @@ const calculateMetrics = (forecastData) => {
 }
 
 const getCategoryProbability = (category) => {
+  // Utiliser les probabilités configurables depuis les leadTimes (en pourcentage)
   const probabilities = {
-    hot: 0.80,
-    warm: 0.45,
-    cold: 0.15
+    hot: (props.leadTimes.hotProbability || 80) / 100,
+    warm: (props.leadTimes.warmProbability || 45) / 100,
+    cold: (props.leadTimes.coldProbability || 15) / 100
   }
+  console.log('📊 Using probability for', category, ':', probabilities[category] * 100, '%')
   return probabilities[category] || 0.3
 }
 

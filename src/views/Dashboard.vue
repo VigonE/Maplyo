@@ -303,56 +303,101 @@
               
               <div class="space-y-4">
                 <!-- Cold Leads -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
-                    <label class="text-sm font-medium text-gray-700">Cold Leads</label>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
+                      <label class="text-sm font-medium text-gray-700">Cold Leads</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.cold"
+                        type="number"
+                        min="1"
+                        max="60"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">months</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="closingLeadTimes.cold"
-                      type="number"
-                      min="1"
-                      max="60"
-                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span class="text-sm text-gray-500">months</span>
+                  <div class="flex items-center justify-between pl-5">
+                    <label class="text-xs text-gray-600">Probability</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.coldProbability"
+                        type="number"
+                        min="1"
+                        max="100"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">%</span>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Warm Leads -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
-                    <label class="text-sm font-medium text-gray-700">Warm Leads</label>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
+                      <label class="text-sm font-medium text-gray-700">Warm Leads</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.warm"
+                        type="number"
+                        min="1"
+                        max="60"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">months</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="closingLeadTimes.warm"
-                      type="number"
-                      min="1"
-                      max="60"
-                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span class="text-sm text-gray-500">months</span>
+                  <div class="flex items-center justify-between pl-5">
+                    <label class="text-xs text-gray-600">Probability</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.warmProbability"
+                        type="number"
+                        min="1"
+                        max="100"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">%</span>
+                    </div>
                   </div>
                 </div>
 
                 <!-- Hot Leads -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
-                    <label class="text-sm font-medium text-gray-700">Hot Leads</label>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                      <label class="text-sm font-medium text-gray-700">Hot Leads</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.hot"
+                        type="number"
+                        min="1"
+                        max="60"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">months</span>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <input
-                      v-model.number="closingLeadTimes.hot"
-                      type="number"
-                      min="1"
-                      max="60"
-                      class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span class="text-sm text-gray-500">months</span>
+                  <div class="flex items-center justify-between pl-5">
+                    <label class="text-xs text-gray-600">Probability</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.hotProbability"
+                        type="number"
+                        min="1"
+                        max="100"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">%</span>
+                    </div>
                   </div>
                 </div>
 
@@ -625,7 +670,11 @@ const modalKey = ref(0) // Pour forcer le re-rendu du modal
 const closingLeadTimes = ref({
   cold: 12,  // mois
   warm: 6,   // mois
-  hot: 3     // mois
+  hot: 3,    // mois
+  // Probabilités de conversion par catégorie (en pourcentage)
+  coldProbability: 15,
+  warmProbability: 45,
+  hotProbability: 80
 })
 const leadTimeLoading = ref(false)
 
@@ -1153,7 +1202,10 @@ async function loadClosingLeadTimes() {
         closingLeadTimes.value = {
           cold: data.settings.cold || 12,
           warm: data.settings.warm || 6,
-          hot: data.settings.hot || 3
+          hot: data.settings.hot || 3,
+          coldProbability: data.settings.coldProbability || 15,
+          warmProbability: data.settings.warmProbability || 45,
+          hotProbability: data.settings.hotProbability || 80
         }
       }
     }
@@ -1176,7 +1228,10 @@ async function saveClosingLeadTimes() {
       body: JSON.stringify({
         cold: closingLeadTimes.value.cold,
         warm: closingLeadTimes.value.warm,
-        hot: closingLeadTimes.value.hot
+        hot: closingLeadTimes.value.hot,
+        coldProbability: closingLeadTimes.value.coldProbability,
+        warmProbability: closingLeadTimes.value.warmProbability,
+        hotProbability: closingLeadTimes.value.hotProbability
       })
     })
     
