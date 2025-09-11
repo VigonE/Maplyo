@@ -568,9 +568,14 @@
                 <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                 <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
               </div>
-              <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
-                {{ getProspectsByStatus('cold').length }}
-              </span>
+              <div class="text-right">
+                <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
+                  {{ getProspectsByStatus('cold').length }}
+                </span>
+                <div class="text-xs font-medium text-blue-700 mt-1">
+                  💰 {{ formatCurrency(getWeightedRevenueByStatus('cold')) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex-1 p-3 overflow-y-auto">
@@ -610,9 +615,14 @@
                 <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
                 <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
               </div>
-              <span class="text-sm text-yellow-600 bg-yellow-200 px-2 py-1 rounded-full">
-                {{ getProspectsByStatus('warm').length }}
-              </span>
+              <div class="text-right">
+                <span class="text-sm text-yellow-600 bg-yellow-200 px-2 py-1 rounded-full">
+                  {{ getProspectsByStatus('warm').length }}
+                </span>
+                <div class="text-xs font-medium text-yellow-700 mt-1">
+                  💰 {{ formatCurrency(getWeightedRevenueByStatus('warm')) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex-1 p-3 overflow-y-auto">
@@ -652,9 +662,14 @@
                 <div class="w-3 h-3 rounded-full bg-red-500"></div>
                 <h3 class="font-semibold text-red-800">🔥 HOT</h3>
               </div>
-              <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
-                {{ getProspectsByStatus('hot').length }}
-              </span>
+              <div class="text-right">
+                <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
+                  {{ getProspectsByStatus('hot').length }}
+                </span>
+                <div class="text-xs font-medium text-red-700 mt-1">
+                  💰 {{ formatCurrency(getWeightedRevenueByStatus('hot')) }}
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex-1 p-3 overflow-y-auto">
@@ -864,6 +879,14 @@ const getWeightedRevenue = (prospect) => {
   if (!prospect.revenue) return 0
   const probability = prospect.probability_coefficient || 100
   return (prospect.revenue * probability) / 100
+}
+
+// Fonction pour calculer le montant pondéré total par statut
+const getWeightedRevenueByStatus = (status) => {
+  const prospects = getProspectsByStatus(status)
+  return prospects.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
 }
 
 // Fonction pour obtenir le nom de l'onglet d'origine d'un prospect
