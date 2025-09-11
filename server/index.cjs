@@ -73,6 +73,52 @@ console.log('PORT:', process.env.PORT || 'not set (using 3001)');
 // Lancer le test de connectivité
 testNetworkConnectivity();
 
+// Fonction de géocodage direct via API Nominatim (contournement NodeGeocoder)
+async function geocodeDirectNominatim(address, timeout = 10000) {
+  if (!address || typeof address !== 'string' || address.trim() === '') {
+    return null;
+  }
+
+  try {
+    console.log('🔄 DIRECT NOMINATIM - Geocoding:', address);
+    const startTime = Date.now();
+    
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(address.trim())}`;
+    
+    const response = await fetch(nominatimUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Maplyo/1.0 (contact@maplyo.com)'
+      },
+      timeout: timeout
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const duration = Date.now() - startTime;
+    
+    if (data && data.length > 0) {
+      const result = {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+        formattedAddress: data[0].display_name
+      };
+      
+      console.log(`✅ DIRECT NOMINATIM successful in ${duration}ms:`, result);
+      return result;
+    } else {
+      console.log(`⚠️ DIRECT NOMINATIM no results in ${duration}ms for:`, address);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ DIRECT NOMINATIM error:', error.message);
+    return null;
+  }
+}
+
 // Statistiques de monitoring geocoding
 let geocodingStats = {
   total: 0,
@@ -152,20 +198,36 @@ async function geocodeAddressSafely(address, timeout = 15000) {
         throw new Error('No results from fallback geocoder');
       }
     } catch (fallbackError) {
+      console.error(`⚠️ MapQuest fallback also failed:`, fallbackError.message);
+      
+      // Dernier recours : API directe Nominatim
+      try {
+        console.log('🆘 Last resort: Direct Nominatim API...');
+        const directResult = await geocodeDirectNominatim(address, timeout / 3);
+        
+        if (directResult) {
+          geocodingStats.success++;
+          console.log('✅ Direct Nominatim succeeded as last resort');
+          return directResult;
+        }
+      } catch (directError) {
+        console.error('❌ Direct Nominatim also failed:', directError.message);
+      }
+      
       const totalDuration = Date.now() - startTime;
       geocodingStats.failed++;
       
       if (osmError.message.includes('timeout') || fallbackError.message.includes('timeout')) {
         geocodingStats.timeout++;
-        console.error(`❌ Both geocoders timed out after ${totalDuration}ms for:`, address);
+        console.error(`❌ All geocoders timed out after ${totalDuration}ms for:`, address);
       } else {
-        console.error(`❌ Both geocoders failed after ${totalDuration}ms:`, {
+        console.error(`❌ All geocoders failed after ${totalDuration}ms:`, {
           osm: osmError.message,
           fallback: fallbackError.message
         });
       }
       
-      console.error('🌐 All geocoding options exhausted');
+      console.error('🌐 All geocoding options exhausted (including direct API)');
       return null; // Ne pas faire échouer la création du prospect
     }
   }
@@ -1415,11 +1477,43 @@ app.get('/api/test-geocoding', async (req, res) => {
     const testAddress = req.query.address || 'Paris, France';
     console.log('🧪 Testing geocoding for:', testAddress);
     
+    // Test de connectivité réseau d'abord
+    console.log('🌐 Testing network connectivity...');
+    try {
+      const networkTest = await fetch('https://httpbin.org/get', { 
+        method: 'GET',
+        timeout: 5000,
+        headers: { 'User-Agent': 'Maplyo-Test/1.0' }
+      });
+      console.log('✅ Network test result:', networkTest.status);
+    } catch (networkError) {
+      console.error('❌ Network test failed:', networkError.message);
+    }
+    
+    // Test DNS pour OpenStreetMap
+    console.log('🔍 Testing OpenStreetMap DNS...');
+    try {
+      const dnsTest = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=test', {
+        method: 'GET',
+        timeout: 5000,
+        headers: { 'User-Agent': 'Maplyo-Test/1.0' }
+      });
+      console.log('✅ OSM DNS test result:', dnsTest.status);
+    } catch (dnsError) {
+      console.error('❌ OSM DNS test failed:', dnsError.message);
+    }
+    
     const startTime = Date.now();
     
     // Test direct du geocoder
     try {
       console.log('🌍 Testing OpenStreetMap provider...');
+      console.log('🔧 Geocoder config:', {
+        provider: geocoder.options.provider,
+        httpAdapter: geocoder.options.httpAdapter,
+        timeout: geocoder.options.timeout
+      });
+      
       const osmResult = await geocoder.geocode(testAddress);
       const osmDuration = Date.now() - startTime;
       
@@ -1444,6 +1538,11 @@ app.get('/api/test-geocoding', async (req, res) => {
       }
     } catch (osmError) {
       console.error('❌ OSM Error:', osmError.message);
+      console.error('🔍 OSM Error details:', {
+        name: osmError.name,
+        code: osmError.code,
+        stack: osmError.stack
+      });
     }
     
     // Test avec notre fonction sécurisée
@@ -1471,6 +1570,49 @@ app.get('/api/test-geocoding', async (req, res) => {
       }
     } catch (safeError) {
       console.error('❌ Safe geocoding error:', safeError.message);
+      console.error('🔍 Safe geocoding error details:', {
+        name: safeError.name,
+        code: safeError.code,
+        stack: safeError.stack
+      });
+    }
+    
+    // Test direct de l'API Nominatim en dernier recours
+    try {
+      console.log('🆘 Last resort: Direct Nominatim API call...');
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(testAddress)}`;
+      console.log('🔗 Nominatim URL:', nominatimUrl);
+      
+      const directResponse = await fetch(nominatimUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Maplyo/1.0 (contact@maplyo.com)'
+        },
+        timeout: 10000
+      });
+      
+      if (directResponse.ok) {
+        const directData = await directResponse.json();
+        console.log('📊 Direct Nominatim response:', directData);
+        
+        if (directData && directData.length > 0) {
+          const result = {
+            success: true,
+            provider: 'Direct Nominatim API',
+            address: testAddress,
+            latitude: parseFloat(directData[0].lat),
+            longitude: parseFloat(directData[0].lon),
+            formattedAddress: directData[0].display_name,
+            environment: process.env.NODE_ENV,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('✅ DIRECT API - Geocoding successful:', result);
+          return res.json(result);
+        }
+      }
+    } catch (directError) {
+      console.error('❌ Direct Nominatim API failed:', directError.message);
     }
     
     // Si tout échoue
