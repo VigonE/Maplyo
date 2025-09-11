@@ -66,22 +66,43 @@
         <!-- Main Content -->
         <div v-else class="space-y-6">
           <!-- Metrics Summary -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div class="text-sm font-medium text-blue-600">Pipeline Total</div>
               <div class="text-2xl font-bold text-blue-900">{{ formatCurrency(metrics.pipelineValue) }}</div>
             </div>
-            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div class="text-sm font-medium text-green-600">Forecasted Revenue</div>
-              <div class="text-2xl font-bold text-green-900">{{ formatCurrency(metrics.forecastedRevenue) }}</div>
-            </div>
-            <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <div class="text-sm font-medium text-yellow-600">Conversion Rate</div>
-              <div class="text-2xl font-bold text-yellow-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
-            </div>
             <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <div class="text-sm font-medium text-purple-600">Confidence Score</div>
               <div class="text-2xl font-bold text-purple-900">{{ metrics.confidenceScore.toFixed(1) }}%</div>
+            </div>
+          </div>
+
+          <!-- Forecasted Revenue Breakdown -->
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200 mb-4">
+            <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
+              💰 Revenus Prévisionnels
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
+                <div class="text-sm font-medium text-green-600">Jusqu'à fin d'année</div>
+                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenueEndOfYear) }}</div>
+                <div class="text-xs text-green-500 mt-1">{{ getMonthsUntilEndOfYear() }} mois</div>
+              </div>
+              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
+                <div class="text-sm font-medium text-green-600">6 prochains mois</div>
+                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue6Months) }}</div>
+                <div class="text-xs text-green-500 mt-1">{{ formatDateRange(6) }}</div>
+              </div>
+              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
+                <div class="text-sm font-medium text-green-600">12 prochains mois</div>
+                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue12Months) }}</div>
+                <div class="text-xs text-green-500 mt-1">{{ formatDateRange(12) }}</div>
+              </div>
+              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
+                <div class="text-sm font-medium text-green-600">Taux de conversion</div>
+                <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
+                <div class="text-xs text-green-500 mt-1">Probabilité moyenne</div>
+              </div>
             </div>
           </div>
 
@@ -280,6 +301,9 @@ const metrics = ref({
   pipelineValue: 0,
   weightedPipeline: 0,
   forecastedRevenue: 0,
+  revenue6Months: 0,
+  revenue12Months: 0,
+  revenueEndOfYear: 0,
   conversionRate: 0,
   confidenceScore: 0,
   riskFactors: []
@@ -436,10 +460,22 @@ const calculateMetrics = (forecastData) => {
   
   const forecastTotal = forecastData.reduce((sum, f) => sum + f.revenue, 0)
   
+  // Calculate revenue for different time periods
+  const today = new Date()
+  const endOfYear = new Date(today.getFullYear(), 11, 31) // December 31st
+  const monthsUntilEndOfYear = Math.max(0, (endOfYear.getFullYear() - today.getFullYear()) * 12 + (endOfYear.getMonth() - today.getMonth()) + 1)
+  
+  const revenue6Months = forecastData.slice(0, 6).reduce((sum, f) => sum + f.revenue, 0)
+  const revenue12Months = forecastData.slice(0, 12).reduce((sum, f) => sum + f.revenue, 0)
+  const revenueEndOfYear = forecastData.slice(0, monthsUntilEndOfYear).reduce((sum, f) => sum + f.revenue, 0)
+  
   return {
     pipelineValue: totalPipeline,
     weightedPipeline,
     forecastedRevenue: forecastTotal,
+    revenue6Months,
+    revenue12Months,
+    revenueEndOfYear,
     conversionRate: totalPipeline > 0 ? forecastTotal / totalPipeline : 0,
     confidenceScore: calculateConfidenceScore(),
     riskFactors: identifyRiskFactors()
@@ -700,6 +736,23 @@ const formatMonth = (date) => {
     month: 'short',
     year: '2-digit'
   }).format(date)
+}
+
+const getMonthsUntilEndOfYear = () => {
+  const today = new Date()
+  const endOfYear = new Date(today.getFullYear(), 11, 31)
+  const monthsUntilEndOfYear = Math.max(0, (endOfYear.getFullYear() - today.getFullYear()) * 12 + (endOfYear.getMonth() - today.getMonth()) + 1)
+  return monthsUntilEndOfYear
+}
+
+const formatDateRange = (months) => {
+  const today = new Date()
+  const endDate = new Date(today.getFullYear(), today.getMonth() + months, 0) // Last day of the target month
+  
+  const startMonth = today.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
+  const endMonth = endDate.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
+  
+  return `${startMonth} - ${endMonth}`
 }
 
 const getCategoryClass = (category) => {
