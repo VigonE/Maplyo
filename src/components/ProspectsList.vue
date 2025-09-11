@@ -170,7 +170,7 @@
                     'opacity-75': prospect.tabId && prospect.tabId !== tabId
                   }"
                   :data-prospect-id="prospect.id"
-                  @click="$emit('select', prospect)"
+                  @click="openProspectModal(prospect)"
                 >
                   <div class="flex items-start justify-between">
                     <div class="flex-1 min-w-0">
@@ -1810,18 +1810,15 @@ function toggleViewMode() {
 function openProspectModal(prospect) {
   console.log('🔍 Opening prospect modal for:', prospect.name)
   
+  // Émettre l'événement select pour la compatibilité
+  emit('select', prospect)
+  
   // Sélectionner le prospect (pour zoom sur carte)
   emit('prospect-selected', prospect)
   
-  if (viewMode.value === 'funnel') {
-    // Mode funnel : utiliser la nouvelle modal large
-    selectedProspectForFunnelModal.value = prospect
-    showFunnelProspectModal.value = true
-  } else {
-    // Mode liste : utiliser l'ancienne modal
-    selectedProspectForModal.value = prospect
-    showProspectModal.value = true
-  }
+  // Toujours utiliser la nouvelle modal large (funnel modal) pour une meilleure UX
+  selectedProspectForFunnelModal.value = prospect
+  showFunnelProspectModal.value = true
 }
 
 // Fonction pour fermer la modal ProspectModal
