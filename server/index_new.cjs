@@ -454,6 +454,84 @@ app.delete('/api/prospects/:id', authenticateToken, (req, res) => {
   );
 });
 
+// Supprimer les prospects orphelins (qui ne sont dans aucun onglet)
+app.delete('/api/cleanup/orphan-prospects', authenticateToken, (req, res) => {
+  console.log('🧹 Starting orphan prospects cleanup for user:', req.user.userId);
+  
+  // D'abord, récupérer tous les onglets existants pour cet utilisateur
+  db.all(
+    'SELECT id, is_special FROM tabs WHERE user_id = ?',
+    [req.user.userId],
+    (err, tabs) => {
+      if (err) {
+        console.error('Error fetching tabs for orphan cleanup:', err);
+        return res.status(500).json({ error: 'Database error while fetching tabs' });
+      }
+
+      // Séparer les onglets normaux (non-spéciaux) des onglets spéciaux
+      const normalTabIds = tabs.filter(tab => !tab.is_special).map(tab => tab.id);
+      const specialTabIds = tabs.filter(tab => tab.is_special).map(tab => tab.id);
+      
+      console.log('📋 Normal tab IDs:', normalTabIds);
+      console.log('🔷 Special tab IDs (All Leads):', specialTabIds);
+      
+      // Si aucun onglet normal n'existe, tous les prospects sont orphelins
+      if (normalTabIds.length === 0) {
+        console.log('⚠️ No normal tabs exist, all prospects are orphans');
+        db.run(
+          'DELETE FROM prospects WHERE user_id = ?',
+          [req.user.userId],
+          function(err) {
+            if (err) {
+              console.error('Error deleting all orphan prospects:', err);
+              return res.status(500).json({ error: 'Database error while deleting orphans' });
+            }
+            
+            console.log(`✅ Deleted ${this.changes} orphan prospects (no normal tabs exist)`);
+            res.json({ 
+              message: 'Orphan prospects cleanup completed',
+              deletedCount: this.changes 
+            });
+          }
+        );
+        return;
+      }
+
+      // Construire la requête pour supprimer les prospects orphelins :
+      // 1. Prospects avec tab_id NULL
+      // 2. Prospects avec tab_id qui ne correspond à aucun onglet existant
+      // 3. Prospects qui ne sont que dans des onglets spéciaux (All Leads)
+      const placeholders = normalTabIds.map(() => '?').join(',');
+      const deleteQuery = `
+        DELETE FROM prospects 
+        WHERE user_id = ? 
+        AND (
+          tab_id IS NULL 
+          OR tab_id NOT IN (SELECT id FROM tabs WHERE user_id = ?)
+          OR tab_id NOT IN (${placeholders})
+        )
+      `;
+      
+      const queryParams = [req.user.userId, req.user.userId, ...normalTabIds];
+      console.log('🗑️ Delete query:', deleteQuery);
+      console.log('📝 Query params:', queryParams);
+      
+      db.run(deleteQuery, queryParams, function(err) {
+        if (err) {
+          console.error('Error deleting orphan prospects:', err);
+          return res.status(500).json({ error: 'Database error while deleting orphans' });
+        }
+        
+        console.log(`✅ Deleted ${this.changes} orphan prospects`);
+        res.json({ 
+          message: 'Orphan prospects cleanup completed',
+          deletedCount: this.changes 
+        });
+      });
+    }
+  );
+});
+
 // Route de géocodage
 app.post('/api/geocode', authenticateToken, async (req, res) => {
   try {

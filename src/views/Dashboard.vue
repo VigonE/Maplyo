@@ -421,6 +421,19 @@
               
               <div class="space-y-2">
                 <button
+                  @click="cleanupOrphanProspects"
+                  :disabled="deleteLoading"
+                  class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="!deleteLoading" class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {{ deleteLoading ? 'Cleaning...' : 'Clean Orphan Prospects' }}
+                </button>
+                <p class="text-xs text-orange-700">Remove prospects that are only in "All Leads" tab or not assigned to any specific tab. This helps clean up prospects that are not properly categorized.</p>
+                
+                <button
                   @click="openDeleteAllDataModal"
                   :disabled="deleteLoading"
                   class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1292,6 +1305,62 @@ async function saveClosingLeadTimes() {
     systemMessageType.value = 'error'
   } finally {
     leadTimeLoading.value = false
+  }
+}
+
+// Cleanup orphan prospects function
+async function cleanupOrphanProspects() {
+  if (!confirm('Are you sure you want to delete prospects that are only in "All Leads" or not assigned to any specific tab? This will remove uncategorized prospects and cannot be undone.')) {
+    return
+  }
+  
+  deleteLoading.value = true
+  systemMessage.value = ''
+  
+  try {
+    const response = await fetch('/api/cleanup/orphan-prospects', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const data = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to cleanup orphan prospects')
+    }
+    
+    console.log('✅ Orphan cleanup result:', data)
+    
+    if (data.deletedCount > 0) {
+      systemMessage.value = `Successfully deleted ${data.deletedCount} orphan prospect${data.deletedCount === 1 ? '' : 's'}!`
+      systemMessageType.value = 'success'
+      
+      // Refresh the prospects data
+      await prospectsStore.fetchProspects()
+      
+      // Refresh tabs if using TabsManager
+      if (tabsManager.value && tabsManager.value.loadTabs) {
+        await tabsManager.value.loadTabs()
+      }
+    } else {
+      systemMessage.value = 'No orphan prospects found. Your data is clean!'
+      systemMessageType.value = 'success'
+    }
+    
+  } catch (error) {
+    console.error('Error cleaning up orphan prospects:', error)
+    systemMessage.value = 'Error cleaning up orphan prospects: ' + error.message
+    systemMessageType.value = 'error'
+  } finally {
+    deleteLoading.value = false
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      systemMessage.value = ''
+    }, 5000)
   }
 }
 
