@@ -83,7 +83,7 @@ function initializeDatabase() {
       email TEXT,
       phone TEXT,
       company TEXT,
-      position TEXT,
+      contact TEXT,
       address TEXT,
       latitude REAL,
       longitude REAL,

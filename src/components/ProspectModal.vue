@@ -69,12 +69,12 @@
           </div>
 
           <div>
-            <label for="position" class="block text-sm font-medium text-gray-700 mb-1">
-              Position
+            <label for="contact" class="block text-sm font-medium text-gray-700 mb-1">
+              Contact
             </label>
             <input
-              id="position"
-              v-model="form.position"
+              id="contact"
+              v-model="form.contact"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
             />
@@ -276,7 +276,7 @@ const form = reactive({
   email: '',
   phone: '',
   company: '',
-  position: '',
+  contact: '',
   address: '',
   revenue: 0,
   probability_coefficient: 100,
@@ -303,7 +303,7 @@ watch(() => props.prospect, (newLead) => {
       email: newLead.email || '',
       phone: newLead.phone || '',
       company: newLead.company || '',
-      position: newLead.position || '',
+      contact: newLead.contact || newLead.position || '',
       address: newLead.address || '',
       revenue: newLead.revenue || 0,
       probability_coefficient: newLead.probability_coefficient || 100,
@@ -319,7 +319,7 @@ watch(() => props.prospect, (newLead) => {
       email: '',
       phone: '',
       company: '',
-      position: '',
+      contact: '',
       address: '',
       revenue: 0,
       probability_coefficient: 100,

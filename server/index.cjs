@@ -282,7 +282,7 @@ function initializeDatabase() {
       email TEXT,
       phone TEXT,
       company TEXT,
-      position TEXT,
+      contact TEXT,
       address TEXT,
       latitude REAL,
       longitude REAL,
@@ -336,7 +336,8 @@ function initializeDatabase() {
       { name: 'tab_id', sql: `ALTER TABLE prospects ADD COLUMN tab_id TEXT DEFAULT 'default'` },
       { name: 'display_order', sql: `ALTER TABLE prospects ADD COLUMN display_order INTEGER DEFAULT 0` },
       { name: 'probability_coefficient', sql: `ALTER TABLE prospects ADD COLUMN probability_coefficient REAL DEFAULT 100` },
-      { name: 'estimated_completion_date', sql: `ALTER TABLE prospects ADD COLUMN estimated_completion_date DATE` }
+      { name: 'estimated_completion_date', sql: `ALTER TABLE prospects ADD COLUMN estimated_completion_date DATE` },
+      { name: 'contact', sql: `ALTER TABLE prospects ADD COLUMN contact TEXT` }
     ];
 
     migrations.forEach(migration => {
@@ -347,6 +348,15 @@ function initializeDatabase() {
           console.log(`✅ Migration applied: added ${migration.name} column`);
         }
       });
+    });
+
+    // Migration spéciale pour copier position vers contact
+    db.run(`UPDATE prospects SET contact = position WHERE contact IS NULL AND position IS NOT NULL`, (err) => {
+      if (err) {
+        console.warn('⚠️  Position to contact migration warning:', err.message);
+      } else {
+        console.log('✅ Migrated position data to contact column');
+      }
     });
     
     console.log('✅ SQLite database initialized successfully');
@@ -870,7 +880,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
@@ -923,11 +933,11 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date) 
+           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date) 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
-            position || '', address || '', latitude, longitude, status || 'cold', 
+            contact || '', address || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0, estimatedDate // Nouveau prospect en haut
           ],
           function(err) {
@@ -1022,7 +1032,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, position, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1088,12 +1098,12 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
 
         db.run(
           `UPDATE prospects SET 
-           name = ?, email = ?, phone = ?, company = ?, position = ?, 
+           name = ?, email = ?, phone = ?, company = ?, contact = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
            probability_coefficient = ?, notes = ?, tab_id = ?, estimated_completion_date = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
-            name, email || '', phone || '', company || '', position || '',
+            name, email || '', phone || '', company || '', contact || '',
             address || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
             notes || '', tabId || 'default', estimatedDate, prospectId, req.user.userId
@@ -1877,7 +1887,7 @@ async function createProspectFromCSV(prospectData, userId, options) {
   return new Promise((resolve, reject) => {
     db.run(
       `INSERT INTO prospects 
-       (user_id, name, email, phone, company, position, address, status, revenue, notes, tab_id, created_at, updated_at) 
+       (user_id, name, email, phone, company, contact, address, status, revenue, notes, tab_id, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [
         userId,
@@ -1885,7 +1895,7 @@ async function createProspectFromCSV(prospectData, userId, options) {
         prospectData.email,
         prospectData.phone,
         prospectData.company,
-        prospectData.position,
+        prospectData.contact,
         prospectData.address,
         prospectData.status,
         prospectData.revenue,
@@ -2097,7 +2107,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
               prospect.email || '',
               prospect.phone || '',
               prospect.company || '',
-              prospect.position || '',
+              prospect.contact || '',
               prospect.address || '',
               prospect.latitude || null,
               prospect.longitude || null,
@@ -2454,7 +2464,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                     prospect.email || '',
                     prospect.phone || '',
                     prospect.company || '',
-                    prospect.position || '',
+                    prospect.contact || '',
                     prospect.address || '',
                     prospect.latitude || null,
                     prospect.longitude || null,

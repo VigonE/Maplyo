@@ -129,21 +129,21 @@
                 </div>
               </div>
 
-              <!-- Position -->
+              <!-- Contact -->
               <div class="flex items-center">
-                <label class="w-20 text-sm font-medium text-gray-600">Position:</label>
+                <label class="w-20 text-sm font-medium text-gray-600">Contact:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.position" class="text-gray-900">{{ form.position || 'No position' }}</span>
+                  <span v-if="!editing.contact" class="text-gray-900">{{ form.contact || 'No contact' }}</span>
                   <input 
                     v-else 
-                    v-model="form.position"
+                    v-model="form.contact"
                     type="text"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('position')"
-                    @keyup.enter="saveField('position')"
+                    @blur="saveField('contact')"
+                    @keyup.enter="saveField('contact')"
                   >
                   <button 
-                    @click="toggleEdit('position')"
+                    @click="toggleEdit('contact')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,7 +325,7 @@ const form = reactive({
   email: '',
   phone: '',
   company: '',
-  position: '',
+  contact: '',
   address: '',
   status: 'cold',
   revenue: 0,
@@ -340,7 +340,7 @@ const editing = reactive({
   email: false,
   phone: false,
   company: false,
-  position: false,
+  contact: false,
   revenue: false,
   probability_coefficient: false,
   estimated_completion_date: false,
@@ -356,7 +356,7 @@ watch(() => props.prospect, (newProspect) => {
       email: newProspect.email || '',
       phone: newProspect.phone || '',
       company: newProspect.company || '',
-      position: newProspect.position || '',
+      contact: newProspect.contact || newProspect.position || '',
       address: newProspect.address || '',
       status: newProspect.status || 'cold',
       revenue: newProspect.revenue || 0,
@@ -384,7 +384,7 @@ async function saveField(field) {
       email: form.email,
       phone: form.phone,
       company: form.company,
-      position: form.position,
+      contact: form.contact,
       address: form.address,
       status: form.status,
       revenue: form.revenue,

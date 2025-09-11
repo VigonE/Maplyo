@@ -59,7 +59,7 @@ function initializeDatabase() {
       email TEXT,
       phone TEXT,
       company TEXT,
-      position TEXT,
+      contact TEXT,
       address TEXT,
       latitude REAL,
       longitude REAL,
@@ -278,7 +278,7 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
 // Créer un nouveau prospect
 app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
-    const { name, email, phone, company, position, address, status, revenue, notes } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, notes } = req.body;
     console.log('📝 Creating prospect:', name);
 
     if (!name) {
@@ -305,11 +305,11 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 
     db.run(
       `INSERT INTO prospects 
-       (user_id, name, email, phone, company, position, address, latitude, longitude, status, revenue, notes) 
+       (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.userId, name, email || '', phone || '', company || '', 
-        position || '', address || '', latitude, longitude, status || 'cold', 
+        contact || '', address || '', latitude, longitude, status || 'cold', 
         revenue || 0, notes || ''
       ],
       function(err) {
@@ -344,7 +344,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, position, address, status, revenue, notes } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, notes } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -382,12 +382,12 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
 
         db.run(
           `UPDATE prospects SET 
-           name = ?, email = ?, phone = ?, company = ?, position = ?, 
+           name = ?, email = ?, phone = ?, company = ?, contact = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
            notes = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
-            name, email || '', phone || '', company || '', position || '',
+            name, email || '', phone || '', company || '', contact || '',
             address || '', latitude, longitude, status || 'cold', 
             revenue || 0, notes || '', prospectId, req.user.userId
           ],

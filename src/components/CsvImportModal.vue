@@ -75,7 +75,7 @@
                     "John Doe","Acme Corp","john@acme.com","0123456789","Paris","50000","hot"
                   </div>
                   <p class="text-xs text-gray-500 mt-2">
-                    Supported columns: NAME/name, company, email, phone, ADDRESS/address, REVENUE/revenue, status, notes, position
+                                        Supported columns: NAME/name, company, email, phone, ADDRESS/address, REVENUE/revenue, status, notes, contact
                   </p>
                 </div>
               </div>
@@ -887,7 +887,7 @@ const proceedWithImport = async () => {
           email: getColumnValue(row, ['email', 'Email', 'EMAIL', 'mail']) || '',
           phone: getColumnValue(row, ['phone', 'Phone', 'PHONE', 'telephone']) || '',
           company: getColumnValue(row, ['NAME', 'name', 'company', 'Company', 'COMPANY']) || '',
-          position: getColumnValue(row, ['position', 'Position', 'POSITION', 'title']) || '',
+          contact: getColumnValue(row, ['contact', 'Contact', 'CONTACT', 'position', 'Position', 'POSITION', 'title']) || '',
           address: getColumnValue(row, ['ADDRESS', 'address', 'Address', 'ville', 'city']) || '',
           status: getColumnValue(row, ['status', 'Status', 'STATUS']) || 'cold',
           revenue: parseRevenue(getColumnValue(row, ['REVENUE', 'revenue', 'Revenue', 'chiffre_affaires', 'ca'])),

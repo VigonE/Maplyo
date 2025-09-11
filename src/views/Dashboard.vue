@@ -1502,7 +1502,7 @@ function parseCSV(text) {
       email: '',
       phone: '',
       company: '',
-      position: '',
+      contact: '',
       address: '',
       revenue: 0,
       notes: ''
@@ -1534,10 +1534,11 @@ function parseCSV(text) {
         case 'societe':
           prospect.company = value
           break
+        case 'contact':
         case 'position':
         case 'poste':
         case 'titre':
-          prospect.position = value
+          prospect.contact = value
           break
         case 'address':
         case 'adresse':
