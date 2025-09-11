@@ -18,11 +18,22 @@
             {{ prospect.status?.toUpperCase() }}
           </span>
         </div>
-        <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <button 
+            @click="openEditModal" 
+            class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit in full modal"
+          >
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+          <button @click="closeModal" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Main Content Grid -->
@@ -315,7 +326,7 @@ const props = defineProps({
   prospect: Object
 })
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(['close', 'save', 'edit'])
 
 const prospectsStore = useProspectsStore()
 
@@ -416,6 +427,16 @@ function closeModal() {
     saveField('notes')
   }
   emit('close')
+}
+
+// Open edit modal
+function openEditModal() {
+  // Save any pending changes first
+  if (editing.notes) {
+    saveField('notes')
+  }
+  // Emit to parent to open the classic edit modal
+  emit('edit', props.prospect)
 }
 
 // Utility functions

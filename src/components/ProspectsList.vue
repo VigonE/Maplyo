@@ -799,6 +799,7 @@
     :prospect="selectedProspectForFunnelModal"
     :show="showFunnelProspectModal"
     @close="closeFunnelProspectModal"
+    @edit="openClassicEditModal"
   />
 </template>
 
@@ -1833,6 +1834,18 @@ function closeProspectModal() {
 function closeFunnelProspectModal() {
   showFunnelProspectModal.value = false
   selectedProspectForFunnelModal.value = null
+}
+
+// Fonction pour ouvrir la modal classique depuis la modal funnel
+function openClassicEditModal(prospect) {
+  console.log('🔧 Opening classic edit modal for:', prospect.name)
+  
+  // Fermer la modal funnel
+  closeFunnelProspectModal()
+  
+  // Ouvrir la modal classique
+  selectedProspectForModal.value = prospect
+  showProspectModal.value = true
 }
 
 // Fonction simple pour gérer le drop dans le funnel (sans rechargement)
