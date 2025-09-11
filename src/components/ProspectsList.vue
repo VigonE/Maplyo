@@ -901,7 +901,21 @@ const editingDate = ref({}) // { prospectId: true/false }
 const tempDate = ref({}) // { prospectId: newDate }
 
 // Mode d'affichage (list ou funnel)
-const viewMode = ref('list') // 'list' ou 'funnel'
+const viewMode = ref('funnel') // 'funnel' par défaut
+
+// Charger la préférence utilisateur depuis localStorage
+onMounted(() => {
+  const savedViewMode = localStorage.getItem('maplyo-view-mode')
+  if (savedViewMode && (savedViewMode === 'list' || savedViewMode === 'funnel')) {
+    viewMode.value = savedViewMode
+  }
+})
+
+// Sauvegarder la préférence utilisateur quand elle change
+watch(viewMode, (newMode) => {
+  localStorage.setItem('maplyo-view-mode', newMode)
+  console.log(`💾 View mode saved: ${newMode}`)
+}, { immediate: false })
 
 // Refs pour le mode funnel (approche simple et fluide)
 const hotProspects = ref([])
