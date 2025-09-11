@@ -873,38 +873,34 @@ const tempDate = ref({}) // { prospectId: newDate }
 // Mode d'affichage (list ou funnel)
 const viewMode = ref('list') // 'list' ou 'funnel'
 
-// Computed properties pour le mode funnel
-const hotProspects = computed({
-  get: () => {
-    // Utiliser forceRerender pour déclencher la réactivité
-    forceRerender.value
-    return getProspectsByStatus('hot')
-  },
-  set: (value) => {
-    // Cette fonction sera appelée par draggable
-    // La logique de mise à jour sera gérée par handleFunnelDrop
-  }
-})
+// Refs pour le mode funnel (approche simple et fluide)
+const hotProspects = ref([])
+const warmProspects = ref([])
+const coldProspects = ref([])
 
-const warmProspects = computed({
-  get: () => {
-    forceRerender.value
-    return getProspectsByStatus('warm')
-  },
-  set: (value) => {
-    // Cette fonction sera appelée par draggable
-  }
-})
-
-const coldProspects = computed({
-  get: () => {
-    forceRerender.value
-    return getProspectsByStatus('cold')
-  },
-  set: (value) => {
-    // Cette fonction sera appelée par draggable
-  }
-})
+// Fonction pour initialiser les listes de prospects
+function initializeFunnelProspects() {
+  if (!prospectsStore.prospects) return
+  
+  // Filtrer d'abord par tab, puis par statut
+  const tabProspects = prospectsStore.prospects.filter(p => {
+    if (props.isAllLeadsView || props.tabId === 'default') {
+      return true // Afficher tous les prospects pour "All Leads"
+    }
+    return p.tabId === props.tabId || p.tab_id === props.tabId
+  })
+  
+  hotProspects.value = tabProspects.filter(p => p.status === 'hot')
+  warmProspects.value = tabProspects.filter(p => p.status === 'warm')
+  coldProspects.value = tabProspects.filter(p => p.status === 'cold')
+  
+  console.log(`🔄 Funnel initialized for tab ${props.tabId}:`, {
+    total: tabProspects.length,
+    hot: hotProspects.value.length,
+    warm: warmProspects.value.length,
+    cold: coldProspects.value.length
+  })
+}
 
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
@@ -1772,57 +1768,46 @@ function toggleViewMode() {
   viewMode.value = viewMode.value === 'list' ? 'funnel' : 'list'
 }
 
-// Fonction pour gérer le drop dans le funnel
+// Fonction simple pour gérer le drop dans le funnel (sans rechargement)
 async function handleFunnelDrop(event, newStatus) {
-  console.log('🎯 Funnel drop event:', event, 'new status:', newStatus)
+  console.log('🎯 Simple funnel drop:', event, 'status:', newStatus)
   
+  // Déplacement entre colonnes
   if (event.added && event.added.element) {
     const prospect = event.added.element
+    const oldStatus = prospect.status
     
-    if (prospect.status !== newStatus) {
-      console.log(`🔄 Moving ${prospect.name} from ${prospect.status} to ${newStatus}`)
-      
-      // Mettre à jour immédiatement le prospect dans le store local
-      prospect.status = newStatus
-      
-      // Forcer un re-render immédiat
-      forceRerender.value++
-      
-      try {
-        const updateData = {
-          name: prospect.name,
-          email: prospect.email || '',
-          phone: prospect.phone || '',
-          company: prospect.company || '',
-          position: prospect.position || '',
-          address: prospect.address || '',
-          status: newStatus,
-          revenue: prospect.revenue,
-          probability_coefficient: prospect.probability_coefficient,
-          notes: prospect.notes || '',
-          tabId: prospect.tabId || prospect.tab_id || 'default',
-          estimated_completion_date: prospect.estimated_completion_date
-        }
-        
-        const result = await prospectsStore.updateProspect(prospect.id, updateData)
-        
-        if (result.success) {
-          console.log(`✅ Status updated for prospect ${prospect.id}`)
-          // Pas besoin de recharger toutes les données, juste forcer un nouveau rendu
-          forceRerender.value++
-        } else {
-          console.error('❌ Failed to update status:', result.error)
-          // En cas d'erreur, remettre l'ancien statut
-          prospect.status = event.added.element.status
-          forceRerender.value++
-        }
-      } catch (error) {
-        console.error('❌ Error updating status:', error)
+    console.log(`🔄 Moving ${prospect.name}: ${oldStatus} → ${newStatus}`)
+    
+    // Mise à jour immédiate et locale seulement
+    prospect.status = newStatus
+    
+    // Sauvegarde en arrière-plan sans attendre
+    prospectsStore.updateProspect(prospect.id, {
+      name: prospect.name,
+      email: prospect.email || '',
+      phone: prospect.phone || '',
+      company: prospect.company || '',
+      position: prospect.position || '',
+      address: prospect.address || '',
+      status: newStatus,
+      revenue: prospect.revenue,
+      probability_coefficient: prospect.probability_coefficient,
+      notes: prospect.notes || '',
+      tabId: prospect.tabId || prospect.tab_id || 'default',
+      estimated_completion_date: prospect.estimated_completion_date
+    }).then(result => {
+      if (result.success) {
+        console.log(`✅ Saved ${prospect.name} status update`)
+      } else {
+        console.error('❌ Failed to save status update')
         // En cas d'erreur, remettre l'ancien statut
-        prospect.status = event.added.element.status
-        forceRerender.value++
+        prospect.status = oldStatus
       }
-    }
+    }).catch(error => {
+      console.error('❌ Error saving:', error)
+      prospect.status = oldStatus
+    })
   }
 }
 
@@ -1835,6 +1820,20 @@ function formatCurrency(amount) {
     maximumFractionDigits: 0
   }).format(amount)
 }
+
+// Watch simple pour initialiser quand les prospects ou le tab changent
+watch(() => prospectsStore.prospects, () => {
+  if (prospectsStore.prospects.length > 0) {
+    initializeFunnelProspects()
+  }
+}, { immediate: true })
+
+// Watch pour réinitialiser quand on change de tab
+watch(() => props.tabId, () => {
+  if (prospectsStore.prospects.length > 0) {
+    initializeFunnelProspects()
+  }
+})
 
 // Setup lors du montage du composant
 onMounted(() => {
