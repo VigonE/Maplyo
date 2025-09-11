@@ -560,31 +560,30 @@
 
       <!-- Affichage Funnel (horizontal) - Nouveau mode -->
       <div v-else-if="viewMode === 'funnel'" class="h-full flex gap-4 p-4">
-        <!-- Colonne HOT -->
-        <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col">
-          <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
+        <!-- Colonne COLD -->
+        <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col">
+          <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                <h3 class="font-semibold text-red-800">🔥 HOT</h3>
+                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
               </div>
-              <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
-                {{ getProspectsByStatus('hot').length }}
+              <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
+                {{ getProspectsByStatus('cold').length }}
               </span>
             </div>
           </div>
           <div class="flex-1 p-3 overflow-y-auto">
             <draggable
-              v-model="hotProspects"
+              v-model="coldProspects"
               group="prospects"
-              @change="(evt) => handleFunnelDrop(evt, 'hot')"
+              @change="(evt) => handleFunnelDrop(evt, 'cold')"
               item-key="id"
               class="space-y-3 min-h-full"
-              :data-status="'hot'"
+              :data-status="'cold'"
             >
               <template #item="{ element: prospect }">
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow">
-                  <!-- Mini carte prospect pour funnel -->
+                <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow">
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   <div class="flex items-center justify-between">
@@ -639,30 +638,31 @@
           </div>
         </div>
 
-        <!-- Colonne COLD -->
-        <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col">
-          <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200">
+        <!-- Colonne HOT -->
+        <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col">
+          <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <h3 class="font-semibold text-red-800">🔥 HOT</h3>
               </div>
-              <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
-                {{ getProspectsByStatus('cold').length }}
+              <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
+                {{ getProspectsByStatus('hot').length }}
               </span>
             </div>
           </div>
           <div class="flex-1 p-3 overflow-y-auto">
             <draggable
-              v-model="coldProspects"
+              v-model="hotProspects"
               group="prospects"
-              @change="(evt) => handleFunnelDrop(evt, 'cold')"
+              @change="(evt) => handleFunnelDrop(evt, 'hot')"
               item-key="id"
               class="space-y-3 min-h-full"
-              :data-status="'cold'"
+              :data-status="'hot'"
             >
               <template #item="{ element: prospect }">
-                <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                  <!-- Mini carte prospect pour funnel -->
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   <div class="flex items-center justify-between">
