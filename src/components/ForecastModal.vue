@@ -80,28 +80,28 @@
           <!-- Forecasted Revenue Breakdown -->
           <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200 mb-4">
             <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
-              💰 Revenus Prévisionnels
+              💰 Revenue Forecast
             </h4>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Jusqu'à fin d'année</div>
+                <div class="text-sm font-medium text-green-600">Until end of year</div>
                 <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenueEndOfYear) }}</div>
-                <div class="text-xs text-green-500 mt-1">{{ getMonthsUntilEndOfYear() }} mois</div>
+                <div class="text-xs text-green-500 mt-1">{{ getMonthsUntilEndOfYear() }} months</div>
               </div>
               <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">6 prochains mois</div>
+                <div class="text-sm font-medium text-green-600">Next 6 months</div>
                 <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue6Months) }}</div>
                 <div class="text-xs text-green-500 mt-1">{{ formatDateRange(6) }}</div>
               </div>
               <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">12 prochains mois</div>
+                <div class="text-sm font-medium text-green-600">Next 12 months</div>
                 <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue12Months) }}</div>
                 <div class="text-xs text-green-500 mt-1">{{ formatDateRange(12) }}</div>
               </div>
               <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Taux de conversion</div>
+                <div class="text-sm font-medium text-green-600">Conversion rate</div>
                 <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
-                <div class="text-xs text-green-500 mt-1">Probabilité moyenne</div>
+                <div class="text-xs text-green-500 mt-1">Average probability</div>
               </div>
             </div>
           </div>
@@ -749,8 +749,8 @@ const formatDateRange = (months) => {
   const today = new Date()
   const endDate = new Date(today.getFullYear(), today.getMonth() + months, 0) // Last day of the target month
   
-  const startMonth = today.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
-  const endMonth = endDate.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
+  const startMonth = today.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  const endMonth = endDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
   
   return `${startMonth} - ${endMonth}`
 }
