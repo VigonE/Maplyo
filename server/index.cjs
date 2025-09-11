@@ -822,21 +822,22 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     // Géocodage de l'adresse si elle est fournie avec fonction robuste
     if (address && address.trim()) {
       try {
-        console.log('🗺️ Starting geocoding for address:', address);
-        const geoResult = await geocodeAddressSafely(address, 8000);
+        console.log('🗺️ PROSPECT CREATION - Starting geocoding for address:', address);
+        console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');
+        const geoResult = await geocodeAddressSafely(address, 20000); // 20 secondes pour Render
         if (geoResult) {
           latitude = geoResult.latitude;
           longitude = geoResult.longitude;
-          console.log('📍 Geocoding successful:', { latitude, longitude });
+          console.log('📍 PROSPECT CREATION - Geocoding successful:', { latitude, longitude });
         } else {
-          console.log('⚠️ Geocoding returned no results, creating prospect without coordinates');
+          console.log('⚠️ PROSPECT CREATION - Geocoding returned no results, creating prospect without coordinates');
         }
       } catch (geoError) {
-        console.warn('⚠️ Geocoding failed, continuing without coordinates:', geoError.message);
+        console.warn('⚠️ PROSPECT CREATION - Geocoding failed, continuing without coordinates:', geoError.message);
         // Continue creating prospect without coordinates rather than failing
       }
     } else {
-      console.log('📍 No address provided, creating prospect without coordinates');
+      console.log('📍 PROSPECT CREATION - No address provided, creating prospect without coordinates');
     }
 
     // Calculate estimated completion date
@@ -985,14 +986,15 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
         // Géocodage de l'adresse si elle est fournie avec fonction robuste
         if (address && address.trim()) {
           try {
-            console.log('🗺️ Updating prospect - geocoding address:', address);
-            const geoResult = await geocodeAddressSafely(address, 8000);
+            console.log('🗺️ PROSPECT UPDATE - Starting geocoding for address:', address);
+            console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');
+            const geoResult = await geocodeAddressSafely(address, 20000); // 20 secondes pour Render
             if (geoResult) {
               latitude = geoResult.latitude;
               longitude = geoResult.longitude;
-              console.log('📍 Update geocoding successful:', { latitude, longitude });
+              console.log('📍 PROSPECT UPDATE - Geocoding successful:', { latitude, longitude });
             } else {
-              console.log('⚠️ Update geocoding returned no results, keeping existing coordinates');
+              console.log('⚠️ PROSPECT UPDATE - Geocoding returned no results, keeping existing coordinates');
               // Garder les coordonnées existantes si le nouveau géocodage échoue
               latitude = prospect.latitude;
               longitude = prospect.longitude;
@@ -1371,6 +1373,38 @@ app.get('/api/test/ping', (req, res) => {
     environment: process.env.NODE_ENV,
     uptime: process.uptime()
   });
+});
+
+// Route de test geocoding simple (SANS authentification pour debug)
+app.get('/api/test/geocoding/:address', async (req, res) => {
+  try {
+    const address = decodeURIComponent(req.params.address);
+    console.log('🧪 TEST GEOCODING REQUEST for:', address);
+    
+    const startTime = Date.now();
+    const result = await geocodeAddressSafely(address, 15000); // 15 secondes pour le test
+    const duration = Date.now() - startTime;
+    
+    console.log('🧪 TEST GEOCODING RESULT:', { success: !!result, duration, result });
+    
+    res.json({
+      success: !!result,
+      duration: duration,
+      result: result,
+      address: address,
+      stats: geocodingStats,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('🧪 TEST GEOCODING ERROR:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      address: req.params.address,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Route de diagnostic système (pour débogage)
@@ -2307,6 +2341,100 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
     console.error('Error in import endpoint:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Route de test public pour vérifier le geocoding (SANS AUTH - pour debug uniquement)
+app.get('/test-geocoding', async (req, res) => {
+  const testAddress = req.query.address || 'Paris, France';
+  
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8'
+  });
+  
+  res.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Maplyo Geocoding Test</title>
+      <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #cce7ff; color: #004085; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🌍 Maplyo Geocoding Test</h1>
+        <div class="info status">
+          <strong>Test Address:</strong> ${testAddress}<br>
+          <strong>Environment:</strong> ${process.env.NODE_ENV}<br>
+          <strong>Server Time:</strong> ${new Date().toISOString()}
+        </div>
+        <h2>🔄 Testing geocoding...</h2>
+  `);
+  
+  try {
+    const startTime = Date.now();
+    res.write(`<div class="info status">⏱️ Starting geocoding at ${new Date().toISOString()}</div>`);
+    
+    const result = await geocodeAddressSafely(testAddress, 25000); // 25 secondes max
+    const duration = Date.now() - startTime;
+    
+    if (result) {
+      res.write(`
+        <div class="success status">
+          <h3>✅ Geocoding Successful!</h3>
+          <strong>Duration:</strong> ${duration}ms<br>
+          <strong>Latitude:</strong> ${result.latitude}<br>
+          <strong>Longitude:</strong> ${result.longitude}<br>
+          <strong>Formatted Address:</strong> ${result.formattedAddress || 'N/A'}
+        </div>
+      `);
+    } else {
+      res.write(`
+        <div class="warning status">
+          <h3>⚠️ Geocoding Failed</h3>
+          <strong>Duration:</strong> ${duration}ms<br>
+          No results returned from geocoding service.
+        </div>
+      `);
+    }
+    
+    res.write(`
+      <h3>📊 Current Stats</h3>
+      <pre>${JSON.stringify(geocodingStats, null, 2)}</pre>
+      
+      <h3>🔧 Test Other Addresses</h3>
+      <form method="get">
+        <input type="text" name="address" placeholder="Enter address to test" value="${testAddress}" style="width: 300px; padding: 8px;">
+        <button type="submit" style="padding: 8px 15px;">Test</button>
+      </form>
+      
+      <div class="info status" style="margin-top: 20px;">
+        <strong>API Test:</strong> <a href="/api/test/geocoding/${encodeURIComponent(testAddress)}" target="_blank">
+          /api/test/geocoding/${encodeURIComponent(testAddress)}
+        </a>
+      </div>
+    `);
+    
+  } catch (error) {
+    res.write(`
+      <div class="error status">
+        <h3>❌ Test Error</h3>
+        <strong>Error:</strong> ${error.message}<br>
+        <strong>Stack:</strong><br>
+        <pre>${error.stack}</pre>
+      </div>
+    `);
+  }
+  
+  res.write('</div></body></html>');
+  res.end();
 });
 
 // Servir les fichiers statiques et gestion du SPA
