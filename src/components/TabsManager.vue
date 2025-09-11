@@ -220,11 +220,26 @@ export default {
         tabs.value = response.data
         console.log('📋 Loaded tabs from server:', tabs.value.length, tabs.value)
         
-        // Sélectionner le premier onglet s'il n'y a pas d'onglet actif
-        if (tabs.value.length > 0 && !activeTabId.value) {
-          const firstTab = tabs.value.find(tab => tab.is_special && tab.name === 'All Leads') || tabs.value[0]
-          activeTabId.value = firstTab.id
-          console.log('📌 Selected default tab:', firstTab.name)
+        // Restaurer l'onglet actif depuis localStorage ou sélectionner par défaut
+        const savedActiveTabId = localStorage.getItem('maplyo_active_tab_id')
+        let targetTab = null
+        
+        // Vérifier si l'onglet sauvegardé existe encore
+        if (savedActiveTabId && tabs.value.length > 0) {
+          targetTab = tabs.value.find(tab => tab.id === savedActiveTabId)
+          console.log('🔄 Trying to restore saved tab:', savedActiveTabId, targetTab ? 'found' : 'not found')
+        }
+        
+        // Si pas d'onglet sauvegardé valide, prendre le premier onglet disponible
+        if (!targetTab && tabs.value.length > 0) {
+          targetTab = tabs.value.find(tab => tab.is_special && tab.name === 'All Leads') || tabs.value[0]
+          console.log('📌 Using default tab:', targetTab.name)
+        }
+        
+        // Sélectionner l'onglet trouvé
+        if (targetTab && !activeTabId.value) {
+          activeTabId.value = targetTab.id
+          console.log('📌 Selected tab:', targetTab.name, 'ID:', targetTab.id)
           emit('tab-changed', activeTabId.value)
         }
       } catch (error) {
@@ -238,6 +253,10 @@ export default {
     const selectTab = (tabId) => {
       console.log('📌 Selecting tab:', tabId)
       activeTabId.value = tabId
+      
+      // Sauvegarder l'onglet actif dans localStorage
+      localStorage.setItem('maplyo_active_tab_id', tabId)
+      
       emit('tab-changed', tabId)
     }
 
@@ -258,6 +277,10 @@ export default {
         
         // Sélectionner le nouvel onglet
         activeTabId.value = response.data.id
+        
+        // Sauvegarder l'onglet actif dans localStorage
+        localStorage.setItem('maplyo_active_tab_id', response.data.id)
+        
         emit('tab-changed', activeTabId.value)
         
         // Fermer le modal et réinitialiser
@@ -297,6 +320,10 @@ export default {
           if (remainingTabs.length > 0) {
             const firstTab = remainingTabs.find(tab => tab.is_special && tab.name === 'All Leads') || remainingTabs[0]
             activeTabId.value = firstTab.id
+            
+            // Sauvegarder l'onglet actif dans localStorage
+            localStorage.setItem('maplyo_active_tab_id', firstTab.id)
+            
             emit('tab-changed', activeTabId.value)
           }
         }

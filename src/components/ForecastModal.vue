@@ -65,19 +65,6 @@
 
         <!-- Main Content -->
         <div v-else class="space-y-6">
-          <!-- Debug Info -->
-          <div class="bg-gray-100 p-4 rounded-lg border">
-            <h4 class="text-sm font-semibold text-gray-800 mb-2">🐛 Debug Info</h4>
-            <div class="text-xs text-gray-600 space-y-1">
-              <div>Total prospects: {{ prospects.length }}</div>
-              <div>Prospects with potential_revenue > 0: {{ prospects.filter(p => p.potential_revenue > 0).length }}</div>
-              <div>Prospects with revenue > 0: {{ prospects.filter(p => p.revenue > 0).length }}</div>
-              <div>Sample prospect fields: {{ prospects[0] ? Object.keys(prospects[0]).join(', ') : 'None' }}</div>
-              <div>Sample values: {{ prospects[0] ? `${prospects[0].name} - pot:${prospects[0].potential_revenue} rev:${prospects[0].revenue} st:${prospects[0].stage} stat:${prospects[0].status}` : 'None' }}</div>
-              <div>Lead times: {{ JSON.stringify(leadTimes) }}</div>
-            </div>
-          </div>
-
           <!-- Metrics Summary -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -311,12 +298,8 @@ const safeDestroyChart = () => {
   if (!chart.value) return
   
   try {
-    // Arrêter toutes les animations en cours
     chart.value.stop()
-    
-    // Détruire le graphique
     chart.value.destroy()
-    console.log('📊 Chart safely destroyed')
   } catch (error) {
     console.error('Error destroying chart:', error)
   } finally {
@@ -351,15 +334,10 @@ const categoryAnalysis = computed(() => {
     warm: { count: 0, value: 0, avgMonths: props.leadTimes.warm },
     cold: { count: 0, value: 0, avgMonths: props.leadTimes.cold }
   }
-
-  console.log('Analyzing prospects:', props.prospects)
   
   props.prospects.forEach(prospect => {
-    // Utiliser le bon champ: status au lieu de stage
     const status = prospect.status || 'cold'
     const category = getProspectCategory(status)
-    
-    console.log('Prospect:', prospect.name, 'Status:', status, 'Category:', category, 'Revenue:', prospect.revenue)
     
     if (analysis[category]) {
       analysis[category].count++
@@ -367,7 +345,6 @@ const categoryAnalysis = computed(() => {
     }
   })
 
-  console.log('Category analysis result:', analysis)
   return analysis
 })
 
@@ -380,21 +357,9 @@ const getProspectCategory = (status) => {
 
 // Methods
 const generateForecast = () => {
-  console.log('=== GENERATING FORECAST ===')
-  console.log('Props prospects count:', props.prospects.length)
-  console.log('First prospect COMPLETE:', props.prospects[0])
-  console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
-  console.log('Lead times:', props.leadTimes)
-  
   if (!props.prospects.length) {
-    console.log('No prospects found, returning empty forecast')
     return []
   }
-
-  // Debug: check prospects with revenue
-  const prospectsWithRevenue = props.prospects.filter(p => p.revenue > 0) // FIX: utiliser 'revenue' pas 'potential_revenue'
-  console.log('Prospects with revenue > 0:', prospectsWithRevenue.length)
-  console.log('Sample prospects with revenue:', prospectsWithRevenue.slice(0, 3))
 
   const forecastMonths = 24
   const today = new Date()
@@ -412,8 +377,8 @@ const generateForecast = () => {
 
   // Process each prospect with ENHANCED algorithm using estimated_completion_date
   props.prospects.forEach(prospect => {
-    const revenue = prospect.revenue || 0 // Utiliser 'revenue' au lieu de 'potential_revenue'
-    const status = prospect.status || 'cold' // Utiliser 'status' au lieu de 'stage'
+    const revenue = prospect.revenue || 0
+    const status = prospect.status || 'cold'
     const category = getProspectCategory(status)
     const categoryProbability = getCategoryProbability(category)
     
@@ -440,27 +405,12 @@ const generateForecast = () => {
       targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
     }
     
-    console.log('Processing prospect:', {
-      name: prospect.name,
-      revenue: revenue,
-      status: status,
-      category: category,
-      estimatedCompletionDate: prospect.estimated_completion_date,
-      targetMonth: targetMonth,
-      categoryProbability: categoryProbability,
-      prospectProbability: prospectProbability,
-      finalProbability: finalProbability
-    })
-    
     if (revenue <= 0) {
-      console.log('Skipping prospect with zero revenue:', prospect.name)
       return
     }
     
     // ENHANCED ALGORITHM: Use estimated_completion_date for more accurate forecasting
     const expectedRevenue = revenue * finalProbability
-    
-    console.log(`Adding ${expectedRevenue} to month ${targetMonth} (${prospect.estimated_completion_date || 'calculated'})`)
     
     forecastData[targetMonth].revenue += expectedRevenue
     forecastData[targetMonth].prospects.push({
@@ -472,29 +422,19 @@ const generateForecast = () => {
     })
   })
 
-  console.log('Final forecast data:', forecastData.map(f => ({ date: f.date, revenue: f.revenue })))
   return forecastData
 }
 
 const calculateMetrics = (forecastData) => {
-  console.log('=== CALCULATING METRICS ===')
-  
   const totalPipeline = props.prospects.reduce((sum, p) => sum + (p.revenue || 0), 0)
   const weightedPipeline = props.prospects.reduce((sum, p) => {
     const status = p.status || 'cold'
     const category = getProspectCategory(status)
     const weight = (p.revenue || 0) * getCategoryProbability(category)
-    console.log(`Prospect ${p.name}: ${p.revenue} * ${getCategoryProbability(category)} = ${weight}`)
     return sum + weight
   }, 0)
   
   const forecastTotal = forecastData.reduce((sum, f) => sum + f.revenue, 0)
-  
-  console.log('Metrics calculated:', {
-    totalPipeline,
-    weightedPipeline,
-    forecastTotal
-  })
   
   return {
     pipelineValue: totalPipeline,
@@ -507,10 +447,8 @@ const calculateMetrics = (forecastData) => {
 }
 
 const getCategoryProbability = (category) => {
-  // Utiliser les probabilités ajustées
   const adjustedProbabilities = getAdjustedProbabilities()
   const probability = adjustedProbabilities[category] || 0.3
-  console.log('📊 Using adjusted probability for', category, ':', Math.round(probability * 100), '%')
   return probability
 }
 
@@ -593,59 +531,40 @@ const identifyRiskFactors = () => {
 
 // Fonction pour recalculer le forecast avec les ajustements des sliders
 const recalculateForecastWithAdjustments = () => {
-  console.log('🔄 Recalculating forecast with adjustments...')
   forecast.value = generateForecast()
   metrics.value = calculateMetrics(forecast.value)
 }
 
 const createChart = async () => {
-  // Éviter les créations multiples simultanées
   if (isCreatingChart.value) {
-    console.log('⏳ Chart creation already in progress, skipping...')
     return
   }
   
-  // Vérifications initiales
   if (!forecast.value.length || !props.isVisible || loading.value || props.prospects.length === 0) {
-    console.log('❌ Chart creation aborted - missing requirements:', {
-      canvas: !!chartCanvas.value,
-      forecast: forecast.value.length,
-      visible: props.isVisible,
-      loading: loading.value,
-      prospects: props.prospects.length
-    })
     return
   }
-  
-  // Toujours recréer le graphique pour éviter les conflits de réactivité
   
   isCreatingChart.value = true
   
   await nextTick()
   
-  // Attendre que le canvas soit disponible avec plusieurs tentatives
   let attempts = 0
   const maxAttempts = 10
   
   while (!chartCanvas.value && attempts < maxAttempts) {
-    console.log(`⏳ Waiting for canvas... attempt ${attempts + 1}/${maxAttempts}`)
     await new Promise(resolve => setTimeout(resolve, 200))
     attempts++
   }
   
-  // Vérifier à nouveau après les tentatives
   if (!chartCanvas.value) {
-    console.log('❌ Canvas not available after', maxAttempts, 'attempts')
     return
   }
   
   try {
-    // Détruire l'ancien graphique s'il existe
     safeDestroyChart()
     
     const ctx = chartCanvas.value.getContext('2d')
     if (!ctx) {
-      console.log('❌ Failed to get 2D context')
       return
     }
   
@@ -719,8 +638,6 @@ const createChart = async () => {
     }
   })
   
-  console.log('✅ Chart created successfully')
-  
   } catch (error) {
     console.error('❌ Error creating chart:', error)
     safeDestroyChart()
@@ -730,30 +647,22 @@ const createChart = async () => {
 }
 
 const updateChart = async () => {
-  // Annuler le timeout précédent s'il existe (debounce)
   if (chartUpdateTimeout) {
     clearTimeout(chartUpdateTimeout)
   }
   
-  // Programmer la mise à jour avec un délai pour éviter les appels trop fréquents
   chartUpdateTimeout = setTimeout(async () => {
     if (forecast.value.length > 0 && props.isVisible && !isCreatingChart.value) {
       try {
-        console.log('🔄 Updating chart after debounce...')
-        
-        // Régénérer les données de prévision avec les nouveaux ajustements
-        console.log('🔄 Regenerating forecast data with adjustments...')
         forecast.value = generateForecast()
         metrics.value = calculateMetrics(forecast.value)
         
-        // Recréer le graphique avec les nouvelles données
-        console.log('🔄 Recreating chart with updated data...')
         await createChart()
       } catch (error) {
         console.error('❌ Error updating chart:', error)
       }
     }
-  }, 150) // Délai réduit à 150ms pour une meilleure réactivité
+  }, 150)
 }
 
 const refreshForecast = async () => {
@@ -850,7 +759,6 @@ watch(() => props.isVisible, async (newValue) => {
 // Watcher supplémentaire pour créer le graphique quand les données sont prêtes
 watch([() => loading.value, () => forecast.value.length], async ([newLoading, newForecastLength]) => {
   if (!newLoading && newForecastLength > 0 && props.isVisible && !chart.value) {
-    console.log('🎯 Data ready, attempting to create chart...')
     await nextTick()
     setTimeout(() => {
       createChart()
@@ -861,10 +769,6 @@ watch([() => loading.value, () => forecast.value.length], async ([newLoading, ne
 // Watcher pour les ajustements en temps réel
 watch([leadTimeAdjustment, probabilityAdjustment], () => {
   if (chart.value && forecast.value.length > 0) {
-    console.log('🎛️ Adjustment changed, updating chart...', {
-      leadTime: leadTimeAdjustment.value + '%',
-      probability: probabilityAdjustment.value + '%'
-    })
     updateChart()
   }
 })

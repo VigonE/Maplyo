@@ -1579,6 +1579,10 @@ function handleClickOutside(event) {
 
 // Méthode de déconnexion avec redirection
 const handleLogout = () => {
+  // Nettoyer les données locales spécifiques à l'utilisateur
+  localStorage.removeItem('maplyo_active_tab_id')
+  localStorage.removeItem('maplyo_sidebar_width')
+  
   authStore.logout()
   router.push('/login')
 }
