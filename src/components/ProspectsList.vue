@@ -565,7 +565,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, shallowRef } from 'vue'
+import { debounce, throttle } from 'lodash-es'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 import { QuillEditor } from '@vueup/vue-quill'
@@ -594,12 +595,28 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects', 'navigate-to-tab'])
 
 const prospectsStore = useProspectsStore()
-const localProspects = ref([])
+const localProspects = shallowRef([]) // Utiliser shallowRef pour de meilleures performances
 const isDragOverCategory = ref(null)
 const revenueFilter = ref(0) // Sera mis à jour avec minRevenue quand disponible
 const forceRerender = ref(0) // Trigger pour forcer le re-render
 const searchQuery = ref('') // Champ de recherche
 const searchInput = ref(null) // Référence au champ de recherche
+
+// Cache pour les calculs coûteux
+const filteredProspectsCache = new Map()
+const revenueStatsCache = ref(null)
+const lastCacheKey = ref('')
+
+// Debouncer la recherche pour éviter trop de calculs
+const debouncedSearchQuery = ref('')
+const updateSearch = debounce((value) => {
+  debouncedSearchQuery.value = value
+}, 300)
+
+// Watcher pour la recherche avec debounce
+watch(searchQuery, (newValue) => {
+  updateSearch(newValue)
+})
 
 // Fonction pour calculer le revenu pondéré
 const getWeightedRevenue = (prospect) => {
@@ -717,11 +734,18 @@ const highlightSearchTerm = (text, searchTerm) => {
   return text.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
 }
 
-// Filtrer les prospects selon l'onglet ET la recherche
+// Filtrer les prospects selon l'onglet ET la recherche avec cache optimisé
 const filteredProspects = computed(() => {
+  const cacheKey = `${props.tabId}-${debouncedSearchQuery.value}-${prospectsStore.prospects.length}`
+  
+  // Utiliser le cache si la clé n'a pas changé
+  if (filteredProspectsCache.has(cacheKey)) {
+    return filteredProspectsCache.get(cacheKey)
+  }
+  
   let prospects = []
   
-  // Vérifier si c'est l'onglet "All Leads" (par nom, flag is_special, ou ID contenant 'all-leads')
+  // Vérifier si c'est l'onglet "All Leads"
   const currentTab = props.allTabs.find(t => t.id === props.tabId)
   const isAllLeadsTab = props.isAllLeadsView || 
                        (props.tabId && props.tabId.includes('all-leads')) ||
@@ -729,20 +753,24 @@ const filteredProspects = computed(() => {
                        (currentTab && currentTab.is_special)
   
   if (isAllLeadsTab || props.tabId === 'default') {
-    // L'onglet "All Leads" ou l'onglet par défaut affiche tous les prospects
     prospects = prospectsStore.prospects
   } else {
-    // Les autres onglets affichent seulement leurs prospects assignés
-    // Gérer les cas où tabId est null ou undefined
     prospects = prospectsStore.prospects.filter(p => {
-      const prospectTabId = p.tabId || p.tab_id; // Support for both formats
+      const prospectTabId = p.tabId || p.tab_id
       return prospectTabId === props.tabId
     })
   }
   
-  // Appliquer le filtre de recherche
-  if (searchQuery.value) {
-    prospects = prospects.filter(p => searchInProspect(p, searchQuery.value))
+  // Appliquer le filtre de recherche seulement si nécessaire
+  if (debouncedSearchQuery.value) {
+    prospects = prospects.filter(p => searchInProspect(p, debouncedSearchQuery.value))
+  }
+  
+  // Mettre en cache et limiter la taille du cache
+  filteredProspectsCache.set(cacheKey, prospects)
+  if (filteredProspectsCache.size > 20) {
+    const firstKey = filteredProspectsCache.keys().next().value
+    filteredProspectsCache.delete(firstKey)
   }
   
   return prospects
@@ -860,7 +888,9 @@ watch(() => props.tabId, () => {
 function getProspectsByStatus(status) {
   // Utiliser forceRerender pour déclencher la réactivité si nécessaire
   const _ = forceRerender.value
-  const prospects = visibleProspectsAfterFilter.value.filter(p => p.status === status)
+  const prospects = visibleProspectsAfterFilter.value
+    .filter(p => p.status === status)
+    .sort((a, b) => (a.display_order || 0) - (b.display_order || 0)) // Trier par display_order
   console.log(`🔍 getProspectsByStatus(${status}):`, prospects.map(p => ({ id: p.id, name: p.name, display_order: p.display_order })))
   return prospects
 }
@@ -918,7 +948,7 @@ async function onStatusChange(evt) {
           // Attendre un peu plus longtemps pour que la base de données soit bien mise à jour
           await new Promise(resolve => setTimeout(resolve, 300))
           // Recharger les données pour avoir l'ordre correct
-          await prospectsStore.fetchProspects()
+          await prospectsStore.fetchProspects(true) // Force le refresh
           console.log('🔄 Data refreshed after reorder')
           
           // Forcer une mise à jour de Vue après rechargement des données

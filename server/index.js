@@ -684,6 +684,110 @@ app.put('/api/prospects/reorder', authenticateToken, async (req, res) => {
   }
 })
 
+// Endpoint optimisé pour les mises à jour batch
+app.put('/api/prospects/batch-update', authenticateToken, async (req, res) => {
+  try {
+    const { updates } = req.body
+    
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ error: 'Invalid updates array' })
+    }
+
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Commencer une transaction pour assurer la cohérence
+    await db.beginTransaction()
+    
+    try {
+      // Traiter chaque mise à jour
+      for (const update of updates) {
+        const { id, ...updateData } = update
+        
+        if (!id) continue
+        
+        // Construire la requête de mise à jour dynamiquement
+        const fields = []
+        const values = []
+        
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] !== undefined) {
+            fields.push(`${key} = ?`)
+            values.push(updateData[key])
+          }
+        })
+        
+        if (fields.length > 0) {
+          values.push(id, req.user.id)
+          
+          const query = `UPDATE prospects SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`
+          await db.execute(query, values)
+        }
+      }
+      
+      // Confirmer la transaction
+      await db.commit()
+      await db.end()
+      
+      res.json({ 
+        message: 'Batch update completed successfully',
+        updated: updates.length 
+      })
+    } catch (error) {
+      // Annuler la transaction en cas d'erreur
+      await db.rollback()
+      await db.end()
+      throw error
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour batch:', error)
+    res.status(500).json({ message: 'Erreur serveur lors de la mise à jour batch' })
+  }
+})
+
+// Endpoint optimisé pour le réordonnancement par catégorie
+app.put('/api/prospects/reorder-category', authenticateToken, async (req, res) => {
+  try {
+    const { status, order } = req.body
+    
+    if (!status || !Array.isArray(order)) {
+      return res.status(400).json({ error: 'Status and order array are required' })
+    }
+
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Commencer une transaction
+    await db.beginTransaction()
+    
+    try {
+      // Mettre à jour l'ordre des prospects dans cette catégorie
+      for (let i = 0; i < order.length; i++) {
+        await db.execute(
+          'UPDATE prospects SET display_order = ? WHERE id = ? AND user_id = ? AND status = ?',
+          [i, order[i], req.user.id, status]
+        )
+      }
+      
+      // Confirmer la transaction
+      await db.commit()
+      await db.end()
+      
+      res.json({ 
+        message: 'Category reorder completed successfully',
+        status,
+        updated: order.length 
+      })
+    } catch (error) {
+      // Annuler la transaction en cas d'erreur
+      await db.rollback()
+      await db.end()
+      throw error
+    }
+  } catch (error) {
+    console.error('Erreur lors du réordonnancement par catégorie:', error)
+    res.status(500).json({ message: 'Erreur serveur lors du réordonnancement' })
+  }
+})
+
 // Delete all data endpoint (admin only)
 app.delete('/api/database/delete-all', authenticateToken, async (req, res) => {
   try {
