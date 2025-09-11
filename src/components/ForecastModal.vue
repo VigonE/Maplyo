@@ -103,6 +103,35 @@
                 <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
                 <div class="text-xs text-green-500 mt-1">Average probability</div>
               </div>
+              
+              <!-- Confidence Score -->
+              <div class="text-center p-4 bg-white rounded-lg border border-blue-100 relative">
+                <div class="flex items-center justify-center gap-1">
+                  <div class="text-sm font-medium text-blue-600">Confidence Score</div>
+                  <!-- Help Icon with Tooltip -->
+                  <div class="relative group">
+                    <svg class="w-4 h-4 text-blue-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                    </svg>
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                      <div class="font-semibold mb-2">How we calculate confidence:</div>
+                      <div class="space-y-1 text-left">
+                        <div>• <strong>Data Quality:</strong> Contact info, completion dates, notes</div>
+                        <div>• <strong>Deal Size:</strong> Revenue amount analysis</div>
+                        <div>• <strong>Status:</strong> Hot/Warm/Cold likelihood</div>
+                        <div>• <strong>Age Factor:</strong> How recent the lead is</div>
+                        <div>• <strong>Timeline:</strong> Realistic completion dates</div>
+                      </div>
+                      <div class="text-center mt-2 text-blue-200">Higher score = more reliable forecast</div>
+                      <!-- Tooltip Arrow -->
+                      <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-xl font-bold text-blue-900">{{ calculateConfidenceScore().toFixed(0) }}%</div>
+                <div class="text-xs text-blue-500 mt-1">Forecast reliability</div>
+              </div>
             </div>
           </div>
 
@@ -509,22 +538,6 @@ const getMonthsDiff = (date1, date2) => {
   return (date2.getFullYear() - date1.getFullYear()) * 12 + (date2.getMonth() - date1.getMonth())
 }
 
-const calculateConfidenceScore = () => {
-  if (!props.prospects.length) return 0
-  
-  const categoryDistribution = {}
-  props.prospects.forEach(p => {
-    const status = p.status || 'cold' // FIX: utiliser 'status' pas 'stage'
-    const category = getProspectCategory(status)
-    categoryDistribution[category] = (categoryDistribution[category] || 0) + 1
-  })
-  
-  const maxCategory = Math.max(...Object.values(categoryDistribution))
-  const diversityScore = 1 - (maxCategory / props.prospects.length)
-  
-  return Math.min(100, Math.max(0, diversityScore * 100))
-}
-
 const identifyRiskFactors = () => {
   const risks = []
   
@@ -594,6 +607,119 @@ function calculateMovingAverage(data, period) {
   }
   
   return result
+}
+
+// Smart confidence score calculation based on multiple advanced criteria
+const calculateConfidenceScore = () => {
+  if (!props.prospects || props.prospects.length === 0) return 0
+  
+  let totalWeight = 0
+  let weightedConfidence = 0
+  const today = new Date()
+  
+  props.prospects.forEach(prospect => {
+    const revenue = prospect.revenue || 0
+    if (revenue === 0) return // Skip prospects with no revenue
+    
+    // Base probability
+    const baseProbability = (prospect.probability_coefficient || 100) / 100
+    
+    // 1. Data Quality Factor (0.7 - 1.3)
+    let dataQualityFactor = 1.0
+    
+    // Has completion date
+    if (prospect.estimated_completion_date) {
+      dataQualityFactor += 0.15
+    }
+    
+    // Has detailed notes
+    if (prospect.notes && prospect.notes.length > 100) {
+      dataQualityFactor += 0.10
+    } else if (prospect.notes && prospect.notes.length > 30) {
+      dataQualityFactor += 0.05
+    }
+    
+    // Has contact information
+    if (prospect.email) dataQualityFactor += 0.05
+    if (prospect.phone) dataQualityFactor += 0.05
+    if (prospect.contact) dataQualityFactor += 0.05
+    
+    // 2. Deal Size Factor (0.8 - 1.2)
+    let dealSizeFactor = 1.0
+    if (revenue > 50000) dealSizeFactor = 1.2
+    else if (revenue > 20000) dealSizeFactor = 1.1
+    else if (revenue > 5000) dealSizeFactor = 1.0
+    else if (revenue < 1000) dealSizeFactor = 0.8
+    
+    // 3. Status/Stage Factor (0.6 - 1.4)
+    const statusFactors = {
+      'hot': 1.4,
+      'warm': 1.0,
+      'cold': 0.6
+    }
+    const statusFactor = statusFactors[prospect.status] || 1.0
+    
+    // 4. Age Factor (0.7 - 1.1)
+    let ageFactor = 1.0
+    if (prospect.created_at) {
+      const createdDate = new Date(prospect.created_at)
+      const ageInMonths = (today - createdDate) / (1000 * 60 * 60 * 24 * 30)
+      
+      if (ageInMonths < 1) ageFactor = 1.1 // Fresh leads
+      else if (ageInMonths < 3) ageFactor = 1.05 // Recent leads
+      else if (ageInMonths > 12) ageFactor = 0.7 // Old leads
+      else if (ageInMonths > 6) ageFactor = 0.85 // Aging leads
+    }
+    
+    // 5. Timeline Factor (0.8 - 1.2)
+    let timelineFactor = 1.0
+    if (prospect.estimated_completion_date) {
+      const completionDate = new Date(prospect.estimated_completion_date)
+      const monthsToCompletion = (completionDate - today) / (1000 * 60 * 60 * 24 * 30)
+      
+      if (monthsToCompletion < 1) timelineFactor = 1.2 // Immediate closure
+      else if (monthsToCompletion < 3) timelineFactor = 1.1 // Near-term closure
+      else if (monthsToCompletion > 12) timelineFactor = 0.8 // Long-term closure
+    }
+    
+    // Calculate final confidence for this prospect
+    const prospectConfidence = Math.min(1.0, 
+      baseProbability * dataQualityFactor * dealSizeFactor * statusFactor * ageFactor * timelineFactor
+    )
+    
+    // Weight by revenue
+    const weight = revenue
+    totalWeight += weight
+    weightedConfidence += weight * prospectConfidence
+  })
+  
+  // Portfolio-level adjustments
+  let portfolioFactor = 1.0
+  
+  // Diversification factor
+  const statusDistribution = {
+    hot: props.prospects.filter(p => p.status === 'hot').length,
+    warm: props.prospects.filter(p => p.status === 'warm').length,
+    cold: props.prospects.filter(p => p.status === 'cold').length
+  }
+  
+  const total = props.prospects.length
+  const hotRatio = statusDistribution.hot / total
+  const warmRatio = statusDistribution.warm / total
+  
+  // Ideal distribution: 20% hot, 40% warm, 40% cold
+  if (hotRatio > 0.4) portfolioFactor -= 0.1 // Too many hot leads (unrealistic)
+  if (hotRatio < 0.1) portfolioFactor -= 0.15 // Too few hot leads
+  if (warmRatio > 0.6) portfolioFactor -= 0.05 // Too many warm leads
+  
+  // Sample size factor
+  if (total < 5) portfolioFactor -= 0.2 // Small sample size
+  else if (total > 20) portfolioFactor += 0.1 // Good sample size
+  
+  const finalScore = totalWeight > 0 ? 
+    Math.max(0, Math.min(1, (weightedConfidence / totalWeight) * portfolioFactor)) : 0
+  
+  return finalScore
 }
 
 const createChart = async () => {
