@@ -114,14 +114,18 @@
               <!-- Chart Controls -->
               <div class="space-y-3">
                 <div class="flex items-center space-x-4">
-                  <div class="flex items-center space-x-2">
-                    <label class="text-sm text-gray-600">Smoothing:</label>
-                    <select v-model="chartSmoothness" @change="updateChart" class="text-sm border border-gray-300 rounded px-2 py-1">
-                      <option value="0">None</option>
-                      <option value="0.1">Low</option>
-                      <option value="0.4">Medium</option>
-                      <option value="0.7">High</option>
-                    </select>
+                  <div class="flex items-center space-x-3 flex-1">
+                    <label class="text-sm text-gray-600 whitespace-nowrap">Moving Average Period:</label>
+                    <input 
+                      type="range" 
+                      v-model="movingAveragePeriod" 
+                      @input="updateChart"
+                      min="3" 
+                      max="12" 
+                      step="1"
+                      class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    >
+                    <span class="text-sm font-medium text-blue-600 min-w-[60px]">{{ movingAveragePeriod }} months</span>
                   </div>
                   <div class="flex items-center space-x-2">
                     <label class="flex items-center text-sm text-gray-600">
@@ -294,7 +298,7 @@ const emit = defineEmits(['close'])
 const loading = ref(false)
 const chartCanvas = ref(null)
 const chart = ref(null)
-const chartSmoothness = ref(0.4) // Default to medium smoothing
+const movingAveragePeriod = ref(6) // Default to 6 months moving average
 const showBars = ref(true) // Show bars by default
 const forecast = ref([])
 const metrics = ref({
@@ -571,6 +575,27 @@ const recalculateForecastWithAdjustments = () => {
   metrics.value = calculateMetrics(forecast.value)
 }
 
+// Function to calculate moving average
+function calculateMovingAverage(data, period) {
+  const result = []
+  
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      // For the first few points, use what data we have
+      const available = data.slice(0, i + 1)
+      const sum = available.reduce((acc, val) => acc + val, 0)
+      result.push(sum / available.length)
+    } else {
+      // Calculate moving average for the full period
+      const subset = data.slice(i - period + 1, i + 1)
+      const sum = subset.reduce((acc, val) => acc + val, 0)
+      result.push(sum / period)
+    }
+  }
+  
+  return result
+}
+
 const createChart = async () => {
   if (isCreatingChart.value) {
     return
@@ -619,18 +644,21 @@ const createChart = async () => {
     })
   }
   
-  // Add smooth line chart
+  // Add moving average trend line
+  const revenueData = forecast.value.map(f => f.revenue)
+  const movingAverageData = calculateMovingAverage(revenueData, movingAveragePeriod.value)
+  
   datasets.push({
     type: 'line',
-    label: 'Trend Line',
-    data: forecast.value.map(f => f.revenue),
+    label: `Moving Average (${movingAveragePeriod.value} months)`,
+    data: movingAverageData,
     borderColor: '#ef4444',
     backgroundColor: 'transparent',
     fill: false,
-    tension: parseFloat(chartSmoothness.value),
-    pointRadius: 3,
-    pointHoverRadius: 5,
-    borderWidth: 2,
+    tension: 0.2, // Slight smoothing for visual appeal
+    pointRadius: 2,
+    pointHoverRadius: 4,
+    borderWidth: 3,
     yAxisID: 'y'
   })
 
@@ -856,5 +884,52 @@ onUnmounted(() => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Custom slider styles */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3b82f6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-track {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: #3b82f6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 </style>
