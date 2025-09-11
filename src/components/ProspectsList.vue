@@ -187,7 +187,7 @@
                       
                       <div class="space-y-2">
                         <!-- Revenue Information -->
-                        <div v-if="!editingRevenue[prospect.id] && !editingProbability[prospect.id]" class="space-y-1">
+                        <div v-if="!editingRevenue[prospect.id] && !editingProbability[prospect.id] && !editingDate[prospect.id]" class="space-y-1">
                           <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-500">Revenue:</span>
                             <div class="flex items-center gap-1">
@@ -229,6 +229,25 @@
                             <span class="text-sm font-bold text-green-600">
                               💰 {{ formatCurrency(getWeightedRevenue(prospect)) }}
                             </span>
+                          </div>
+                          
+                          <!-- Date prévisionnelle -->
+                          <div class="flex items-center justify-between border-t pt-1">
+                            <span class="text-xs text-gray-500">Date prévisionnelle:</span>
+                            <div class="flex items-center gap-1">
+                              <span class="text-sm font-medium text-purple-600">
+                                📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                              </span>
+                              <button
+                                @click.stop="startEditingDate(prospect)"
+                                class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
+                                title="Edit estimated date"
+                              >
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
                         
@@ -319,6 +338,61 @@
                             </button>
                             <button
                               @click.stop="cancelEditingProbability(prospect.id)"
+                              class="text-red-600 hover:text-red-700 p-1"
+                              title="Cancel"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          
+                          <div class="flex items-center justify-between border-t pt-1">
+                            <span class="text-xs font-medium text-gray-700">Weighted Revenue:</span>
+                            <span class="text-sm font-bold text-green-600">
+                              💰 {{ formatCurrency(getWeightedRevenue(prospect)) }}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <!-- Date Editing Mode -->
+                        <div v-else-if="editingDate[prospect.id]" class="space-y-2">
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Revenue:</span>
+                            <span class="text-sm font-medium text-gray-700">
+                              {{ formatCurrency(prospect.revenue || 0) }}
+                            </span>
+                          </div>
+                          
+                          <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Probability:</span>
+                            <span class="text-sm font-medium text-blue-600">
+                              {{ prospect.probability_coefficient || 100 }}%
+                            </span>
+                          </div>
+                          
+                          <div class="flex items-center gap-2 w-full">
+                            <span class="text-sm">📅</span>
+                            <input
+                              v-model="tempDate[prospect.id]"
+                              type="date"
+                              :data-date-prospect-id="prospect.id"
+                              @keydown="handleDateKeydown($event, prospect)"
+                              @blur="saveDate(prospect)"
+                              @click.stop
+                              class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button
+                              @click.stop="saveDate(prospect)"
+                              class="text-green-600 hover:text-green-700 p-1"
+                              title="Validate"
+                            >
+                              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              @click.stop="cancelEditingDate(prospect.id)"
                               class="text-red-600 hover:text-red-700 p-1"
                               title="Cancel"
                             >
@@ -654,6 +728,10 @@ const tempRevenue = ref({}) // { prospectId: newAmount }
 // Variables pour l'édition de la probabilité directement sur la carte
 const editingProbability = ref({}) // { prospectId: true/false }
 const tempProbability = ref({}) // { prospectId: newProbability }
+
+// États d'édition pour la date
+const editingDate = ref({}) // { prospectId: true/false }
+const tempDate = ref({}) // { prospectId: newDate }
 
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
@@ -1186,6 +1264,106 @@ function handleProbabilityKeydown(event, prospect) {
     saveProbability(prospect)
   } else if (event.key === 'Escape') {
     cancelEditingProbability(prospect.id)
+  }
+}
+
+// Fonctions pour l'édition de la date prévisionnelle
+function startEditingDate(prospect) {
+  editingDate.value[prospect.id] = true
+  tempDate.value[prospect.id] = formatDateForInput(prospect.estimated_completion_date)
+  
+  // Auto-focus sur le champ input
+  nextTick(() => {
+    const input = document.querySelector(`input[data-date-prospect-id="${prospect.id}"]`)
+    if (input) {
+      input.focus()
+    }
+  })
+}
+
+function cancelEditingDate(prospectId) {
+  editingDate.value[prospectId] = false
+  delete tempDate.value[prospectId]
+}
+
+async function saveDate(prospect) {
+  const newDate = tempDate.value[prospect.id]
+  if (newDate !== formatDateForInput(prospect.estimated_completion_date)) {
+    try {
+      const updateData = {
+        name: prospect.name,
+        email: prospect.email || '',
+        phone: prospect.phone || '',
+        company: prospect.company || '',
+        position: prospect.position || '',
+        address: prospect.address || '',
+        status: prospect.status,
+        revenue: prospect.revenue,
+        probability_coefficient: prospect.probability_coefficient,
+        notes: prospect.notes || '',
+        tabId: prospect.tabId || prospect.tab_id || 'default',
+        estimated_completion_date: newDate || null
+      }
+      
+      const result = await prospectsStore.updateProspect(prospect.id, updateData)
+      
+      if (result.success) {
+        console.log(`✅ Date updated for prospect ${prospect.id}`)
+      } else {
+        console.error('❌ Failed to update date:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error updating date:', error)
+    }
+  }
+  
+  editingDate.value[prospect.id] = false
+  delete tempDate.value[prospect.id]
+}
+
+function handleDateKeydown(event, prospect) {
+  if (event.key === 'Enter') {
+    saveDate(prospect)
+  } else if (event.key === 'Escape') {
+    cancelEditingDate(prospect.id)
+  }
+}
+
+// Fonction pour formater la date pour l'input
+function formatDateForInput(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toISOString().split('T')[0]
+}
+
+// Fonction pour formater la date d'affichage
+function formatEstimatedDate(dateString) {
+  if (!dateString) return 'Non définie'
+  
+  const date = new Date(dateString)
+  const today = new Date()
+  const diffTime = date - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  const formatted = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  
+  if (diffDays < 0) {
+    return `${formatted} (${Math.abs(diffDays)}j passés)`
+  } else if (diffDays === 0) {
+    return `${formatted} (Aujourd'hui)`
+  } else if (diffDays === 1) {
+    return `${formatted} (Demain)`
+  } else if (diffDays <= 30) {
+    return `${formatted} (${diffDays}j)`
+  } else if (diffDays <= 365) {
+    const months = Math.round(diffDays / 30)
+    return `${formatted} (${months}m)`
+  } else {
+    return formatted
   }
 }
 
