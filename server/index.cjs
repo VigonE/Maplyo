@@ -1407,6 +1407,96 @@ app.get('/api/test/geocoding/:address', async (req, res) => {
   }
 });
 
+// Route de test geocoding PUBLIQUE pour diagnostic (sans authentification)
+app.get('/api/test-geocoding', async (req, res) => {
+  try {
+    console.log('🧪 PUBLIC GEOCODING TEST - Starting...');
+    
+    const testAddress = req.query.address || 'Paris, France';
+    console.log('🧪 Testing geocoding for:', testAddress);
+    
+    const startTime = Date.now();
+    
+    // Test direct du geocoder
+    try {
+      console.log('🌍 Testing OpenStreetMap provider...');
+      const osmResult = await geocoder.geocode(testAddress);
+      const osmDuration = Date.now() - startTime;
+      
+      console.log('📊 OSM Result:', osmResult);
+      console.log('⏱️ OSM Duration:', osmDuration, 'ms');
+      
+      if (osmResult && osmResult.length > 0) {
+        const result = {
+          success: true,
+          provider: 'OpenStreetMap',
+          address: testAddress,
+          latitude: osmResult[0].latitude,
+          longitude: osmResult[0].longitude,
+          duration: osmDuration,
+          formattedAddress: osmResult[0].formattedAddress,
+          environment: process.env.NODE_ENV,
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('✅ PUBLIC TEST - Geocoding successful:', result);
+        return res.json(result);
+      }
+    } catch (osmError) {
+      console.error('❌ OSM Error:', osmError.message);
+    }
+    
+    // Test avec notre fonction sécurisée
+    try {
+      console.log('🛡️ Testing with safe geocoding function...');
+      const safeStartTime = Date.now();
+      const safeResult = await geocodeAddressSafely(testAddress, 15000);
+      const safeDuration = Date.now() - safeStartTime;
+      
+      if (safeResult) {
+        const result = {
+          success: true,
+          provider: 'Safe Geocoding Function',
+          address: testAddress,
+          latitude: safeResult.latitude,
+          longitude: safeResult.longitude,
+          duration: safeDuration,
+          formattedAddress: safeResult.formattedAddress,
+          environment: process.env.NODE_ENV,
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('✅ SAFE TEST - Geocoding successful:', result);
+        return res.json(result);
+      }
+    } catch (safeError) {
+      console.error('❌ Safe geocoding error:', safeError.message);
+    }
+    
+    // Si tout échoue
+    const failureResult = {
+      success: false,
+      error: 'All geocoding methods failed',
+      address: testAddress,
+      environment: process.env.NODE_ENV,
+      stats: geocodingStats,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('❌ PUBLIC TEST - All geocoding failed:', failureResult);
+    res.status(500).json(failureResult);
+    
+  } catch (error) {
+    console.error('💥 Public geocoding test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Route de diagnostic système (pour débogage)
 app.get('/api/system/diagnostic', authenticateToken, async (req, res) => {
   try {
