@@ -7,12 +7,28 @@
           <h2 class="text-lg font-semibold text-gray-900">{{ tabName }}</h2>
           <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Weighted Total: {{ totalRevenue }}</p>
         </div>
-        <button
-          @click="$emit('add-prospect')"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
-        >
-          Add
-        </button>
+        <div class="flex items-center gap-2">
+          <!-- Bouton de bascule d'affichage -->
+          <button
+            @click="toggleViewMode"
+            class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            :title="viewMode === 'list' ? 'Switch to Funnel View' : 'Switch to List View'"
+          >
+            <svg v-if="viewMode === 'list'" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2 2v-4a2 2 0 012-2h2a2 2 0 012 2zm0-10a2 2 0 112 2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V7z" />
+            </svg>
+            <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            {{ viewMode === 'list' ? 'Funnel' : 'List' }}
+          </button>
+          <button
+            @click="$emit('add-prospect')"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+          >
+            Add
+          </button>
+        </div>
       </div>
       
       <!-- Champ de recherche -->
@@ -97,8 +113,8 @@
         <p class="text-sm text-gray-400">Adjust the slider or add leads</p>
       </div>
 
-      <!-- Catégories du funnel verticales -->
-      <div v-else class="space-y-4 p-4">
+      <!-- Affichage Liste (vertical) - Mode actuel -->
+      <div v-else-if="viewMode === 'list'" class="space-y-4 p-4">
         <div
           v-for="status in statusOrder"
           :key="status"
@@ -541,6 +557,127 @@
           </div>
         </div>
       </div>
+
+      <!-- Affichage Funnel (horizontal) - Nouveau mode -->
+      <div v-else-if="viewMode === 'funnel'" class="h-full flex gap-4 p-4">
+        <!-- Colonne HOT -->
+        <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col">
+          <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <h3 class="font-semibold text-red-800">🔥 HOT</h3>
+              </div>
+              <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
+                {{ getProspectsByStatus('hot').length }}
+              </span>
+            </div>
+          </div>
+          <div class="flex-1 p-3 overflow-y-auto">
+            <draggable
+              v-model="hotProspects"
+              group="prospects"
+              @change="(evt) => handleFunnelDrop(evt, 'hot')"
+              item-key="id"
+              class="space-y-3 min-h-full"
+              :data-status="'hot'"
+            >
+              <template #item="{ element: prospect }">
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                  <!-- Mini carte prospect pour funnel -->
+                  <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                  </div>
+                  <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
+                    📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+        </div>
+
+        <!-- Colonne WARM -->
+        <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex flex-col">
+          <div class="bg-yellow-100 p-3 rounded-t-lg border-b border-yellow-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
+              </div>
+              <span class="text-sm text-yellow-600 bg-yellow-200 px-2 py-1 rounded-full">
+                {{ getProspectsByStatus('warm').length }}
+              </span>
+            </div>
+          </div>
+          <div class="flex-1 p-3 overflow-y-auto">
+            <draggable
+              v-model="warmProspects"
+              group="prospects"
+              @change="(evt) => handleFunnelDrop(evt, 'warm')"
+              item-key="id"
+              class="space-y-3 min-h-full"
+              :data-status="'warm'"
+            >
+              <template #item="{ element: prospect }">
+                <div class="bg-white rounded-lg shadow-sm border border-yellow-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                  <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                  </div>
+                  <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
+                    📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+        </div>
+
+        <!-- Colonne COLD -->
+        <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col">
+          <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
+              </div>
+              <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
+                {{ getProspectsByStatus('cold').length }}
+              </span>
+            </div>
+          </div>
+          <div class="flex-1 p-3 overflow-y-auto">
+            <draggable
+              v-model="coldProspects"
+              group="prospects"
+              @change="(evt) => handleFunnelDrop(evt, 'cold')"
+              item-key="id"
+              class="space-y-3 min-h-full"
+              :data-status="'cold'"
+            >
+              <template #item="{ element: prospect }">
+                <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                  <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                  </div>
+                  <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
+                    📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                  </div>
+                </div>
+              </template>
+            </draggable>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -732,6 +869,42 @@ const tempProbability = ref({}) // { prospectId: newProbability }
 // États d'édition pour la date
 const editingDate = ref({}) // { prospectId: true/false }
 const tempDate = ref({}) // { prospectId: newDate }
+
+// Mode d'affichage (list ou funnel)
+const viewMode = ref('list') // 'list' ou 'funnel'
+
+// Computed properties pour le mode funnel
+const hotProspects = computed({
+  get: () => {
+    // Utiliser forceRerender pour déclencher la réactivité
+    forceRerender.value
+    return getProspectsByStatus('hot')
+  },
+  set: (value) => {
+    // Cette fonction sera appelée par draggable
+    // La logique de mise à jour sera gérée par handleFunnelDrop
+  }
+})
+
+const warmProspects = computed({
+  get: () => {
+    forceRerender.value
+    return getProspectsByStatus('warm')
+  },
+  set: (value) => {
+    // Cette fonction sera appelée par draggable
+  }
+})
+
+const coldProspects = computed({
+  get: () => {
+    forceRerender.value
+    return getProspectsByStatus('cold')
+  },
+  set: (value) => {
+    // Cette fonction sera appelée par draggable
+  }
+})
 
 // Variables pour l'édition des notes directement sur la carte
 const editingNotes = ref({}) // { prospectId: true/false }
@@ -1592,6 +1765,65 @@ function handleModalNotesKeydown(event) {
 // Réinitialiser le filtre de revenu
 function resetRevenueFilter() {
   revenueFilter.value = minRevenue.value
+}
+
+// Fonction pour basculer entre les modes d'affichage
+function toggleViewMode() {
+  viewMode.value = viewMode.value === 'list' ? 'funnel' : 'list'
+}
+
+// Fonction pour gérer le drop dans le funnel
+async function handleFunnelDrop(event, newStatus) {
+  console.log('🎯 Funnel drop event:', event, 'new status:', newStatus)
+  
+  if (event.added && event.added.element) {
+    const prospect = event.added.element
+    
+    if (prospect.status !== newStatus) {
+      console.log(`🔄 Moving ${prospect.name} from ${prospect.status} to ${newStatus}`)
+      
+      // Mettre à jour immédiatement le prospect dans le store local
+      prospect.status = newStatus
+      
+      // Forcer un re-render immédiat
+      forceRerender.value++
+      
+      try {
+        const updateData = {
+          name: prospect.name,
+          email: prospect.email || '',
+          phone: prospect.phone || '',
+          company: prospect.company || '',
+          position: prospect.position || '',
+          address: prospect.address || '',
+          status: newStatus,
+          revenue: prospect.revenue,
+          probability_coefficient: prospect.probability_coefficient,
+          notes: prospect.notes || '',
+          tabId: prospect.tabId || prospect.tab_id || 'default',
+          estimated_completion_date: prospect.estimated_completion_date
+        }
+        
+        const result = await prospectsStore.updateProspect(prospect.id, updateData)
+        
+        if (result.success) {
+          console.log(`✅ Status updated for prospect ${prospect.id}`)
+          // Pas besoin de recharger toutes les données, juste forcer un nouveau rendu
+          forceRerender.value++
+        } else {
+          console.error('❌ Failed to update status:', result.error)
+          // En cas d'erreur, remettre l'ancien statut
+          prospect.status = event.added.element.status
+          forceRerender.value++
+        }
+      } catch (error) {
+        console.error('❌ Error updating status:', error)
+        // En cas d'erreur, remettre l'ancien statut
+        prospect.status = event.added.element.status
+        forceRerender.value++
+      }
+    }
+  }
 }
 
 // Formater les devises
