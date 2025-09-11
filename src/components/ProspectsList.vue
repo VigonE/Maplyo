@@ -583,7 +583,10 @@
               :data-status="'cold'"
             >
               <template #item="{ element: prospect }">
-                <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                <div 
+                  class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  @click="openProspectModal(prospect)"
+                >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   <div class="flex items-center justify-between">
@@ -622,7 +625,10 @@
               :data-status="'warm'"
             >
               <template #item="{ element: prospect }">
-                <div class="bg-white rounded-lg shadow-sm border border-yellow-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                <div 
+                  class="bg-white rounded-lg shadow-sm border border-yellow-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  @click="openProspectModal(prospect)"
+                >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   <div class="flex items-center justify-between">
@@ -661,7 +667,10 @@
               :data-status="'hot'"
             >
               <template #item="{ element: prospect }">
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow">
+                <div 
+                  class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  @click="openProspectModal(prospect)"
+                >
                   <!-- Mini carte prospect pour funnel -->
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
@@ -773,6 +782,24 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal ProspectModal pour l'édition complète -->
+  <ProspectModal 
+    v-if="showProspectModal && selectedProspectForModal"
+    :prospect="selectedProspectForModal"
+    :show="showProspectModal"
+    :current-tab-id="tabId"
+    @close="closeProspectModal"
+    @save="closeProspectModal"
+  />
+
+  <!-- Modal FunnelProspectModal pour la vue funnel (large et paysage) -->
+  <FunnelProspectModal
+    v-if="showFunnelProspectModal && selectedProspectForFunnelModal"
+    :prospect="selectedProspectForFunnelModal"
+    :show="showFunnelProspectModal"
+    @close="closeFunnelProspectModal"
+  />
 </template>
 
 <script setup>
@@ -781,6 +808,8 @@ import { debounce, throttle } from 'lodash-es'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 import { QuillEditor } from '@vueup/vue-quill'
+import ProspectModal from './ProspectModal.vue'
+import FunnelProspectModal from './FunnelProspectModal.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 const props = defineProps({
@@ -803,7 +832,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects', 'navigate-to-tab'])
+const emit = defineEmits(['edit', 'delete', 'reorder', 'select', 'add-prospect', 'filtered-prospects', 'navigate-to-tab', 'prospect-selected'])
 
 const prospectsStore = useProspectsStore()
 const localProspects = shallowRef([]) // Utiliser shallowRef pour de meilleures performances
@@ -913,6 +942,14 @@ const showNotesModal = ref(false)
 const selectedProspectForNotes = ref(null)
 const isEditingInModal = ref(false)
 const tempNotesForModal = ref('')
+
+// Variables pour la modal ProspectModal
+const showProspectModal = ref(false)
+const selectedProspectForModal = ref(null)
+
+// Variables pour la nouvelle modal FunnelProspectModal
+const showFunnelProspectModal = ref(false)
+const selectedProspectForFunnelModal = ref(null)
 
 // Configuration pour QuillEditor
 const quillOptions = {
@@ -1766,6 +1803,36 @@ function resetRevenueFilter() {
 // Fonction pour basculer entre les modes d'affichage
 function toggleViewMode() {
   viewMode.value = viewMode.value === 'list' ? 'funnel' : 'list'
+}
+
+// Fonction pour ouvrir la modal ProspectModal avec zoom sur la carte
+function openProspectModal(prospect) {
+  console.log('🔍 Opening prospect modal for:', prospect.name)
+  
+  // Sélectionner le prospect (pour zoom sur carte)
+  emit('prospect-selected', prospect)
+  
+  if (viewMode.value === 'funnel') {
+    // Mode funnel : utiliser la nouvelle modal large
+    selectedProspectForFunnelModal.value = prospect
+    showFunnelProspectModal.value = true
+  } else {
+    // Mode liste : utiliser l'ancienne modal
+    selectedProspectForModal.value = prospect
+    showProspectModal.value = true
+  }
+}
+
+// Fonction pour fermer la modal ProspectModal
+function closeProspectModal() {
+  showProspectModal.value = false
+  selectedProspectForModal.value = null
+}
+
+// Fonction pour fermer la modal FunnelProspectModal
+function closeFunnelProspectModal() {
+  showFunnelProspectModal.value = false
+  selectedProspectForFunnelModal.value = null
 }
 
 // Fonction simple pour gérer le drop dans le funnel (sans rechargement)
