@@ -96,6 +96,7 @@
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
         @select="$emit('select-prospect', $event)"
+        @prospect-selected="$emit('select-prospect', $event)"
         @reorder="$emit('reorder-prospects', $event)"
         @filtered-prospects="$emit('filtered-prospects', $event)"
         @navigate-to-tab="onNavigateToTab"
