@@ -71,9 +71,32 @@
               <div class="text-sm font-medium text-blue-600">Pipeline Total</div>
               <div class="text-2xl font-bold text-blue-900">{{ formatCurrency(metrics.pipelineValue) }}</div>
             </div>
-            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
-              <div class="text-sm font-medium text-purple-600">Confidence Score</div>
-              <div class="text-2xl font-bold text-purple-900">{{ metrics.confidenceScore.toFixed(1) }}%</div>
+            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 relative">
+              <div class="flex items-center justify-center gap-1">
+                <div class="text-sm font-medium text-purple-600">Confidence Score</div>
+                <!-- Help Icon with Tooltip -->
+                <div class="relative group">
+                  <svg class="w-4 h-4 text-purple-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                  </svg>
+                  <!-- Tooltip -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div class="font-semibold mb-2">How we calculate confidence:</div>
+                    <div class="space-y-1 text-left">
+                      <div>• <strong>Data Quality:</strong> Contact info, completion dates, notes</div>
+                      <div>• <strong>Deal Size:</strong> Revenue amount analysis</div>
+                      <div>• <strong>Status:</strong> Hot/Warm/Cold likelihood</div>
+                      <div>• <strong>Age Factor:</strong> How recent the lead is</div>
+                      <div>• <strong>Timeline:</strong> Realistic completion dates</div>
+                    </div>
+                    <div class="text-center mt-2 text-purple-200">Higher score = more reliable forecast</div>
+                    <!-- Tooltip Arrow -->
+                    <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-purple-900">{{ calculateConfidenceScore().toFixed(0) }}%</div>
+              <div class="text-xs text-purple-500 mt-1">Forecast reliability</div>
             </div>
           </div>
 
@@ -102,35 +125,6 @@
                 <div class="text-sm font-medium text-green-600">Conversion rate</div>
                 <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
                 <div class="text-xs text-green-500 mt-1">Average probability</div>
-              </div>
-              
-              <!-- Confidence Score -->
-              <div class="text-center p-4 bg-white rounded-lg border border-blue-100 relative">
-                <div class="flex items-center justify-center gap-1">
-                  <div class="text-sm font-medium text-blue-600">Confidence Score</div>
-                  <!-- Help Icon with Tooltip -->
-                  <div class="relative group">
-                    <svg class="w-4 h-4 text-blue-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                    </svg>
-                    <!-- Tooltip -->
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                      <div class="font-semibold mb-2">How we calculate confidence:</div>
-                      <div class="space-y-1 text-left">
-                        <div>• <strong>Data Quality:</strong> Contact info, completion dates, notes</div>
-                        <div>• <strong>Deal Size:</strong> Revenue amount analysis</div>
-                        <div>• <strong>Status:</strong> Hot/Warm/Cold likelihood</div>
-                        <div>• <strong>Age Factor:</strong> How recent the lead is</div>
-                        <div>• <strong>Timeline:</strong> Realistic completion dates</div>
-                      </div>
-                      <div class="text-center mt-2 text-blue-200">Higher score = more reliable forecast</div>
-                      <!-- Tooltip Arrow -->
-                      <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="text-xl font-bold text-blue-900">{{ calculateConfidenceScore().toFixed(0) }}%</div>
-                <div class="text-xs text-blue-500 mt-1">Forecast reliability</div>
               </div>
             </div>
           </div>
@@ -338,7 +332,6 @@ const metrics = ref({
   revenue12Months: 0,
   revenueEndOfYear: 0,
   conversionRate: 0,
-  confidenceScore: 0,
   riskFactors: []
 })
 
@@ -510,7 +503,6 @@ const calculateMetrics = (forecastData) => {
     revenue12Months,
     revenueEndOfYear,
     conversionRate: totalPipeline > 0 ? forecastTotal / totalPipeline : 0,
-    confidenceScore: calculateConfidenceScore(),
     riskFactors: identifyRiskFactors()
   }
 }
