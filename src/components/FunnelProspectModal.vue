@@ -195,28 +195,29 @@
               </div>
 
               <!-- Probability -->
-              <div class="flex items-center">
-                <label class="w-24 text-sm font-medium text-gray-600">Probability:</label>
-                <div class="flex-1 flex items-center">
-                  <span v-if="!editing.probability_coefficient" class="text-gray-900">{{ form.probability_coefficient || 100 }}%</span>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-600 flex items-center justify-between">
+                  <span>Probability:</span>
+                  <span class="text-lg font-bold text-blue-600">{{ form.probability_coefficient || 100 }}%</span>
+                </label>
+                <div class="relative">
                   <input 
-                    v-else 
                     v-model.number="form.probability_coefficient"
-                    type="number"
+                    type="range"
                     min="0"
                     max="100"
-                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('probability_coefficient')"
-                    @keyup.enter="saveField('probability_coefficient')"
+                    step="5"
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    @input="onProbabilityChange"
+                    :style="{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${form.probability_coefficient || 100}%, #E5E7EB ${form.probability_coefficient || 100}%, #E5E7EB 100%)` }"
                   >
-                  <button 
-                    @click="toggleEdit('probability_coefficient')"
-                    class="ml-2 p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                  </div>
                 </div>
               </div>
 
@@ -420,6 +421,20 @@ async function saveField(field) {
   }
 }
 
+// Handle probability change with debounced saving
+let probabilityTimeout = null
+function onProbabilityChange() {
+  // Clear existing timeout
+  if (probabilityTimeout) {
+    clearTimeout(probabilityTimeout)
+  }
+  
+  // Set new timeout to save after 500ms of no changes
+  probabilityTimeout = setTimeout(() => {
+    saveField('probability_coefficient')
+  }, 500)
+}
+
 // Close modal
 function closeModal() {
   // Save notes if they were being edited
@@ -481,3 +496,45 @@ function getStatusBadge(status) {
   return badges[status] || 'bg-gray-100 text-gray-800'
 }
 </script>
+
+<style scoped>
+/* Custom slider styles */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #3B82F6;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #2563EB;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #3B82F6;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #2563EB;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider:focus {
+  outline: none;
+}
+</style>
