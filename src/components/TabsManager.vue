@@ -92,6 +92,7 @@
         :is-special-tab="activeTab.is_special"
         :is-all-leads-view="activeTab.name === 'All Leads'"
         :all-tabs="tabs"
+        :lead-times="leadTimes"
         @add-prospect="$emit('add-prospect')"
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
@@ -190,6 +191,16 @@ export default {
   name: 'TabsManager',
   components: {
     ProspectsList
+  },
+  props: {
+    leadTimes: {
+      type: Object,
+      default: () => ({
+        cold: { time: 12, probability: 15 },
+        warm: { time: 6, probability: 45 },
+        hot: { time: 3, probability: 80 }
+      })
+    }
   },
   emits: ['add-prospect', 'edit-prospect', 'delete-prospect', 'select-prospect', 'reorder-prospects', 'tab-changed', 'filtered-prospects'],
   setup(props, { emit }) {

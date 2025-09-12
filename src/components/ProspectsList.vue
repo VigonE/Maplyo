@@ -564,9 +564,14 @@
         <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col">
           <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
+                </div>
+                <div class="text-xs text-blue-600 mt-1">
+                  ⏱️ {{ props.leadTimes.cold }}mo • 🎯 {{ props.leadTimes.coldProbability }}%
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
@@ -611,9 +616,14 @@
         <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex flex-col">
           <div class="bg-yellow-100 p-3 rounded-t-lg border-b border-yellow-200">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
+                </div>
+                <div class="text-xs text-yellow-600 mt-1">
+                  ⏱️ {{ props.leadTimes.warm }}mo • 🎯 {{ props.leadTimes.warmProbability }}%
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-yellow-600 bg-yellow-200 px-2 py-1 rounded-full">
@@ -658,9 +668,14 @@
         <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col">
           <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                <h3 class="font-semibold text-red-800">🔥 HOT</h3>
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <h3 class="font-semibold text-red-800">🔥 HOT</h3>
+                </div>
+                <div class="text-xs text-red-600 mt-1">
+                  ⏱️ {{ props.leadTimes.hot }}mo • 🎯 {{ props.leadTimes.hotProbability }}%
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
@@ -845,6 +860,17 @@ const props = defineProps({
   allTabs: {
     type: Array,
     default: () => []
+  },
+  leadTimes: {
+    type: Object,
+    default: () => ({
+      cold: 12,
+      warm: 6,
+      hot: 3,
+      coldProbability: 15,
+      warmProbability: 45,
+      hotProbability: 80
+    })
   }
 })
 

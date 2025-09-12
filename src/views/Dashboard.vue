@@ -79,6 +79,7 @@
       <div class="flex-1 overflow-hidden">
         <TabsManager
           ref="tabsManager"
+          :lead-times="closingLeadTimes"
           @add-prospect="showAddModal = true"
           @edit-prospect="editProspect"
           @delete-prospect="deleteProspect"
