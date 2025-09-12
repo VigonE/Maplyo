@@ -573,7 +573,7 @@
                   {{ getProspectsByStatus('cold').length }}
                 </span>
                 <div class="text-xs font-medium text-blue-700 mt-1">
-                  💰 {{ formatCurrency(getWeightedRevenueByStatus('cold')) }}
+                  💰 {{ formatCurrency(coldWeightedRevenue) }}
                 </div>
               </div>
             </div>
@@ -620,7 +620,7 @@
                   {{ getProspectsByStatus('warm').length }}
                 </span>
                 <div class="text-xs font-medium text-yellow-700 mt-1">
-                  💰 {{ formatCurrency(getWeightedRevenueByStatus('warm')) }}
+                  💰 {{ formatCurrency(warmWeightedRevenue) }}
                 </div>
               </div>
             </div>
@@ -667,7 +667,7 @@
                   {{ getProspectsByStatus('hot').length }}
                 </span>
                 <div class="text-xs font-medium text-red-700 mt-1">
-                  💰 {{ formatCurrency(getWeightedRevenueByStatus('hot')) }}
+                  💰 {{ formatCurrency(hotWeightedRevenue) }}
                 </div>
               </div>
             </div>
@@ -888,6 +888,25 @@ const getWeightedRevenueByStatus = (status) => {
     return total + getWeightedRevenue(prospect)
   }, 0)
 }
+
+// Computed properties réactifs pour les montants pondérés du funnel
+const coldWeightedRevenue = computed(() => {
+  return coldProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
+
+const warmWeightedRevenue = computed(() => {
+  return warmProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
+
+const hotWeightedRevenue = computed(() => {
+  return hotProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
 
 // Fonction pour obtenir le nom de l'onglet d'origine d'un prospect
 const getProspectTabName = (prospect) => {
@@ -1895,6 +1914,9 @@ async function handleFunnelDrop(event, newStatus) {
     
     // Mise à jour immédiate et locale seulement
     prospect.status = newStatus
+    
+    // Forcer la mise à jour des arrays du funnel pour la réactivité des computed properties
+    initializeFunnelProspects()
     
     // Sauvegarde en arrière-plan sans attendre
     prospectsStore.updateProspect(prospect.id, {
