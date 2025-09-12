@@ -2482,11 +2482,65 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
 app.post('/api/database/import', authenticateToken, (req, res) => {
   try {
     console.log(`📥 Importing database for user ${req.user.userId}`);
-    const importData = req.body;
+    console.log('📋 Request body keys:', Object.keys(req.body || {}));
+    console.log('📋 Request body type:', typeof req.body);
+    console.log('📋 Request body content length:', JSON.stringify(req.body || {}).length);
+    
+    let importData = req.body;
 
-    // Validate import data structure
+    // Enhanced validation and data extraction for different backup formats
     if (!importData || typeof importData !== 'object') {
-      return res.status(400).json({ error: 'Invalid import data format' });
+      console.error('❌ Invalid import data format');
+      return res.status(400).json({ error: 'Invalid import data format - expected JSON object' });
+    }
+
+    // Debug the structure
+    console.log('📋 Import data structure:', {
+      hasProspects: !!importData.prospects,
+      prospectsCount: Array.isArray(importData.prospects) ? importData.prospects.length : 'not array',
+      prospectsType: typeof importData.prospects,
+      hasTabs: !!importData.tabs,
+      tabsCount: Array.isArray(importData.tabs) ? importData.tabs.length : 'not array',
+      hasUsers: !!importData.users,
+      hasSettings: !!importData.settings,
+      topLevelKeys: Object.keys(importData)
+    });
+
+    // Handle different backup formats and nested structures
+    if (!importData.prospects) {
+      // Check if it's an old format with nested user data
+      if (importData.users && typeof importData.users === 'object') {
+        console.log('📋 Detected nested user data format, extracting...');
+        const firstUserKey = Object.keys(importData.users)[0];
+        const firstUser = importData.users[firstUserKey];
+        
+        if (firstUser && firstUser.prospects) {
+          importData.prospects = firstUser.prospects;
+          console.log(`📋 Extracted ${importData.prospects.length} prospects from nested user data`);
+        }
+        
+        if (firstUser && firstUser.tabs) {
+          importData.tabs = firstUser.tabs;
+          console.log(`📋 Extracted ${importData.tabs.length} tabs from nested user data`);
+        }
+        
+        if (firstUser && firstUser.settings) {
+          importData.settings = firstUser.settings;
+          console.log(`📋 Extracted settings from nested user data`);
+        }
+      }
+      
+      // If still no prospects, create empty array (allow imports with no prospects)
+      if (!importData.prospects) {
+        console.log('⚠️ No prospects found in import data, using empty array');
+        importData.prospects = [];
+      }
+    }
+
+    // Ensure prospects is an array
+    if (!Array.isArray(importData.prospects)) {
+      console.error('❌ Prospects data is not an array:', typeof importData.prospects);
+      return res.status(400).json({ error: 'Invalid prospects data format - expected array' });
     }
 
     const results = {
@@ -2495,7 +2549,12 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
         tabs: 0,
         settings: 0
       },
-      errors: []
+      errors: [],
+      skipped: {
+        prospects: 0,
+        tabs: 0,
+        settings: 0
+      }
     };
 
     // Get user's lead times for calculating estimated completion dates
@@ -2519,100 +2578,145 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
           db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId]);
           db.run('DELETE FROM settings WHERE user_id = ? AND setting_key != ?', [req.user.userId, 'closing_lead_times']);
 
-          // Import prospects with enhanced data handling
-          if (importData.prospects && Array.isArray(importData.prospects)) {
-            importData.prospects.forEach(prospect => {
-              try {
-                // Calculate estimated_completion_date if not present
-                let estimatedDate = prospect.estimated_completion_date;
-                if (!estimatedDate && prospect.status) {
-                  estimatedDate = calculateEstimatedCompletionDate(prospect.status, leadTimes);
-                }
+          // Import prospects with robust field mapping and error handling
+          console.log(`📋 Starting import of ${importData.prospects.length} prospects...`);
+          importData.prospects.forEach((prospect, index) => {
+            try {
+              // Map old field names to new ones and validate data
+              const mappedProspect = {
+                name: prospect.name || prospect.company || `Imported Prospect ${index + 1}`,
+                email: prospect.email || '',
+                phone: prospect.phone || '',
+                company: prospect.company || '',
+                position: prospect.contact || prospect.position || '',
+                address: prospect.address || '',
+                latitude: (prospect.latitude !== undefined && prospect.latitude !== null && !isNaN(prospect.latitude)) ? parseFloat(prospect.latitude) : null,
+                longitude: (prospect.longitude !== undefined && prospect.longitude !== null && !isNaN(prospect.longitude)) ? parseFloat(prospect.longitude) : null,
+                status: ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold',
+                revenue: !isNaN(parseFloat(prospect.revenue)) ? parseFloat(prospect.revenue) : 0,
+                probability_coefficient: !isNaN(parseFloat(prospect.probability_coefficient)) ? parseFloat(prospect.probability_coefficient) : 100,
+                notes: prospect.notes || '',
+                tab_id: prospect.tab_id || 'default',
+                display_order: !isNaN(parseInt(prospect.display_order)) ? parseInt(prospect.display_order) : index,
+                estimated_completion_date: prospect.estimated_completion_date || null,
+                created_at: prospect.created_at || null,
+                updated_at: prospect.updated_at || null
+              };
 
-                db.run(
-                  `INSERT INTO prospects 
-                   (user_id, name, email, phone, company, position, address, latitude, longitude, 
-                    status, revenue, probability_coefficient, notes, tab_id, display_order, 
-                    estimated_completion_date, created_at, updated_at) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-                           COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
-                  [
-                    req.user.userId,
-                    prospect.name || '',
-                    prospect.email || '',
-                    prospect.phone || '',
-                    prospect.company || '',
-                    prospect.contact || '',
-                    prospect.address || '',
-                    prospect.latitude || null,
-                    prospect.longitude || null,
-                    prospect.status || 'cold',
-                    prospect.revenue || 0,
-                    prospect.probability_coefficient || 100,
-                    prospect.notes || '',
-                    prospect.tab_id || 'default',
-                    prospect.display_order || 0,
-                    estimatedDate,
-                    prospect.created_at,
-                    prospect.updated_at
-                  ],
-                  function(err) {
-                    if (err) {
-                      console.error('Error importing prospect:', err);
-                      results.errors.push(`Prospect ${prospect.name}: ${err.message}`);
-                    } else {
-                      results.imported.prospects++;
-                    }
-                  }
-                );
-              } catch (error) {
-                console.error('Error processing prospect:', error);
-                results.errors.push(`Prospect ${prospect.name}: ${error.message}`);
+              // Calculate estimated_completion_date if not present
+              if (!mappedProspect.estimated_completion_date && mappedProspect.status) {
+                mappedProspect.estimated_completion_date = calculateEstimatedCompletionDate(mappedProspect.status, leadTimes);
               }
-            });
-          }
 
-          // Import tabs
+              db.run(
+                `INSERT INTO prospects 
+                 (user_id, name, email, phone, company, position, address, latitude, longitude, 
+                  status, revenue, probability_coefficient, notes, tab_id, display_order, 
+                  estimated_completion_date, created_at, updated_at) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                         COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+                [
+                  req.user.userId,
+                  mappedProspect.name,
+                  mappedProspect.email,
+                  mappedProspect.phone,
+                  mappedProspect.company,
+                  mappedProspect.position,
+                  mappedProspect.address,
+                  mappedProspect.latitude,
+                  mappedProspect.longitude,
+                  mappedProspect.status,
+                  mappedProspect.revenue,
+                  mappedProspect.probability_coefficient,
+                  mappedProspect.notes,
+                  mappedProspect.tab_id,
+                  mappedProspect.display_order,
+                  mappedProspect.estimated_completion_date,
+                  mappedProspect.created_at,
+                  mappedProspect.updated_at
+                ],
+                function(err) {
+                  if (err) {
+                    console.error('Error importing prospect:', err);
+                    results.errors.push(`Prospect ${mappedProspect.name}: ${err.message}`);
+                    results.skipped.prospects++;
+                  } else {
+                    results.imported.prospects++;
+                    console.log(`✅ Imported prospect ${results.imported.prospects}/${importData.prospects.length}: ${mappedProspect.name}`);
+                  }
+                }
+              );
+            } catch (error) {
+              console.error('Error processing prospect:', error);
+              results.errors.push(`Prospect ${index + 1}: ${error.message}`);
+              results.skipped.prospects++;
+            }
+          });
+
+          // Import tabs with enhanced field mapping
           if (importData.tabs && Array.isArray(importData.tabs)) {
-            importData.tabs.forEach(tab => {
+            console.log(`📋 Starting import of ${importData.tabs.length} tabs...`);
+            importData.tabs.forEach((tab, index) => {
               try {
+                const mappedTab = {
+                  id: tab.id || `tab_${Date.now()}_${index}_${req.user.userId}`,
+                  name: tab.name || `Imported Tab ${index + 1}`,
+                  description: tab.description || '',
+                  is_special: tab.is_special ? 1 : 0,
+                  display_order: !isNaN(parseInt(tab.display_order)) ? parseInt(tab.display_order) : index,
+                  created_at: tab.created_at || null
+                };
+
                 db.run(
                   `INSERT INTO tabs 
                    (id, user_id, name, description, is_special, display_order, created_at) 
                    VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
                   [
-                    tab.id || `tab_${Date.now()}_${req.user.userId}`,
+                    mappedTab.id,
                     req.user.userId,
-                    tab.name || 'Unnamed Tab',
-                    tab.description || '',
-                    tab.is_special || 0,
-                    tab.display_order || 0,
-                    tab.created_at
+                    mappedTab.name,
+                    mappedTab.description,
+                    mappedTab.is_special,
+                    mappedTab.display_order,
+                    mappedTab.created_at
                   ],
                   function(err) {
                     if (err) {
                       console.error('Error importing tab:', err);
-                      results.errors.push(`Tab ${tab.name}: ${err.message}`);
+                      results.errors.push(`Tab ${mappedTab.name}: ${err.message}`);
+                      results.skipped.tabs++;
                     } else {
                       results.imported.tabs++;
+                      console.log(`✅ Imported tab ${results.imported.tabs}/${importData.tabs.length}: ${mappedTab.name}`);
                     }
                   }
                 );
               } catch (error) {
                 console.error('Error processing tab:', error);
-                results.errors.push(`Tab ${tab.name}: ${error.message}`);
+                results.errors.push(`Tab ${index + 1}: ${error.message}`);
+                results.skipped.tabs++;
               }
             });
           }
 
           // Import settings (except lead times to preserve user's current settings)
           if (importData.settings && Array.isArray(importData.settings)) {
-            importData.settings.forEach(setting => {
+            console.log(`📋 Starting import of ${importData.settings.length} settings...`);
+            importData.settings.forEach((setting, index) => {
               try {
                 // Skip lead times to preserve user's current configuration
                 if (setting.setting_key === 'closing_lead_times') {
+                  console.log('⏭️ Skipping lead times setting to preserve user configuration');
+                  results.skipped.settings++;
                   return;
                 }
+
+                const mappedSetting = {
+                  setting_key: setting.setting_key || `imported_setting_${index}`,
+                  setting_value: setting.setting_value || '{}',
+                  created_at: setting.created_at || null,
+                  updated_at: setting.updated_at || null
+                };
 
                 db.run(
                   `INSERT INTO settings 
@@ -2620,29 +2724,33 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                    VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
                   [
                     req.user.userId,
-                    setting.setting_key,
-                    setting.setting_value,
-                    setting.created_at,
-                    setting.updated_at
+                    mappedSetting.setting_key,
+                    mappedSetting.setting_value,
+                    mappedSetting.created_at,
+                    mappedSetting.updated_at
                   ],
                   function(err) {
                     if (err) {
                       console.error('Error importing setting:', err);
-                      results.errors.push(`Setting ${setting.setting_key}: ${err.message}`);
+                      results.errors.push(`Setting ${mappedSetting.setting_key}: ${err.message}`);
+                      results.skipped.settings++;
                     } else {
                       results.imported.settings++;
+                      console.log(`✅ Imported setting ${results.imported.settings}: ${mappedSetting.setting_key}`);
                     }
                   }
                 );
               } catch (error) {
                 console.error('Error processing setting:', error);
-                results.errors.push(`Setting ${setting.setting_key}: ${error.message}`);
+                results.errors.push(`Setting ${index + 1}: ${error.message}`);
+                results.skipped.settings++;
               }
             });
           }
 
           // Create default tabs if none were imported
           if (!importData.tabs || importData.tabs.length === 0) {
+            console.log('🔧 No tabs imported, creating default tabs...');
             createDefaultTabsForUser(req.user.userId);
             results.imported.tabs = 2; // All Leads + Main Pipeline
           }
@@ -2659,7 +2767,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
     );
   } catch (error) {
     console.error('Error in import endpoint:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 

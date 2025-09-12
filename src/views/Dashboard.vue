@@ -1106,12 +1106,47 @@ async function handleDatabaseImport(event) {
     try {
       importData = JSON.parse(text)
     } catch (parseError) {
-      throw new Error('Invalid JSON format')
+      throw new Error('Invalid JSON format: ' + parseError.message)
     }
 
-    // Validate the structure - more flexible validation for different backup versions
-    if (!importData.prospects && !importData.users) {
-      throw new Error('Invalid backup file format. File must contain at least prospects data.')
+    // Debug: log the structure of importData
+    console.log('📋 Import data structure:', {
+      hasProspects: !!importData.prospects,
+      prospectsCount: Array.isArray(importData.prospects) ? importData.prospects.length : 'not array',
+      hasTabs: !!importData.tabs,
+      tabsCount: Array.isArray(importData.tabs) ? importData.tabs.length : 'not array',
+      hasUsers: !!importData.users,
+      hasSettings: !!importData.settings,
+      topLevelKeys: Object.keys(importData || {})
+    })
+
+    // More flexible validation - accept files with any of these structures
+    if (!importData || typeof importData !== 'object') {
+      throw new Error('Import file must contain a valid JSON object.')
+    }
+
+    // If it's an old format that doesn't have prospects directly, try to find them
+    if (!importData.prospects) {
+      // Check if it's a nested structure or old format
+      if (importData.users && typeof importData.users === 'object') {
+        // Try to extract prospects from users data
+        const firstUser = Object.values(importData.users)[0]
+        if (firstUser && firstUser.prospects) {
+          importData.prospects = firstUser.prospects
+          console.log('📋 Extracted prospects from nested user data')
+        }
+      }
+      
+      // If still no prospects, create an empty array but warn
+      if (!importData.prospects) {
+        console.warn('⚠️ No prospects found in import data, but continuing with empty prospects')
+        importData.prospects = []
+      }
+    }
+
+    // Ensure prospects is an array
+    if (!Array.isArray(importData.prospects)) {
+      throw new Error('Invalid prospects data format. Expected an array.')
     }
 
     const response = await fetch('/api/database/import', {
