@@ -994,20 +994,15 @@ const coldProspects = ref([])
 function initializeFunnelProspects() {
   if (!prospectsStore.prospects) return
   
-  // Filtrer d'abord par tab, puis par statut
-  const tabProspects = prospectsStore.prospects.filter(p => {
-    if (props.isAllLeadsView || props.tabId === 'default') {
-      return true // Afficher tous les prospects pour "All Leads"
-    }
-    return p.tabId === props.tabId || p.tab_id === props.tabId
-  })
+  // Utiliser les prospects déjà filtrés par recherche et revenu
+  const filteredProspects = visibleProspectsAfterFilter.value
   
-  hotProspects.value = tabProspects.filter(p => p.status === 'hot')
-  warmProspects.value = tabProspects.filter(p => p.status === 'warm')
-  coldProspects.value = tabProspects.filter(p => p.status === 'cold')
+  hotProspects.value = filteredProspects.filter(p => p.status === 'hot')
+  warmProspects.value = filteredProspects.filter(p => p.status === 'warm')
+  coldProspects.value = filteredProspects.filter(p => p.status === 'cold')
   
-  console.log(`🔄 Funnel initialized for tab ${props.tabId}:`, {
-    total: tabProspects.length,
+  console.log(`🔄 Funnel initialized for tab ${props.tabId} with filters:`, {
+    total: filteredProspects.length,
     hot: hotProspects.value.length,
     warm: warmProspects.value.length,
     cold: coldProspects.value.length
@@ -1218,6 +1213,11 @@ const visibleProspectsCount = computed(() => visibleProspectsAfterFilter.value.l
 // Émettre les prospects filtrés vers le parent pour la carte
 watch(visibleProspectsAfterFilter, (filteredProspects) => {
   emit('filtered-prospects', filteredProspects)
+  
+  // Mettre à jour le funnel si on est en mode funnel
+  if (viewMode.value === 'funnel') {
+    initializeFunnelProspects()
+  }
 }, { immediate: true })
 
 // Initialiser le filtre de revenu avec la valeur minimale
