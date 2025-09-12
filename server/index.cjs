@@ -2063,239 +2063,6 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
   }
 });
 
-// Route pour importer la base de données
-app.post('/api/database/import', authenticateToken, (req, res) => {
-  try {
-    console.log(`📥 Importing database for user ${req.user.userId}`);
-    const importData = req.body;
-
-    // Validation des données d'import
-    if (!importData || typeof importData !== 'object') {
-      return res.status(400).json({ error: 'Invalid import data format' });
-    }
-
-    // Vérifier la version et la compatibilité
-    const version = importData.version || '1.0';
-    console.log(`📄 Import data version: ${version}`);
-
-    // Commencer une transaction pour s'assurer de la cohérence
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-      
-      try {
-      // Supprimer TOUTES les données existantes de l'utilisateur (y compris les tabs spéciaux)
-      db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId]);
-      db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId]); // Supprimer TOUS les tabs
-      db.run('DELETE FROM settings WHERE user_id = ?', [req.user.userId]);
-      
-      let importedProspects = 0;
-      let importedTabs = 0;
-      let importedSettings = 0;
-
-      // Créer un mapping des anciens IDs vers les nouveaux pour préserver les assignations
-      const tabIdMapping = {};
-
-      // ÉTAPE 1: Importer les tabs EN PREMIER pour créer le mapping
-      if (importData.tabs && Array.isArray(importData.tabs)) {
-        const tabStmt = db.prepare(`
-          INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        importData.tabs.forEach(tab => {
-          try {
-            const originalTabId = tab.id;
-            let newTabId = tab.id;
-            
-            // Pour éviter les doublons d'onglet "All Leads"
-            if (tab.is_special && tab.name === 'All Leads') {
-              newTabId = `all-leads-${req.user.userId}`;
-            } else if (!newTabId || typeof newTabId !== 'string') {
-              newTabId = `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            } else {
-              // S'assurer que l'ID est unique pour ce user
-              newTabId = `${newTabId}_${req.user.userId}`;
-            }
-
-            // Enregistrer le mapping ancien ID -> nouveau ID
-            tabIdMapping[originalTabId] = newTabId;
-
-            tabStmt.run(
-              newTabId,
-              req.user.userId,
-              tab.name || 'Imported Tab',
-              tab.description || '',
-              tab.is_special ? 1 : 0,
-              tab.display_order || 0,
-              tab.created_at || new Date().toISOString()
-            );
-            importedTabs++;
-            console.log(`✅ Imported tab: ${tab.name} (${originalTabId} -> ${newTabId})`);
-          } catch (error) {
-            console.error('Error importing tab:', error);
-            console.error('Tab data:', tab);
-          }
-        });
-
-        tabStmt.finalize();
-      }
-
-      // ÉTAPE 2: Maintenant importer les prospects en utilisant le mapping des tabs
-      if (importData.prospects && Array.isArray(importData.prospects)) {
-        console.log(`🔄 Importing ${importData.prospects.length} prospects with tab mapping`);
-        console.log(`🗂️ Tab ID mapping:`, tabIdMapping);
-        
-        const prospectStmt = db.prepare(`
-          INSERT INTO prospects 
-          (user_id, name, email, phone, company, position, address, latitude, longitude, 
-           status, revenue, probability_coefficient, notes, tab_id, display_order, 
-           estimated_completion_date, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        importData.prospects.forEach((prospect, index) => {
-          try {
-            // Validation des données prospect
-            const name = prospect.name || prospect.company || `Imported Prospect ${index + 1}`;
-            const status = ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold';
-            const revenue = isNaN(parseFloat(prospect.revenue)) ? 0 : parseFloat(prospect.revenue);
-            const probability = isNaN(parseFloat(prospect.probability_coefficient)) ? 100 : parseFloat(prospect.probability_coefficient);
-            
-            // Utiliser le mapping des tabs pour préserver l'assignation
-            let mappedTabId = prospect.tab_id || 'default';
-            console.log(`🔍 Processing prospect: ${name}, original tab_id: ${prospect.tab_id}`);
-            
-            if (tabIdMapping[prospect.tab_id]) {
-              mappedTabId = tabIdMapping[prospect.tab_id];
-              console.log(`✅ Mapped ${prospect.tab_id} -> ${mappedTabId}`);
-            } else if (importedTabs > 0) {
-              // Si le tab_id original n'existe pas, assigner au premier tab disponible
-              const availableTabIds = Object.values(tabIdMapping);
-              if (availableTabIds.length > 0) {
-                mappedTabId = availableTabIds[0];
-                console.log(`⚠️ No mapping found for ${prospect.tab_id}, using first available: ${mappedTabId}`);
-              }
-            } else {
-              console.log(`❌ No tabs imported, keeping default: ${mappedTabId}`);
-            }
-            
-            prospectStmt.run(
-              req.user.userId,
-              name,
-              prospect.email || '',
-              prospect.phone || '',
-              prospect.company || '',
-              prospect.contact || '',
-              prospect.address || '',
-              prospect.latitude || null,
-              prospect.longitude || null,
-              status,
-              revenue,
-              probability,
-              prospect.notes || '',
-              mappedTabId,
-              prospect.display_order || index,
-              prospect.estimated_completion_date || null,
-              prospect.created_at || new Date().toISOString(),
-              prospect.updated_at || new Date().toISOString()
-            );
-            importedProspects++;
-            console.log(`✅ Imported prospect: ${name} -> tab: ${mappedTabId}`);
-          } catch (error) {
-            console.error('Error importing prospect:', error);
-            console.error('Prospect data:', prospect);
-          }
-        });
-
-        prospectStmt.finalize();
-      }
-
-      // Importer les settings
-      if (importData.settings && Array.isArray(importData.settings)) {
-        const settingStmt = db.prepare(`
-          INSERT INTO settings (user_id, setting_key, setting_value, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?)
-        `);
-
-        importData.settings.forEach(setting => {
-          try {
-            settingStmt.run(
-              req.user.userId,
-              setting.setting_key || '',
-              setting.setting_value || '{}',
-              setting.created_at || new Date().toISOString(),
-              setting.updated_at || new Date().toISOString()
-            );
-            importedSettings++;
-          } catch (error) {
-            console.error('Error importing setting:', error);
-          }
-        });
-
-        settingStmt.finalize();
-      }
-
-      // S'assurer que l'utilisateur a au moins un onglet "All Leads"
-      if (importedTabs === 0) {
-        console.log('🔧 No tabs imported, creating default tabs');
-        createDefaultTabsForUser(req.user.userId);
-        importedTabs = 2; // All Leads + Main Pipeline
-      } else {
-        // Vérifier si un onglet "All Leads" existe après l'import
-        db.get(
-          'SELECT id FROM tabs WHERE user_id = ? AND is_special = 1 AND name = ?',
-          [req.user.userId, 'All Leads'],
-          (err, existingAllLeads) => {
-            if (err || !existingAllLeads) {
-              console.log('🔧 Creating missing "All Leads" tab after import');
-              const allLeadsTab = {
-                id: `all-leads-${req.user.userId}`,
-                name: 'All Leads',
-                description: 'View all prospects from all tabs',
-                is_special: 1,
-                display_order: -1
-              };
-              
-              db.run(
-                'INSERT INTO tabs (id, user_id, name, description, is_special, display_order) VALUES (?, ?, ?, ?, ?, ?)',
-                [allLeadsTab.id, req.user.userId, allLeadsTab.name, allLeadsTab.description, allLeadsTab.is_special, allLeadsTab.display_order],
-                (err) => {
-                  if (err) {
-                    console.error('Error creating All Leads tab after import:', err);
-                  } else {
-                    console.log('✅ Created missing "All Leads" tab');
-                  }
-                }
-              );
-            }
-          }
-        );
-      }
-
-        db.run('COMMIT');
-        
-        console.log(`✅ Import completed: ${importedProspects} prospects, ${importedTabs} tabs, ${importedSettings} settings`);
-        
-        res.json({
-          message: 'Database imported successfully',
-          imported: {
-            prospects: importedProspects,
-            tabs: importedTabs,
-            settings: importedSettings
-          }
-        });
-      } catch (transactionError) {
-        db.run('ROLLBACK');
-        console.error('Transaction failed:', transactionError);
-        res.status(500).json({ error: 'Import transaction failed' });
-      }
-    });
-  } catch (error) {
-    console.error('Error in database import:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Endpoint pour supprimer toutes les données de l'utilisateur
 app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
   try {
@@ -2572,23 +2339,108 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
         }
 
         // Start transaction
-        db.serialize(() => {
-          // Clear existing data for the user
-          db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId]);
-          db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId]);
-          db.run('DELETE FROM settings WHERE user_id = ? AND setting_key != ?', [req.user.userId, 'closing_lead_times']);
+        db.serialize(async () => {
+          try {
+            console.log(`🔄 Starting import transaction for user ${req.user.userId}`);
+            
+            // Clear existing data for the user (with promises)
+            console.log(`🗑️ Clearing existing data...`);
+            await new Promise((resolve, reject) => {
+              db.run('DELETE FROM prospects WHERE user_id = ?', [req.user.userId], (err) => {
+                if (err) reject(err);
+                else {
+                  console.log(`✅ Cleared prospects for user ${req.user.userId}`);
+                  resolve();
+                }
+              });
+            });
+            
+            await new Promise((resolve, reject) => {
+              db.run('DELETE FROM tabs WHERE user_id = ?', [req.user.userId], (err) => {
+                if (err) reject(err);
+                else {
+                  console.log(`✅ Cleared tabs for user ${req.user.userId}`);
+                  resolve();
+                }
+              });
+            });
+            
+            await new Promise((resolve, reject) => {
+              db.run('DELETE FROM settings WHERE user_id = ? AND setting_key != ?', [req.user.userId, 'closing_lead_times'], (err) => {
+                if (err) reject(err);
+                else {
+                  console.log(`✅ Cleared settings for user ${req.user.userId}`);
+                  resolve();
+                }
+              });
+            });
 
-          // Import prospects with robust field mapping and error handling
-          console.log(`📋 Starting import of ${importData.prospects.length} prospects...`);
-          importData.prospects.forEach((prospect, index) => {
-            try {
-              // Map old field names to new ones and validate data
+            // STEP 1: Import tabs FIRST and create mapping - SEQUENTIAL APPROACH
+            const tabIdMapping = {};
+            let defaultTabId = 'default';
+            
+            if (importData.tabs && Array.isArray(importData.tabs) && importData.tabs.length > 0) {
+              console.log(`📋 Importing ${importData.tabs.length} tabs sequentially...`);
+              
+              for (let i = 0; i < importData.tabs.length; i++) {
+                const tab = importData.tabs[i];
+                const originalTabId = tab.id;
+                const newTabId = tab.id || `tab_${Date.now()}_${i}_${req.user.userId}`;
+                
+                // Store mapping
+                tabIdMapping[originalTabId] = newTabId;
+                if (i === 0) defaultTabId = newTabId;
+                
+                const mappedTab = {
+                  id: newTabId,
+                  name: tab.name || `Imported Tab ${i + 1}`,
+                  description: tab.description || '',
+                  is_special: tab.is_special ? 1 : 0,
+                  display_order: !isNaN(parseInt(tab.display_order)) ? parseInt(tab.display_order) : i,
+                  created_at: tab.created_at || null
+                };
+
+                await new Promise((resolve, reject) => {
+                  db.run(
+                    `INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+                    [mappedTab.id, req.user.userId, mappedTab.name, mappedTab.description, mappedTab.is_special, mappedTab.display_order, mappedTab.created_at],
+                    function(err) {
+                      if (err) {
+                        console.error(`❌ Error importing tab ${mappedTab.name}:`, err);
+                        results.errors.push(`Tab ${mappedTab.name}: ${err.message}`);
+                        results.skipped.tabs++;
+                        reject(err);
+                      } else {
+                        results.imported.tabs++;
+                        console.log(`✅ Imported tab ${results.imported.tabs}/${importData.tabs.length}: ${mappedTab.name} (${originalTabId} -> ${mappedTab.id})`);
+                        resolve();
+                      }
+                    }
+                  );
+                });
+              }
+              
+              console.log(`🗂️ Tab mapping created:`, tabIdMapping);
+            } else {
+              console.log('🔧 No tabs in import data, creating default tabs...');
+              createDefaultTabsForUser(req.user.userId);
+              results.imported.tabs = 2;
+              defaultTabId = `all-leads-${req.user.userId}`;
+            }
+
+            // STEP 2: Import prospects SEQUENTIALLY with proper tab mapping
+            console.log(`📋 Importing ${importData.prospects.length} prospects sequentially...`);
+            
+            for (let i = 0; i < importData.prospects.length; i++) {
+              const prospect = importData.prospects[i];
+              
               const mappedProspect = {
-                name: prospect.name || prospect.company || `Imported Prospect ${index + 1}`,
+                name: prospect.name || prospect.company || `Imported Prospect ${i + 1}`,
                 email: prospect.email || '',
                 phone: prospect.phone || '',
                 company: prospect.company || '',
-                position: prospect.contact || prospect.position || '',
+                contact: prospect.contact || prospect.position || '',
                 address: prospect.address || '',
                 latitude: (prospect.latitude !== undefined && prospect.latitude !== null && !isNaN(prospect.latitude)) ? parseFloat(prospect.latitude) : null,
                 longitude: (prospect.longitude !== undefined && prospect.longitude !== null && !isNaN(prospect.longitude)) ? parseFloat(prospect.longitude) : null,
@@ -2596,172 +2448,122 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                 revenue: !isNaN(parseFloat(prospect.revenue)) ? parseFloat(prospect.revenue) : 0,
                 probability_coefficient: !isNaN(parseFloat(prospect.probability_coefficient)) ? parseFloat(prospect.probability_coefficient) : 100,
                 notes: prospect.notes || '',
-                tab_id: prospect.tab_id || 'default',
-                display_order: !isNaN(parseInt(prospect.display_order)) ? parseInt(prospect.display_order) : index,
+                tab_id: defaultTabId, // Default assignment
+                display_order: !isNaN(parseInt(prospect.display_order)) ? parseInt(prospect.display_order) : i,
                 estimated_completion_date: prospect.estimated_completion_date || null,
                 created_at: prospect.created_at || null,
                 updated_at: prospect.updated_at || null
               };
+
+              // Map the tab_id using the mapping if available
+              if (prospect.tab_id && tabIdMapping[prospect.tab_id]) {
+                mappedProspect.tab_id = tabIdMapping[prospect.tab_id];
+                console.log(`🔗 Prospect "${mappedProspect.name}" mapped: ${prospect.tab_id} -> ${mappedProspect.tab_id}`);
+              } else if (prospect.tab_id) {
+                console.log(`⚠️ Tab ID "${prospect.tab_id}" not found, using default: ${defaultTabId}`);
+              }
 
               // Calculate estimated_completion_date if not present
               if (!mappedProspect.estimated_completion_date && mappedProspect.status) {
                 mappedProspect.estimated_completion_date = calculateEstimatedCompletionDate(mappedProspect.status, leadTimes);
               }
 
-              db.run(
-                `INSERT INTO prospects 
-                 (user_id, name, email, phone, company, position, address, latitude, longitude, 
-                  status, revenue, probability_coefficient, notes, tab_id, display_order, 
-                  estimated_completion_date, created_at, updated_at) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-                         COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
-                [
-                  req.user.userId,
-                  mappedProspect.name,
-                  mappedProspect.email,
-                  mappedProspect.phone,
-                  mappedProspect.company,
-                  mappedProspect.position,
-                  mappedProspect.address,
-                  mappedProspect.latitude,
-                  mappedProspect.longitude,
-                  mappedProspect.status,
-                  mappedProspect.revenue,
-                  mappedProspect.probability_coefficient,
-                  mappedProspect.notes,
-                  mappedProspect.tab_id,
-                  mappedProspect.display_order,
-                  mappedProspect.estimated_completion_date,
-                  mappedProspect.created_at,
-                  mappedProspect.updated_at
-                ],
-                function(err) {
-                  if (err) {
-                    console.error('Error importing prospect:', err);
-                    results.errors.push(`Prospect ${mappedProspect.name}: ${err.message}`);
-                    results.skipped.prospects++;
-                  } else {
-                    results.imported.prospects++;
-                    console.log(`✅ Imported prospect ${results.imported.prospects}/${importData.prospects.length}: ${mappedProspect.name}`);
-                  }
-                }
-              );
-            } catch (error) {
-              console.error('Error processing prospect:', error);
-              results.errors.push(`Prospect ${index + 1}: ${error.message}`);
-              results.skipped.prospects++;
-            }
-          });
-
-          // Import tabs with enhanced field mapping
-          if (importData.tabs && Array.isArray(importData.tabs)) {
-            console.log(`📋 Starting import of ${importData.tabs.length} tabs...`);
-            importData.tabs.forEach((tab, index) => {
-              try {
-                const mappedTab = {
-                  id: tab.id || `tab_${Date.now()}_${index}_${req.user.userId}`,
-                  name: tab.name || `Imported Tab ${index + 1}`,
-                  description: tab.description || '',
-                  is_special: tab.is_special ? 1 : 0,
-                  display_order: !isNaN(parseInt(tab.display_order)) ? parseInt(tab.display_order) : index,
-                  created_at: tab.created_at || null
-                };
-
+              await new Promise((resolve, reject) => {
                 db.run(
-                  `INSERT INTO tabs 
-                   (id, user_id, name, description, is_special, display_order, created_at) 
-                   VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+                  `INSERT INTO prospects 
+                   (user_id, name, email, phone, company, contact, address, latitude, longitude, 
+                    status, revenue, probability_coefficient, notes, tab_id, display_order, 
+                    estimated_completion_date, created_at, updated_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                           COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
                   [
-                    mappedTab.id,
-                    req.user.userId,
-                    mappedTab.name,
-                    mappedTab.description,
-                    mappedTab.is_special,
-                    mappedTab.display_order,
-                    mappedTab.created_at
+                    req.user.userId, mappedProspect.name, mappedProspect.email, mappedProspect.phone,
+                    mappedProspect.company, mappedProspect.contact, mappedProspect.address,
+                    mappedProspect.latitude, mappedProspect.longitude, mappedProspect.status,
+                    mappedProspect.revenue, mappedProspect.probability_coefficient, mappedProspect.notes,
+                    mappedProspect.tab_id, mappedProspect.display_order, mappedProspect.estimated_completion_date,
+                    mappedProspect.created_at, mappedProspect.updated_at
                   ],
                   function(err) {
                     if (err) {
-                      console.error('Error importing tab:', err);
-                      results.errors.push(`Tab ${mappedTab.name}: ${err.message}`);
-                      results.skipped.tabs++;
+                      console.error(`❌ Error importing prospect ${mappedProspect.name}:`, err);
+                      results.errors.push(`Prospect ${mappedProspect.name}: ${err.message}`);
+                      results.skipped.prospects++;
+                      reject(err);
                     } else {
-                      results.imported.tabs++;
-                      console.log(`✅ Imported tab ${results.imported.tabs}/${importData.tabs.length}: ${mappedTab.name}`);
+                      results.imported.prospects++;
+                      console.log(`✅ Imported prospect ${results.imported.prospects}/${importData.prospects.length}: ${mappedProspect.name} -> tab: ${mappedProspect.tab_id}`);
+                      resolve();
                     }
                   }
                 );
-              } catch (error) {
-                console.error('Error processing tab:', error);
-                results.errors.push(`Tab ${index + 1}: ${error.message}`);
-                results.skipped.tabs++;
-              }
-            });
-          }
+              });
+            }
 
-          // Import settings (except lead times to preserve user's current settings)
-          if (importData.settings && Array.isArray(importData.settings)) {
-            console.log(`📋 Starting import of ${importData.settings.length} settings...`);
-            importData.settings.forEach((setting, index) => {
-              try {
+            // STEP 3: Import settings sequentially
+            if (importData.settings && Array.isArray(importData.settings)) {
+              console.log(`📋 Importing ${importData.settings.length} settings...`);
+              for (let i = 0; i < importData.settings.length; i++) {
+                const setting = importData.settings[i];
+                
                 // Skip lead times to preserve user's current configuration
                 if (setting.setting_key === 'closing_lead_times') {
                   console.log('⏭️ Skipping lead times setting to preserve user configuration');
                   results.skipped.settings++;
-                  return;
+                  continue;
                 }
 
                 const mappedSetting = {
-                  setting_key: setting.setting_key || `imported_setting_${index}`,
+                  setting_key: setting.setting_key || `imported_setting_${i}`,
                   setting_value: setting.setting_value || '{}',
                   created_at: setting.created_at || null,
                   updated_at: setting.updated_at || null
                 };
 
-                db.run(
-                  `INSERT INTO settings 
-                   (user_id, setting_key, setting_value, created_at, updated_at) 
-                   VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
-                  [
-                    req.user.userId,
-                    mappedSetting.setting_key,
-                    mappedSetting.setting_value,
-                    mappedSetting.created_at,
-                    mappedSetting.updated_at
-                  ],
-                  function(err) {
-                    if (err) {
-                      console.error('Error importing setting:', err);
-                      results.errors.push(`Setting ${mappedSetting.setting_key}: ${err.message}`);
-                      results.skipped.settings++;
-                    } else {
-                      results.imported.settings++;
-                      console.log(`✅ Imported setting ${results.imported.settings}: ${mappedSetting.setting_key}`);
+                await new Promise((resolve, reject) => {
+                  db.run(
+                    `INSERT INTO settings (user_id, setting_key, setting_value, created_at, updated_at) 
+                     VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
+                    [req.user.userId, mappedSetting.setting_key, mappedSetting.setting_value, mappedSetting.created_at, mappedSetting.updated_at],
+                    function(err) {
+                      if (err) {
+                        console.error(`❌ Error importing setting ${mappedSetting.setting_key}:`, err);
+                        results.errors.push(`Setting ${mappedSetting.setting_key}: ${err.message}`);
+                        results.skipped.settings++;
+                        reject(err);
+                      } else {
+                        results.imported.settings++;
+                        console.log(`✅ Imported setting ${results.imported.settings}: ${mappedSetting.setting_key}`);
+                        resolve();
+                      }
                     }
-                  }
-                );
-              } catch (error) {
-                console.error('Error processing setting:', error);
-                results.errors.push(`Setting ${index + 1}: ${error.message}`);
-                results.skipped.settings++;
+                  );
+                });
               }
+            }
+
+            console.log(`✅ Database imported successfully for user ${req.user.userId}`);
+            console.log(`📊 Final Results:`, results);
+            
+            // Verify final state
+            await new Promise((resolve) => {
+              db.all('SELECT id, name, tab_id FROM prospects WHERE user_id = ?', [req.user.userId], (err, prospects) => {
+                if (!err) {
+                  console.log(`🔍 Final verification: ${prospects.length} prospects in DB:`, 
+                    prospects.map(p => `${p.name} -> tab: ${p.tab_id}`));
+                }
+                resolve();
+              });
             });
+            
+            res.json({
+              message: 'Database imported successfully',
+              ...results
+            });
+          } catch (error) {
+            console.error('Error during import transaction:', error);
+            res.status(500).json({ error: 'Import transaction failed: ' + error.message });
           }
-
-          // Create default tabs if none were imported
-          if (!importData.tabs || importData.tabs.length === 0) {
-            console.log('🔧 No tabs imported, creating default tabs...');
-            createDefaultTabsForUser(req.user.userId);
-            results.imported.tabs = 2; // All Leads + Main Pipeline
-          }
-
-          console.log(`✅ Database imported successfully for user ${req.user.userId}`);
-          console.log(`📊 Results:`, results);
-          
-          res.json({
-            message: 'Database imported successfully',
-            ...results
-          });
         });
       }
     );
@@ -2769,6 +2571,43 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
     console.error('Error in import endpoint:', error);
     res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
+});
+
+// DEBUG: Endpoint temporaire pour vérifier le contenu de la base après import
+app.get('/api/debug/database-content', authenticateToken, (req, res) => {
+  console.log(`🔍 DEBUG: Checking database content for user ${req.user.userId}`);
+  
+  db.all('SELECT * FROM prospects WHERE user_id = ?', [req.user.userId], (err, prospects) => {
+    if (err) {
+      console.error('Error fetching prospects:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    db.all('SELECT * FROM tabs WHERE user_id = ?', [req.user.userId], (err2, tabs) => {
+      if (err2) {
+        console.error('Error fetching tabs:', err2);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`🔍 DEBUG: Found ${prospects.length} prospects and ${tabs.length} tabs for user ${req.user.userId}`);
+      console.log(`🔍 DEBUG: Prospects:`, prospects.map(p => ({ id: p.id, name: p.name, tab_id: p.tab_id })));
+      console.log(`🔍 DEBUG: Tabs:`, tabs.map(t => ({ id: t.id, name: t.name })));
+      
+      res.json({
+        user_id: req.user.userId,
+        prospects: prospects,
+        tabs: tabs,
+        summary: {
+          prospects_count: prospects.length,
+          tabs_count: tabs.length,
+          prospects_by_tab: prospects.reduce((acc, p) => {
+            acc[p.tab_id] = (acc[p.tab_id] || 0) + 1;
+            return acc;
+          }, {})
+        }
+      });
+    });
+  });
 });
 
 // Route de test public pour vérifier le geocoding (SANS AUTH - pour debug uniquement)
