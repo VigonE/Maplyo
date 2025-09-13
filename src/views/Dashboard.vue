@@ -246,6 +246,73 @@
               </div>
             </div>
 
+            <!-- Theme Settings -->
+            <div class="border rounded-lg p-4">
+              <h4 class="text-md font-medium text-gray-800 mb-3">🎨 Theme Settings</h4>
+              
+              <div class="space-y-3">
+                <div class="flex items-center space-x-3">
+                  <label class="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      value="default"
+                      v-model="currentTheme"
+                      @change="applyTheme"
+                      class="sr-only"
+                    />
+                    <div class="flex items-center space-x-2 p-3 border-2 rounded-lg transition-all"
+                         :class="currentTheme === 'default' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                      <div class="w-4 h-4 rounded-full"
+                           :class="currentTheme === 'default' ? 'bg-blue-500' : 'bg-gray-300'"></div>
+                      <div class="flex flex-col">
+                        <span class="text-sm font-medium text-gray-900">Default</span>
+                        <span class="text-xs text-gray-500">Modern clean interface</span>
+                      </div>
+                      <!-- Theme preview -->
+                      <div class="ml-auto flex space-x-1">
+                        <div class="w-3 h-3 bg-blue-500 rounded"></div>
+                        <div class="w-3 h-3 bg-gray-200 rounded"></div>
+                        <div class="w-3 h-3 bg-white border rounded"></div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                  <label class="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      value="retro"
+                      v-model="currentTheme"
+                      @change="applyTheme"
+                      class="sr-only"
+                    />
+                    <div class="flex items-center space-x-2 p-3 border-2 rounded-lg transition-all"
+                         :class="currentTheme === 'retro' ? 'border-gray-800 bg-gray-50' : 'border-gray-200 hover:border-gray-300'">
+                      <div class="w-4 h-4 rounded-full"
+                           :class="currentTheme === 'retro' ? 'bg-gray-800' : 'bg-gray-300'"></div>
+                      <div class="flex flex-col">
+                        <span class="text-sm font-medium text-gray-900">🕹️ Retro 8-bit</span>
+                        <span class="text-xs text-gray-500">Minimalist black & white</span>
+                      </div>
+                      <!-- Theme preview -->
+                      <div class="ml-auto flex space-x-1">
+                        <div class="w-3 h-3 bg-black rounded-sm"></div>
+                        <div class="w-3 h-3 bg-gray-400 rounded-sm"></div>
+                        <div class="w-3 h-3 bg-white border border-black rounded-sm"></div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="mt-3 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                <p class="text-xs text-gray-600">
+                  <span class="font-medium">💡 Theme Info:</span> Visual styling only - all functionality remains the same
+                </p>
+              </div>
+            </div>
+
             <!-- Database Operations -->
             <div class="border rounded-lg p-4">
               <h4 class="text-md font-medium text-gray-800 mb-3">Database Operations</h4>
@@ -676,6 +743,7 @@ const fileInput = ref(null)
 const databaseFileInput = ref(null)
 const filteredProspectsForMap = ref([])
 const showMapOnMobile = ref(false)
+const currentTheme = ref('default') // 'default' or 'retro'
 const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
@@ -1683,6 +1751,37 @@ function handleClickOutside(event) {
   }
 }
 
+// Méthode pour appliquer le thème
+const applyTheme = () => {
+  const body = document.body
+  
+  // Supprimer toutes les classes de thème existantes
+  body.classList.remove('theme-default', 'theme-retro')
+  
+  // Appliquer le nouveau thème
+  if (currentTheme.value === 'retro') {
+    body.classList.add('theme-retro')
+  } else {
+    body.classList.add('theme-default')
+  }
+  
+  // Sauvegarder le thème dans localStorage
+  localStorage.setItem('maplyo_theme', currentTheme.value)
+}
+
+// Charger le thème sauvegardé
+const loadTheme = () => {
+  const savedTheme = localStorage.getItem('maplyo_theme')
+  if (savedTheme) {
+    currentTheme.value = savedTheme
+    applyTheme()
+  } else {
+    // Thème par défaut
+    currentTheme.value = 'default'
+    applyTheme()
+  }
+}
+
 // Méthode de déconnexion avec redirection
 const handleLogout = () => {
   // Nettoyer les données locales spécifiques à l'utilisateur
@@ -1695,6 +1794,9 @@ const handleLogout = () => {
 
 onMounted(async () => {
   await prospectsStore.fetchProspects()
+  
+  // Charger le thème sauvegardé
+  loadTheme()
   
   // Charger les paramètres de closing lead times
   await loadClosingLeadTimes()
@@ -1746,5 +1848,299 @@ onUnmounted(() => {
 
 .slider:focus::-webkit-slider-thumb {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+</style>
+
+<style>
+/* 🕹️ THEME RETRO 8-BIT - Styles globaux */
+body.theme-retro {
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  background-color: #f8f8f8 !important;
+  color: #000000 !important;
+}
+
+/* Variables CSS pour le thème rétro */
+body.theme-retro {
+  --retro-bg: #f8f8f8;
+  --retro-fg: #000000;
+  --retro-border: #000000;
+  --retro-accent: #404040;
+  --retro-hover: #e0e0e0;
+  --retro-success: #606060;
+  --retro-warning: #808080;
+  --retro-error: #404040;
+}
+
+/* Interface principale */
+body.theme-retro .bg-white {
+  background-color: var(--retro-bg) !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+body.theme-retro .bg-gray-50,
+body.theme-retro .bg-gray-100 {
+  background-color: #e8e8e8 !important;
+  color: var(--retro-fg) !important;
+}
+
+body.theme-retro .bg-blue-600,
+body.theme-retro .bg-blue-500,
+body.theme-retro .bg-green-600,
+body.theme-retro .bg-red-600,
+body.theme-retro .bg-yellow-500,
+body.theme-retro .bg-indigo-600,
+body.theme-retro .bg-purple-600 {
+  background-color: var(--retro-accent) !important;
+  color: #ffffff !important;
+  border: 2px solid var(--retro-border) !important;
+  border-radius: 0 !important;
+}
+
+body.theme-retro .hover\:bg-blue-700:hover,
+body.theme-retro .hover\:bg-green-700:hover,
+body.theme-retro .hover\:bg-red-700:hover,
+body.theme-retro .hover\:bg-yellow-600:hover,
+body.theme-retro .hover\:bg-indigo-700:hover,
+body.theme-retro .hover\:bg-purple-700:hover {
+  background-color: var(--retro-border) !important;
+}
+
+/* Boutons et éléments interactifs */
+body.theme-retro button,
+body.theme-retro .btn {
+  font-family: inherit !important;
+  border-radius: 0 !important;
+  border: 2px solid var(--retro-border) !important;
+  background-color: var(--retro-hover) !important;
+  color: var(--retro-fg) !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  font-size: 12px !important;
+  letter-spacing: 1px !important;
+}
+
+body.theme-retro button:hover {
+  background-color: var(--retro-accent) !important;
+  color: #ffffff !important;
+}
+
+/* Inputs et formulaires */
+body.theme-retro input,
+body.theme-retro textarea,
+body.theme-retro select {
+  border: 2px solid var(--retro-border) !important;
+  border-radius: 0 !important;
+  background-color: #ffffff !important;
+  color: var(--retro-fg) !important;
+  font-family: inherit !important;
+}
+
+body.theme-retro input:focus,
+body.theme-retro textarea:focus,
+body.theme-retro select:focus {
+  outline: 2px solid var(--retro-border) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Cartes et conteneurs */
+body.theme-retro .rounded,
+body.theme-retro .rounded-lg,
+body.theme-retro .rounded-md {
+  border-radius: 0 !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+body.theme-retro .shadow,
+body.theme-retro .shadow-lg,
+body.theme-retro .shadow-md {
+  box-shadow: 4px 4px 0px var(--retro-border) !important;
+}
+
+/* Textes et titres */
+body.theme-retro h1, 
+body.theme-retro h2, 
+body.theme-retro h3, 
+body.theme-retro h4 {
+  color: var(--retro-fg) !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+body.theme-retro .text-gray-600,
+body.theme-retro .text-gray-700,
+body.theme-retro .text-gray-800,
+body.theme-retro .text-blue-600,
+body.theme-retro .text-green-600,
+body.theme-retro .text-red-600,
+body.theme-retro .text-yellow-600,
+body.theme-retro .text-indigo-600,
+body.theme-retro .text-purple-600 {
+  color: var(--retro-fg) !important;
+}
+
+/* Statuts colorés avec style rétro - UNIQUEMENT niveaux de gris */
+body.theme-retro .prospect-status-hot {
+  background-color: #202020 !important;
+  color: #ffffff !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+body.theme-retro .prospect-status-warm {
+  background-color: #606060 !important;
+  color: #ffffff !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+body.theme-retro .prospect-status-cold {
+  background-color: #a0a0a0 !important;
+  color: #000000 !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+body.theme-retro .prospect-status-won {
+  background-color: #808080 !important;
+  color: #ffffff !important;
+  border: 2px solid var(--retro-border) !important;
+}
+
+/* Carte - Style monochrome */
+body.theme-retro .mapboxgl-map,
+body.theme-retro #map {
+  filter: grayscale(100%) contrast(120%) brightness(90%) !important;
+}
+
+/* Marqueurs de carte en noir et blanc */
+body.theme-retro .mapboxgl-marker,
+body.theme-retro .marker {
+  filter: grayscale(100%) contrast(150%) !important;
+}
+
+/* Popup de carte */
+body.theme-retro .mapboxgl-popup,
+body.theme-retro .mapboxgl-popup-content {
+  background-color: var(--retro-bg) !important;
+  color: var(--retro-fg) !important;
+  border: 2px solid var(--retro-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 4px 4px 0px var(--retro-border) !important;
+}
+
+/* Contrôles de carte */
+body.theme-retro .mapboxgl-ctrl,
+body.theme-retro .mapboxgl-ctrl-group {
+  background-color: var(--retro-bg) !important;
+  border: 2px solid var(--retro-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 2px 2px 0px var(--retro-border) !important;
+}
+
+body.theme-retro .mapboxgl-ctrl-group button {
+  background-color: var(--retro-hover) !important;
+  color: var(--retro-fg) !important;
+  border: 1px solid var(--retro-border) !important;
+}
+
+body.theme-retro .mapboxgl-ctrl-group button:hover {
+  background-color: var(--retro-accent) !important;
+  color: #ffffff !important;
+}
+
+/* FUNNEL - Forcer le style monochrome */
+body.theme-retro .funnel-stage,
+body.theme-retro .prospect-card,
+body.theme-retro .prospect-item {
+  background-color: var(--retro-bg) !important;
+  color: var(--retro-fg) !important;
+  border: 2px solid var(--retro-border) !important;
+  border-radius: 0 !important;
+}
+
+/* Étapes du funnel en niveaux de gris */
+body.theme-retro .funnel-stage:nth-child(1) {
+  background-color: #f0f0f0 !important;
+}
+
+body.theme-retro .funnel-stage:nth-child(2) {
+  background-color: #e0e0e0 !important;
+}
+
+body.theme-retro .funnel-stage:nth-child(3) {
+  background-color: #d0d0d0 !important;
+}
+
+body.theme-retro .funnel-stage:nth-child(4) {
+  background-color: #c0c0c0 !important;
+}
+
+/* Suppression de toutes les couleurs sur les éléments du funnel */
+body.theme-retro .funnel-stage *,
+body.theme-retro .prospect-card *,
+body.theme-retro .prospect-item * {
+  background-color: inherit !important;
+  color: var(--retro-fg) !important;
+}
+
+/* Canvas et éléments graphiques - force monochrome */
+body.theme-retro canvas,
+body.theme-retro svg,
+body.theme-retro img {
+  filter: grayscale(100%) contrast(120%) !important;
+}
+
+/* Éléments spécifiques de la carte Mapbox */
+body.theme-retro .mapboxgl-canvas,
+body.theme-retro .mapboxgl-canvas-container {
+  filter: grayscale(100%) contrast(120%) brightness(90%) !important;
+}
+
+/* Toutes les couleurs de fond forcées en monochrome */
+body.theme-retro [style*="background-color"],
+body.theme-retro [style*="background"],
+body.theme-retro [class*="bg-"] {
+  background-color: var(--retro-bg) !important;
+  background-image: none !important;
+}
+
+/* Toutes les couleurs de texte forcées en noir */
+body.theme-retro [style*="color"],
+body.theme-retro [class*="text-"] {
+  color: var(--retro-fg) !important;
+}
+
+/* Suppression des arrondis et ajout de bordures carrées */
+body.theme-retro * {
+  border-radius: 0 !important;
+}
+
+/* Style des onglets */
+body.theme-retro .tab-button {
+  border: 2px solid var(--retro-border) !important;
+  background-color: var(--retro-hover) !important;
+  margin-right: 4px !important;
+  padding: 8px 16px !important;
+}
+
+body.theme-retro .tab-button.active {
+  background-color: var(--retro-accent) !important;
+  color: #ffffff !important;
+}
+
+/* Animation rétro pour les transitions */
+body.theme-retro * {
+  transition: none !important;
+}
+
+/* Curseur personnalisé style rétro */
+body.theme-retro * {
+  cursor: crosshair;
+}
+
+body.theme-retro button,
+body.theme-retro a,
+body.theme-retro input,
+body.theme-retro select {
+  cursor: pointer !important;
 }
 </style>
