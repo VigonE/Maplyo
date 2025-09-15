@@ -382,15 +382,31 @@ watch(() => props.prospect, (newProspect) => {
 // Toggle edit mode for a field
 function toggleEdit(field) {
   if (editing[field]) {
+    // Currently editing, save the field
     saveField(field)
   } else {
+    // Start editing
     editing[field] = true
+    
+    // For date field, ensure we have the current value in the form
+    if (field === 'estimated_completion_date') {
+      console.log(`📅 Starting edit for date. Current prospect value: ${props.prospect.estimated_completion_date}`)
+      console.log(`📅 Current form value: ${form.estimated_completion_date}`)
+      
+      // Sync form with prospect if they differ
+      if (form.estimated_completion_date !== props.prospect.estimated_completion_date) {
+        form.estimated_completion_date = props.prospect.estimated_completion_date || ''
+        console.log(`📅 Synced form date to: ${form.estimated_completion_date}`)
+      }
+    }
   }
 }
 
 // Save a specific field
 async function saveField(field) {
   try {
+    console.log(`🔄 Saving field '${field}' with value:`, form[field])
+    
     const updateData = {
       name: form.name,
       email: form.email,
@@ -406,12 +422,21 @@ async function saveField(field) {
       tabId: props.prospect.tabId || props.prospect.tab_id || 'default'
     }
 
+    console.log(`🔄 Full update data for ${field}:`, updateData)
+
     const result = await prospectsStore.updateProspect(props.prospect.id, updateData)
     
     if (result.success) {
       // Update the original prospect object
       Object.assign(props.prospect, form)
       editing[field] = false
+      
+      // Force reactivity update for the specific field
+      if (field === 'estimated_completion_date') {
+        console.log(`✅ Successfully saved estimated_completion_date: ${form.estimated_completion_date}`)
+        console.log(`📅 Updated prospect object:`, props.prospect.estimated_completion_date)
+      }
+      
       console.log(`✅ Updated ${field} for ${props.prospect.name}`)
     } else {
       console.error('❌ Failed to update prospect:', result.error)
@@ -466,12 +491,15 @@ function formatCurrency(amount) {
 
 function formatDate(dateString) {
   if (!dateString) return ''
+  console.log(`📅 Formatting date: ${dateString}`)
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', { 
+  const formatted = date.toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'short', 
     day: 'numeric' 
   })
+  console.log(`📅 Formatted result: ${formatted}`)
+  return formatted
 }
 
 function getWeightedRevenue() {
