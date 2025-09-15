@@ -2131,16 +2131,4 @@ body.theme-retro .tab-button.active {
 body.theme-retro * {
   transition: none !important;
 }
-
-/* Curseur personnalisé style rétro */
-body.theme-retro * {
-  cursor: crosshair;
-}
-
-body.theme-retro button,
-body.theme-retro a,
-body.theme-retro input,
-body.theme-retro select {
-  cursor: pointer !important;
-}
 </style>
