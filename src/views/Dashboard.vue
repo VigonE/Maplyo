@@ -76,7 +76,7 @@
       </div>
 
       <!-- Gestionnaire d'onglets avec listes -->
-      <div class="flex-1 overflow-hidden">
+      <div class="flex-1 flex flex-col min-h-0">
         <TabsManager
           ref="tabsManager"
           :lead-times="closingLeadTimes"

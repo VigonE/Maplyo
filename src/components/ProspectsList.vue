@@ -559,10 +559,10 @@
       </div>
 
       <!-- Affichage Funnel (horizontal) - Nouveau mode -->
-      <div v-else-if="viewMode === 'funnel'" class="h-full flex gap-4 p-4">
+      <div v-else-if="viewMode === 'funnel'" class="min-h-full flex gap-4 p-4">
         <!-- Colonne COLD -->
-        <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col">
-          <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200">
+        <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col min-h-0">
+          <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200 flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="flex flex-col">
                 <div class="flex items-center gap-2">
@@ -583,7 +583,7 @@
               </div>
             </div>
           </div>
-          <div class="flex-1 p-3 overflow-y-auto">
+          <div class="flex-1 p-3">
             <draggable
               v-model="coldProspects"
               group="prospects"
@@ -613,8 +613,8 @@
         </div>
 
         <!-- Colonne WARM -->
-        <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex flex-col">
-          <div class="bg-yellow-100 p-3 rounded-t-lg border-b border-yellow-200">
+        <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex flex-col min-h-0">
+          <div class="bg-yellow-100 p-3 rounded-t-lg border-b border-yellow-200 flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="flex flex-col">
                 <div class="flex items-center gap-2">
@@ -635,7 +635,7 @@
               </div>
             </div>
           </div>
-          <div class="flex-1 p-3 overflow-y-auto">
+          <div class="flex-1 p-3">
             <draggable
               v-model="warmProspects"
               group="prospects"
@@ -665,8 +665,8 @@
         </div>
 
         <!-- Colonne HOT -->
-        <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col">
-          <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
+        <div class="flex-1 bg-red-50 border-2 border-red-200 rounded-lg flex flex-col min-h-0">
+          <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200 flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="flex flex-col">
                 <div class="flex items-center gap-2">
@@ -687,7 +687,7 @@
               </div>
             </div>
           </div>
-          <div class="flex-1 p-3 overflow-y-auto">
+          <div class="flex-1 p-3">
             <draggable
               v-model="hotProspects"
               group="prospects"
