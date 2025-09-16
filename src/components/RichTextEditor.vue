@@ -184,7 +184,7 @@
     <EditorContent 
       :editor="editor" 
       :class="editorClass"
-      class="editor border border-gray-300 border-t-0 rounded-b-md p-3 min-h-[100px] max-h-[300px] overflow-y-auto focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500"
+      class="editor border border-gray-300 border-t-0 rounded-b-md p-3 min-h-[100px] max-h-[300px] overflow-y-auto"
       style="resize: vertical;"
     />
   </div>
@@ -347,6 +347,12 @@ defineExpose({
 .editor {
   font-size: 12px;
   line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.editor:focus-within {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 1px rgba(156, 163, 175, 0.3);
 }
 
 /* Styles Tiptap personnalisés */
@@ -354,6 +360,11 @@ defineExpose({
   outline: none;
   padding: 0;
   margin: 0;
+}
+
+:deep(.tiptap-editor:focus) {
+  outline: none;
+  box-shadow: none;
 }
 
 :deep(.tiptap-editor[data-placeholder]:empty::before) {
@@ -621,12 +632,7 @@ defineExpose({
 
 /* Amélioration de l'accessibilité */
 .toolbar button:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-:deep(.tiptap-editor:focus-visible) {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #9ca3af;
   outline-offset: 2px;
 }
 </style>
