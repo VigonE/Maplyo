@@ -559,7 +559,9 @@
       </div>
 
       <!-- Affichage Funnel (horizontal) - Nouveau mode -->
-      <div v-else-if="viewMode === 'funnel'" class="min-h-full flex gap-4 p-4">
+      <div v-else-if="viewMode === 'funnel'" class="min-h-full p-4">
+        <!-- Conteneur pour les 3 colonnes principales -->
+        <div class="flex gap-4 mb-6">
         <!-- Colonne COLD -->
         <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg flex flex-col min-h-0">
           <div class="bg-blue-100 p-3 rounded-t-lg border-b border-blue-200 flex-shrink-0">
@@ -714,6 +716,93 @@
                 </div>
               </template>
             </draggable>
+          </div>
+        </div>
+        </div>
+
+        <!-- Section Recurring - Nouvelle section sous les 3 colonnes -->
+        <div class="w-full">
+          <div class="bg-purple-50 border-2 border-purple-200 rounded-lg">
+            <!-- En-tête Recurring -->
+            <div class="bg-purple-100 p-3 rounded-t-lg border-b border-purple-200">
+              <div class="flex items-center justify-between">
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                    <h3 class="font-semibold text-purple-800">🔄 RECURRING</h3>
+                  </div>
+                  <div class="text-xs text-purple-600 mt-1">
+                    ⏰ Regular followups • 📅 Monthly/Quarterly cycles
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="text-sm text-purple-600 bg-purple-200 px-2 py-1 rounded-full">
+                    {{ getProspectsByStatus('recurring').length }}
+                  </span>
+                  <div class="text-xs font-medium text-purple-700 mt-1">
+                    💰 {{ formatCurrency(recurringWeightedRevenue) }}
+                  </div>
+                  <div v-if="getRecurringDueCount() > 0" class="text-xs text-red-600 font-medium mt-1">
+                    🚨 {{ getRecurringDueCount() }} due for followup
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Liste Recurring - affichage horizontal pour toute la largeur -->
+            <div class="p-3 min-h-[120px]">
+              <draggable
+                v-model="recurringProspects"
+                group="prospects"
+                @change="(evt) => handleFunnelDrop(evt, 'recurring')"
+                item-key="id"
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+                :data-status="'recurring'"
+              >
+                <template #item="{ element: prospect }">
+                  <div class="relative">
+                    <div 
+                      class="bg-white rounded-lg shadow-sm border border-purple-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                      :class="{ 'ring-2 ring-red-400': isFollowupDue(prospect) }"
+                      @click="openProspectModal(prospect)"
+                    >
+                      <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                        <span class="text-xs text-purple-600">{{ prospect.recurrence_months || 12 }}mo cycle</span>
+                      </div>
+                      <div v-if="prospect.next_followup_date" class="text-xs" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                        📅 Next: {{ formatDate(prospect.next_followup_date) }}
+                      </div>
+                      <!-- Bouton de suivi rapide -->
+                      <button
+                        v-if="isFollowupDue(prospect)"
+                        @click.stop="markFollowupComplete(prospect)"
+                        class="mt-2 w-full text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors"
+                      >
+                        ✅ Mark Followup Complete
+                      </button>
+                    </div>
+                    <!-- Indicateur visuel de suivi dû -->
+                    <div 
+                      v-if="isFollowupDue(prospect)"
+                      class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"
+                      title="Followup due"
+                    ></div>
+                  </div>
+                </template>
+              </draggable>
+              
+              <!-- Message si aucun prospect recurring -->
+              <div v-if="getProspectsByStatus('recurring').length === 0" class="text-center py-8">
+                <svg class="mx-auto h-8 w-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <p class="mt-2 text-sm text-purple-600">No recurring prospects yet</p>
+                <p class="text-xs text-purple-500">Drag prospects here to set up recurring followups</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -989,6 +1078,14 @@ watch(viewMode, (newMode) => {
 const hotProspects = ref([])
 const warmProspects = ref([])
 const coldProspects = ref([])
+const recurringProspects = ref([])
+
+// Computed property pour le revenu pondéré des prospects récurrents
+const recurringWeightedRevenue = computed(() => {
+  return recurringProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
 
 // Fonction pour initialiser les listes de prospects
 function initializeFunnelProspects() {
@@ -1000,12 +1097,14 @@ function initializeFunnelProspects() {
   hotProspects.value = filteredProspects.filter(p => p.status === 'hot')
   warmProspects.value = filteredProspects.filter(p => p.status === 'warm')
   coldProspects.value = filteredProspects.filter(p => p.status === 'cold')
+  recurringProspects.value = filteredProspects.filter(p => p.status === 'recurring')
   
   console.log(`🔄 Funnel initialized for tab ${props.tabId} with filters:`, {
     total: filteredProspects.length,
     hot: hotProspects.value.length,
     warm: warmProspects.value.length,
-    cold: coldProspects.value.length
+    cold: coldProspects.value.length,
+    recurring: recurringProspects.value.length
   })
 }
 
@@ -1941,11 +2040,8 @@ async function handleFunnelDrop(event, newStatus) {
     // Mise à jour immédiate et locale seulement
     prospect.status = newStatus
     
-    // Forcer la mise à jour des arrays du funnel pour la réactivité des computed properties
-    initializeFunnelProspects()
-    
-    // Sauvegarde en arrière-plan sans attendre
-    prospectsStore.updateProspect(prospect.id, {
+    // Traitement spécial pour les prospects récurrents
+    let updateData = {
       name: prospect.name,
       email: prospect.email || '',
       phone: prospect.phone || '',
@@ -1958,7 +2054,31 @@ async function handleFunnelDrop(event, newStatus) {
       notes: prospect.notes || '',
       tabId: prospect.tabId || prospect.tab_id || 'default',
       estimated_completion_date: prospect.estimated_completion_date
-    }).then(result => {
+    }
+    
+    // Si le prospect devient récurrent, initialiser les données de récurrence
+    if (newStatus === 'recurring') {
+      if (!prospect.recurrence_months) {
+        prospect.recurrence_months = 12 // Défaut 12 mois
+      }
+      if (!prospect.next_followup_date) {
+        // Programmer le premier suivi dans 1 mois
+        const nextDate = new Date()
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        prospect.next_followup_date = nextDate.toISOString().split('T')[0]
+      }
+      
+      updateData.recurrence_months = prospect.recurrence_months
+      updateData.next_followup_date = prospect.next_followup_date
+      
+      console.log(`🔄 Setting up recurring prospect: ${prospect.recurrence_months}mo cycle, next followup: ${prospect.next_followup_date}`)
+    }
+    
+    // Forcer la mise à jour des arrays du funnel pour la réactivité des computed properties
+    initializeFunnelProspects()
+    
+    // Sauvegarde en arrière-plan sans attendre
+    prospectsStore.updateProspect(prospect.id, updateData).then(result => {
       if (result.success) {
         console.log(`✅ Saved ${prospect.name} status update`)
       } else {
@@ -2007,6 +2127,79 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleModalKeydown)
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
+
+// ===============================
+// FONCTIONS POUR LES PROSPECTS RÉCURRENTS
+// ===============================
+
+// Vérifier si un suivi est dû pour un prospect récurrent
+function isFollowupDue(prospect) {
+  if (!prospect.next_followup_date) return false
+  const today = new Date()
+  const followupDate = new Date(prospect.next_followup_date)
+  return followupDate <= today
+}
+
+// Compter le nombre de suivis dus
+function getRecurringDueCount() {
+  return recurringProspects.value.filter(isFollowupDue).length
+}
+
+// Marquer un suivi comme terminé et programmer le prochain
+async function markFollowupComplete(prospect) {
+  try {
+    // Calculer la prochaine date de suivi
+    const currentDate = new Date()
+    const recurrenceMonths = prospect.recurrence_months || 12
+    const nextFollowupDate = new Date(currentDate)
+    nextFollowupDate.setMonth(currentDate.getMonth() + recurrenceMonths)
+    
+    // Mettre à jour le prospect
+    const updateData = {
+      ...prospect,
+      next_followup_date: nextFollowupDate.toISOString().split('T')[0],
+      last_followup_date: currentDate.toISOString().split('T')[0]
+    }
+    
+    const result = await prospectsStore.updateProspect(prospect.id, updateData)
+    
+    if (result.success) {
+      // Mettre à jour le prospect local
+      prospect.next_followup_date = updateData.next_followup_date
+      prospect.last_followup_date = updateData.last_followup_date
+      
+      console.log(`✅ Followup marked complete for ${prospect.name}, next due: ${updateData.next_followup_date}`)
+      
+      // Forcer la mise à jour de l'affichage
+      initializeFunnelProspects()
+    } else {
+      console.error('❌ Failed to update followup date')
+    }
+  } catch (error) {
+    console.error('❌ Error updating followup:', error)
+  }
+}
+
+// Formater une date pour l'affichage
+function formatDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const today = new Date()
+  const diffTime = date.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays === -1) return 'Yesterday'
+  if (diffDays < 0) return `${Math.abs(diffDays)} days ago`
+  if (diffDays <= 7) return `In ${diffDays} days`
+  
+  return date.toLocaleDateString('fr-FR', { 
+    day: 'numeric', 
+    month: 'short', 
+    year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined 
+  })
+}
 </script>
 
 <style scoped>

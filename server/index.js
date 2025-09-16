@@ -68,6 +68,13 @@ const calculateEstimatedCompletionDate = async (userId, status, providedDate = n
   }
 }
 
+// Helper function to calculate next followup date for recurring prospects
+const calculateNextFollowupDate = (recurrenceMonths = 12) => {
+  const nextDate = new Date()
+  nextDate.setMonth(nextDate.getMonth() + recurrenceMonths)
+  return nextDate.toISOString().split('T')[0] // Return YYYY-MM-DD format
+}
+
 // Auth middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization']
@@ -128,12 +135,14 @@ async function initDatabase() {
         longitude DECIMAL(11, 8),
         revenue DECIMAL(12, 2) NOT NULL,
         probability_coefficient DECIMAL(5, 2) DEFAULT 100.00,
-        status ENUM('cold', 'warm', 'hot', 'won', 'lost') DEFAULT 'cold',
+        status ENUM('cold', 'warm', 'hot', 'won', 'lost', 'recurring') DEFAULT 'cold',
         tabId VARCHAR(255),
         notes TEXT,
         color VARCHAR(7) DEFAULT '#3b82f6',
         sort_order INT DEFAULT 0,
         estimated_completion_date DATE,
+        recurrence_months INT DEFAULT 12,
+        next_followup_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -237,11 +246,37 @@ async function initDatabase() {
     try {
       await db.execute(`
         ALTER TABLE prospects 
-        MODIFY COLUMN status ENUM('cold', 'warm', 'hot', 'won', 'lost') DEFAULT 'cold'
+        MODIFY COLUMN status ENUM('cold', 'warm', 'hot', 'won', 'lost', 'recurring') DEFAULT 'cold'
       `)
       console.log('Updated status column ENUM values')
     } catch (error) {
       console.log('Status column update may have failed (this is normal for new tables):', error.message)
+    }
+
+    // Add recurrence_months column if it doesn't exist
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        ADD COLUMN recurrence_months INT DEFAULT 12
+      `)
+      console.log('Added recurrence_months column to prospects table')
+    } catch (error) {
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('Column recurrence_months may already exist:', error.message)
+      }
+    }
+
+    // Add next_followup_date column if it doesn't exist
+    try {
+      await db.execute(`
+        ALTER TABLE prospects 
+        ADD COLUMN next_followup_date DATE
+      `)
+      console.log('Added next_followup_date column to prospects table')
+    } catch (error) {
+      if (!error.message.includes('Duplicate column name')) {
+        console.log('Column next_followup_date may already exist:', error.message)
+      }
     }
 
     return db
@@ -499,6 +534,65 @@ app.get('/api/prospects', authenticateToken, async (req, res) => {
   }
 })
 
+// Get recurring prospects that need followup
+app.get('/api/prospects/recurring/due', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    const [prospects] = await db.execute(
+      `SELECT * FROM prospects 
+       WHERE user_id = ? 
+       AND status = 'recurring' 
+       AND next_followup_date <= CURDATE() 
+       ORDER BY next_followup_date ASC`,
+      [req.user.id]
+    )
+    await db.end()
+    res.json(prospects)
+  } catch (error) {
+    console.error('Erreur lors de la récupération des prospects recurring dus:', error)
+    res.status(500).json({ message: 'Erreur serveur' })
+  }
+})
+
+// Mark recurring prospect as followed up and set next followup date
+app.put('/api/prospects/:id/followup', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { recurrence_months } = req.body
+    const db = await mysql.createConnection(dbConfig)
+
+    // Check ownership and that it's a recurring prospect
+    const [existing] = await db.execute(
+      'SELECT * FROM prospects WHERE id = ? AND user_id = ? AND status = "recurring"',
+      [id, req.user.id]
+    )
+
+    if (existing.length === 0) {
+      await db.end()
+      return res.status(404).json({ message: 'Prospect recurring non trouvé' })
+    }
+
+    const prospect = existing[0]
+    const recurrenceMonthsValue = recurrence_months || prospect.recurrence_months || 12
+    const nextFollowupDate = calculateNextFollowupDate(recurrenceMonthsValue)
+
+    // Update next followup date and recurrence if provided
+    await db.execute(
+      'UPDATE prospects SET next_followup_date = ?, recurrence_months = ? WHERE id = ? AND user_id = ?',
+      [nextFollowupDate, recurrenceMonthsValue, id, req.user.id]
+    )
+
+    // Get updated prospect
+    const [updated] = await db.execute('SELECT * FROM prospects WHERE id = ?', [id])
+    await db.end()
+
+    res.json(updated[0])
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du suivi recurring:', error)
+    res.status(500).json({ message: 'Erreur serveur' })
+  }
+})
+
 app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     const { 
@@ -513,7 +607,8 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
       status, 
       tabId, 
       notes,
-      estimated_completion_date 
+      estimated_completion_date,
+      recurrence_months
     } = req.body
     const db = await mysql.createConnection(dbConfig)
 
@@ -537,17 +632,29 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     const sortOrder = (maxOrder[0].max_order || 0) + 1
 
     // Calculate estimated completion date
-    const estimatedDate = await calculateEstimatedCompletionDate(
-      req.user.id, 
-      status || 'cold', 
-      estimated_completion_date
-    )
+    let estimatedDate = null
+    let nextFollowupDate = null
+    
+    if (status === 'recurring') {
+      // For recurring prospects, calculate next followup date
+      const recurrenceMonthsValue = recurrence_months || 12
+      nextFollowupDate = calculateNextFollowupDate(recurrenceMonthsValue)
+    } else {
+      // For regular prospects, calculate estimated completion date
+      estimatedDate = await calculateEstimatedCompletionDate(
+        req.user.id, 
+        status || 'cold', 
+        estimated_completion_date
+      )
+    }
 
     // Insert prospect with probability coefficient (default to 100% if not provided)
     const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : 100.00
+    const recurrenceMonthsValue = status === 'recurring' ? (recurrence_months || 12) : null
+    
     const [result] = await db.execute(
-      'INSERT INTO prospects (user_id, name, email, phone, company, position, address, latitude, longitude, revenue, probability_coefficient, status, tabId, notes, sort_order, estimated_completion_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.id, name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, sortOrder, estimatedDate]
+      'INSERT INTO prospects (user_id, name, email, phone, company, position, address, latitude, longitude, revenue, probability_coefficient, status, tabId, notes, sort_order, estimated_completion_date, recurrence_months, next_followup_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.id, name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, sortOrder, estimatedDate, recurrenceMonthsValue, nextFollowupDate]
     )
 
     // Get created prospect
@@ -576,7 +683,8 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
       status, 
       tabId, 
       notes,
-      estimated_completion_date 
+      estimated_completion_date,
+      recurrence_months
     } = req.body
     const db = await mysql.createConnection(dbConfig)
 
@@ -610,23 +718,41 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
     // Use existing probability coefficient if not provided
     const probabilityCoeff = probability_coefficient !== undefined ? probability_coefficient : prospect.probability_coefficient
 
-    // Calculate estimated completion date if status changed or not provided
+    // Calculate dates based on status
     let estimatedDate = prospect.estimated_completion_date
-    if (estimated_completion_date !== undefined) {
-      estimatedDate = estimated_completion_date
-    } else if (status !== prospect.status) {
-      // Status changed, recalculate estimated date
+    let nextFollowupDate = prospect.next_followup_date
+    let recurrenceMonthsValue = prospect.recurrence_months
+
+    if (status === 'recurring') {
+      // Moving to or updating recurring status
+      recurrenceMonthsValue = recurrence_months || prospect.recurrence_months || 12
+      nextFollowupDate = calculateNextFollowupDate(recurrenceMonthsValue)
+      estimatedDate = null // Clear estimated completion date for recurring
+    } else if (prospect.status === 'recurring' && status !== 'recurring') {
+      // Moving from recurring to regular status
+      recurrenceMonthsValue = null
+      nextFollowupDate = null
       estimatedDate = await calculateEstimatedCompletionDate(
         req.user.id, 
         status || prospect.status, 
-        null
+        estimated_completion_date
       )
+    } else if (status !== prospect.status) {
+      // Status changed for regular prospects
+      estimatedDate = await calculateEstimatedCompletionDate(
+        req.user.id, 
+        status || prospect.status, 
+        estimated_completion_date
+      )
+    } else if (estimated_completion_date !== undefined) {
+      // Manually setting estimated date
+      estimatedDate = estimated_completion_date
     }
 
     // Update prospect
     await db.execute(
-      'UPDATE prospects SET name = ?, email = ?, phone = ?, company = ?, position = ?, address = ?, latitude = ?, longitude = ?, revenue = ?, probability_coefficient = ?, status = ?, tabId = ?, notes = ?, estimated_completion_date = ? WHERE id = ? AND user_id = ?',
-      [name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, estimatedDate, id, req.user.id]
+      'UPDATE prospects SET name = ?, email = ?, phone = ?, company = ?, position = ?, address = ?, latitude = ?, longitude = ?, revenue = ?, probability_coefficient = ?, status = ?, tabId = ?, notes = ?, estimated_completion_date = ?, recurrence_months = ?, next_followup_date = ? WHERE id = ? AND user_id = ?',
+      [name, email, phone, company, position, address, latitude, longitude, revenue, probabilityCoeff, status, tabId, notes, estimatedDate, recurrenceMonthsValue, nextFollowupDate, id, req.user.id]
     )
 
     // Get updated prospect

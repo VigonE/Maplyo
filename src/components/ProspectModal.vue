@@ -139,9 +139,48 @@
               <option value="cold">Cold</option>
               <option value="warm">Warm</option>
               <option value="hot">Hot</option>
+              <option value="recurring">Recurring</option>
               <option value="won">Won</option>
               <option value="lost">Lost</option>
             </select>
+          </div>
+
+          <!-- Champs spécifiques aux prospects récurrents -->
+          <div v-if="form.status === 'recurring'" class="space-y-4 border-t pt-4">
+            <h4 class="text-md font-medium text-purple-800">🔄 Recurring Settings</h4>
+            
+            <div>
+              <label for="recurrence_months" class="block text-sm font-medium text-gray-700 mb-1">
+                Recurrence Interval (months)
+              </label>
+              <select
+                id="recurrence_months"
+                v-model.number="form.recurrence_months"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option :value="1">Every month</option>
+                <option :value="2">Every 2 months</option>
+                <option :value="3">Every 3 months (Quarterly)</option>
+                <option :value="6">Every 6 months</option>
+                <option :value="12">Every 12 months (Yearly)</option>
+                <option :value="24">Every 24 months</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="next_followup_date" class="block text-sm font-medium text-gray-700 mb-1">
+                Next Followup Date
+              </label>
+              <input
+                id="next_followup_date"
+                v-model="form.next_followup_date"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                When is the next followup due?
+              </p>
+            </div>
           </div>
 
           <div>
@@ -283,7 +322,9 @@ const form = reactive({
   status: 'cold',
   tabId: '',
   notes: '',
-  estimated_completion_date: ''
+  estimated_completion_date: '',
+  recurrence_months: 12,
+  next_followup_date: ''
 })
 
 // Lifecycle hooks
@@ -310,7 +351,9 @@ watch(() => props.prospect, (newLead) => {
       status: newLead.status || 'cold',
       tabId: newLead.tab_id || newLead.tabId || '',
       notes: newLead.notes || '',
-      estimated_completion_date: newLead.estimated_completion_date || ''
+      estimated_completion_date: newLead.estimated_completion_date || '',
+      recurrence_months: newLead.recurrence_months || 12,
+      next_followup_date: newLead.next_followup_date || ''
     })
   } else {
     // Reset form for new lead
@@ -326,7 +369,9 @@ watch(() => props.prospect, (newLead) => {
       status: 'cold',
       tabId: '',
       notes: '',
-      estimated_completion_date: ''
+      estimated_completion_date: '',
+      recurrence_months: 12,
+      next_followup_date: ''
     })
     // Re-set default tab for new prospect
     if (availableTabsRef.value.length > 0) {
