@@ -1,12 +1,13 @@
 <template>
   <div class="rich-text-editor">
-    <!-- Barre d'outils -->
-    <div class="toolbar bg-gray-50 border border-gray-300 rounded-t-md p-2 flex items-center gap-1">
+    <!-- Barre d'outils Tiptap -->
+    <div class="toolbar bg-gray-50 border border-gray-300 rounded-t-md p-2 flex items-center gap-1 flex-wrap">
+      <!-- Formatage de base -->
       <button
-        @click="execCommand('bold')"
-        :class="{ 'bg-blue-100': isActive('bold') }"
+        @click="editor.chain().focus().toggleBold().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('bold') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Gras"
+        title="Gras (Ctrl+B)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,10 +17,10 @@
       </button>
       
       <button
-        @click="execCommand('italic')"
-        :class="{ 'bg-blue-100': isActive('italic') }"
+        @click="editor.chain().focus().toggleItalic().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('italic') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Italique"
+        title="Italique (Ctrl+I)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,10 +29,10 @@
       </button>
       
       <button
-        @click="execCommand('underline')"
-        :class="{ 'bg-blue-100': isActive('underline') }"
+        @click="editor.chain().focus().toggleUnderline().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('underline') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Souligné"
+        title="Souligné (Ctrl+U)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,62 +40,168 @@
         </svg>
       </button>
       
+      <button
+        @click="editor.chain().focus().toggleStrike().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('strike') }"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Barré"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h12M8 7h8m-8 10h8"></path>
+        </svg>
+      </button>
+      
       <div class="w-px h-4 bg-gray-300 mx-1"></div>
       
+      <!-- Listes -->
       <button
-        @click="execCommand('insertUnorderedList')"
-        :class="{ 'bg-blue-100': isActive('insertUnorderedList') }"
+        @click="editor.chain().focus().toggleBulletList().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('bulletList') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
         title="Liste à puces"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          <circle cx="6" cy="6" r="1.5" fill="currentColor"></circle>
+          <circle cx="6" cy="12" r="1.5" fill="currentColor"></circle>
+          <circle cx="6" cy="18" r="1.5" fill="currentColor"></circle>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h10M10 12h10M10 18h10"></path>
         </svg>
       </button>
       
       <button
-        @click="execCommand('insertOrderedList')"
-        :class="{ 'bg-blue-100': isActive('insertOrderedList') }"
+        @click="editor.chain().focus().toggleOrderedList().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('orderedList') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
         title="Liste numérotée"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h1m0 0V3m0 3v3m5-6h10M9 12h10M9 18h10"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h1m0 0v3m0-3v-3m0 6h1"></path>
+          <circle cx="3.5" cy="18" r="0.5" fill="currentColor"></circle>
+        </svg>
+      </button>
+      
+      <button
+        @click="editor.chain().focus().toggleTaskList().run()"
+        :class="{ 'bg-blue-100': editor?.isActive('taskList') }"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Liste de tâches"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
       </button>
       
       <div class="w-px h-4 bg-gray-300 mx-1"></div>
       
+      <!-- Alignement -->
       <button
-        @click="createLink"
+        @click="editor.chain().focus().setTextAlign('left').run()"
+        :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'left' }) }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Lien"
+        title="Aligner à gauche"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h10M4 12h16M4 18h10"></path>
+        </svg>
+      </button>
+      
+      <button
+        @click="editor.chain().focus().setTextAlign('center').run()"
+        :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'center' }) }"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Centrer"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 6h10M4 12h16M7 18h10"></path>
+        </svg>
+      </button>
+      
+      <button
+        @click="editor.chain().focus().setTextAlign('right').run()"
+        :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'right' }) }"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Aligner à droite"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6h10M4 12h16M10 18h10"></path>
+        </svg>
+      </button>
+      
+      <div class="w-px h-4 bg-gray-300 mx-1"></div>
+      
+      <!-- Couleurs -->
+      <select
+        @change="changeTextColor($event)"
+        class="p-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+        title="Couleur du texte"
+      >
+        <option value="">Couleur</option>
+        <option value="#000000">Noir</option>
+        <option value="#dc2626">Rouge</option>
+        <option value="#059669">Vert</option>
+        <option value="#2563eb">Bleu</option>
+        <option value="#7c3aed">Violet</option>
+        <option value="#ea580c">Orange</option>
+      </select>
+      
+      <div class="w-px h-4 bg-gray-300 mx-1"></div>
+      
+      <!-- Liens -->
+      <button
+        @click="setLink"
+        :class="{ 'bg-blue-100': editor?.isActive('link') }"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Lien (Ctrl+K)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
         </svg>
       </button>
+      
+      <!-- Actions -->
+      <button
+        @click="editor.chain().focus().clearNodes().unsetAllMarks().run()"
+        class="p-1 rounded hover:bg-gray-200 transition-colors"
+        title="Supprimer le formatage"
+        type="button"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
     </div>
     
-    <!-- Zone d'édition -->
-    <div
-      ref="editor"
-      contenteditable="true"
-      @input="onInput"
-      @keydown="onKeydown"
-      @blur="onBlur"
+    <!-- Zone d'édition Tiptap -->
+    <EditorContent 
+      :editor="editor" 
       :class="editorClass"
-      class="editor border border-gray-300 border-t-0 rounded-b-md p-3 min-h-[100px] max-h-[300px] overflow-y-auto focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      class="editor border border-gray-300 border-t-0 rounded-b-md p-3 min-h-[100px] max-h-[300px] overflow-y-auto focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500"
       style="resize: vertical;"
-    ></div>
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { useEditor, EditorContent } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import TextAlign from '@tiptap/extension-text-align'
+import { Color } from '@tiptap/extension-color'
+import { TextStyle } from '@tiptap/extension-text-style'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
+import Strike from '@tiptap/extension-strike'
+import { watch, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -113,126 +220,413 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'blur', 'keydown'])
 
-const editor = ref(null)
+const editor = useEditor({
+  content: props.modelValue,
+  extensions: [
+    StarterKit.configure({
+      history: {
+        depth: 50,
+      },
+    }),
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+    }),
+    Color.configure({
+      types: ['textStyle'],
+    }),
+    TextStyle,
+    TaskList.configure({
+      HTMLAttributes: {
+        class: 'tiptap-task-list',
+      },
+    }),
+    TaskItem.configure({
+      nested: true,
+      HTMLAttributes: {
+        class: 'tiptap-task-item',
+      },
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'tiptap-link',
+      },
+    }),
+    Underline,
+    Strike,
+  ],
+  editorProps: {
+    attributes: {
+      placeholder: props.placeholder,
+      class: 'tiptap-editor prose prose-sm max-w-none focus:outline-none',
+    },
+  },
+  onUpdate: ({ editor }) => {
+    emit('update:modelValue', editor.getHTML())
+  },
+  onBlur: () => {
+    emit('blur')
+  },
+})
 
 // Mettre à jour le contenu de l'éditeur quand le modelValue change
 watch(() => props.modelValue, (newValue) => {
-  if (editor.value && editor.value.innerHTML !== newValue) {
-    editor.value.innerHTML = newValue || ''
-  }
-}, { immediate: true })
-
-onMounted(() => {
-  if (editor.value) {
-    editor.value.innerHTML = props.modelValue || ''
-    
-    // Ajouter le placeholder
-    if (!props.modelValue) {
-      editor.value.setAttribute('data-placeholder', props.placeholder)
-    }
+  if (editor.value && editor.value.getHTML() !== newValue) {
+    editor.value.commands.setContent(newValue || '', false)
   }
 })
 
-function execCommand(command, value = null) {
-  document.execCommand(command, false, value)
-  editor.value.focus()
-  onInput()
-}
-
-function isActive(command) {
-  return document.queryCommandState(command)
-}
-
-function createLink() {
-  const url = prompt('Entrez l\'URL du lien:')
-  if (url) {
-    execCommand('createLink', url)
+// Fonctions pour la barre d'outils
+function changeTextColor(event) {
+  const color = event.target.value
+  if (color && editor.value) {
+    editor.value.chain().focus().setColor(color).run()
+    event.target.value = '' // Reset select
   }
 }
 
-function onInput() {
-  const content = editor.value.innerHTML
-  emit('update:modelValue', content)
+function setLink() {
+  if (!editor.value) return
   
-  // Gérer le placeholder
-  if (content.trim() === '' || content === '<br>') {
-    editor.value.setAttribute('data-placeholder', props.placeholder)
-  } else {
-    editor.value.removeAttribute('data-placeholder')
+  const previousUrl = editor.value.getAttributes('link').href
+  const url = window.prompt('URL du lien:', previousUrl)
+  
+  // cancelled
+  if (url === null) {
+    return
   }
-}
-
-function onKeydown(event) {
-  emit('keydown', event)
-}
-
-function onBlur() {
-  emit('blur')
+  
+  // empty
+  if (url === '') {
+    editor.value.chain().focus().extendMarkRange('link').unsetLink().run()
+    return
+  }
+  
+  // update link
+  editor.value.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
 }
 
 // Méthode pour focus sur l'éditeur
 function focus() {
   if (editor.value) {
-    editor.value.focus()
+    editor.value.commands.focus()
   }
 }
 
-// Exposer la méthode focus pour le composant parent
-defineExpose({ focus })
+// Raccourcis clavier personnalisés
+if (editor.value) {
+  editor.value.setOptions({
+    editorProps: {
+      ...editor.value.options.editorProps,
+      handleKeyDown: (view, event) => {
+        emit('keydown', event)
+        
+        // Laisser Tiptap gérer ses propres raccourcis
+        return false
+      },
+    },
+  })
+}
+
+// Nettoyer l'éditeur à la destruction du composant
+onBeforeUnmount(() => {
+  if (editor.value) {
+    editor.value.destroy()
+  }
+})
+
+// Exposer les méthodes pour le composant parent
+defineExpose({ 
+  focus,
+  editor: editor.value
+})
 </script>
 
 <style scoped>
-.editor[data-placeholder]:empty::before {
-  content: attr(data-placeholder);
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.editor[data-placeholder]:empty:focus::before {
-  content: '';
-}
-
+/* Styles généraux pour l'éditeur */
 .editor {
   font-size: 12px;
   line-height: 1.5;
 }
 
-.editor p {
+/* Styles Tiptap personnalisés */
+:deep(.tiptap-editor) {
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+:deep(.tiptap-editor[data-placeholder]:empty::before) {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+  height: 0;
+  float: left;
+  pointer-events: none;
+}
+
+:deep(.tiptap-editor p) {
   margin: 0 0 8px 0;
 }
 
-.editor p:last-child {
+:deep(.tiptap-editor p:last-child) {
   margin-bottom: 0;
 }
 
-.editor ul, .editor ol {
+:deep(.tiptap-editor ul, .tiptap-editor ol) {
   margin: 4px 0;
-  padding-left: 16px;
+  padding-left: 20px;
 }
 
-.editor li {
+:deep(.tiptap-editor ul) {
+  list-style-type: disc;
+}
+
+:deep(.tiptap-editor ol) {
+  list-style-type: decimal;
+}
+
+:deep(.tiptap-editor li) {
+  margin-bottom: 2px;
+  display: list-item;
+}
+
+:deep(.tiptap-editor ul ul) {
+  list-style-type: circle;
+  margin-top: 2px;
   margin-bottom: 2px;
 }
 
-.editor strong {
+:deep(.tiptap-editor ul ul ul) {
+  list-style-type: square;
+}
+
+:deep(.tiptap-editor strong) {
   font-weight: 600;
 }
 
-.editor em {
+:deep(.tiptap-editor em) {
   font-style: italic;
 }
 
-.editor a {
-  color: #3b82f6;
+:deep(.tiptap-editor u) {
   text-decoration: underline;
 }
 
-.editor a:hover {
+:deep(.tiptap-editor s) {
+  text-decoration: line-through;
+}
+
+/* Styles pour les liens */
+:deep(.tiptap-link) {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+:deep(.tiptap-link:hover) {
   color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Styles pour les listes de tâches */
+:deep(.tiptap-task-list) {
+  list-style: none !important;
+  padding: 0;
+  margin: 4px 0;
+}
+
+:deep(.tiptap-task-item) {
+  display: flex;
+  align-items: flex-start;
+  margin: 4px 0;
+  list-style: none !important;
+}
+
+:deep(.tiptap-task-item::marker) {
+  display: none;
+}
+
+:deep(.tiptap-task-item > label) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+}
+
+:deep(.tiptap-task-item > label > input[type="checkbox"]) {
+  margin: 2px 0 0 0;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+:deep(.tiptap-task-item > label > input[type="checkbox"]:focus) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+:deep(.tiptap-task-item > label > div) {
+  flex: 1;
+  cursor: text;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+:deep(.tiptap-task-item > label > div:focus) {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+
+/* Styles pour l'alignement du texte */
+:deep(.tiptap-editor [style*="text-align: center"]) {
+  text-align: center;
+}
+
+:deep(.tiptap-editor [style*="text-align: right"]) {
+  text-align: right;
+}
+
+:deep(.tiptap-editor [style*="text-align: left"]) {
+  text-align: left;
+}
+
+:deep(.tiptap-editor [style*="text-align: justify"]) {
+  text-align: justify;
+}
+
+/* Amélioration des boutons de la barre d'outils */
+.toolbar button {
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 6px;
+}
+
+.toolbar button:hover {
+  background-color: #e5e7eb;
+  transform: scale(1.05);
+}
+
+.toolbar button:active {
+  transform: scale(0.95);
+}
+
+.toolbar button.bg-blue-100 {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.toolbar select {
+  transition: all 0.2s ease;
+  font-size: 11px;
+  min-width: 70px;
+}
+
+.toolbar select:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.toolbar select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
 }
 
 .toolbar button:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Styles pour les titres */
+:deep(.tiptap-editor h1) {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 12px 0 8px 0;
+}
+
+:deep(.tiptap-editor h2) {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 10px 0 6px 0;
+}
+
+:deep(.tiptap-editor h3) {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+}
+
+/* Styles pour les citations */
+:deep(.tiptap-editor blockquote) {
+  border-left: 3px solid #d1d5db;
+  padding-left: 12px;
+  margin: 8px 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+/* Styles pour le code */
+:deep(.tiptap-editor code) {
+  background-color: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+:deep(.tiptap-editor pre) {
+  background-color: #f3f4f6;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+:deep(.tiptap-editor pre code) {
+  background: none;
+  padding: 0;
+}
+
+/* Responsive design pour la barre d'outils */
+@media (max-width: 640px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .toolbar button {
+    padding: 4px;
+  }
+  
+  .toolbar svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .toolbar select {
+    min-width: 60px;
+    font-size: 10px;
+  }
+}
+
+/* Animation pour les transitions */
+.rich-text-editor {
+  transition: all 0.2s ease;
+}
+
+/* Amélioration de l'accessibilité */
+.toolbar button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+:deep(.tiptap-editor:focus-visible) {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 </style>
