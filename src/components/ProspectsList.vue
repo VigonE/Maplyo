@@ -1165,7 +1165,7 @@ const quillOptionsModal = {
 }
 
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
-const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
+const statusOrder = ['hot', 'warm', 'cold', 'recurring', 'won', 'lost']
 
 // Fonction de recherche
 const searchInProspect = (prospect, query) => {
@@ -1487,6 +1487,7 @@ function getStatusLabel(status) {
     'cold': 'Cold',
     'warm': 'Warm',
     'hot': 'Hot',
+    'recurring': '🔄 Recurring',
     'won': 'Won',
     'lost': 'Lost'
   }
@@ -1498,6 +1499,7 @@ function getStatusClass(status) {
     'cold': 'bg-gray-100 text-gray-800',
     'warm': 'bg-yellow-100 text-yellow-800',
     'hot': 'bg-red-100 text-red-800',
+    'recurring': 'bg-purple-100 text-purple-800',
     'won': 'bg-green-100 text-green-800',
     'lost': 'bg-gray-200 text-gray-600'
   }
@@ -1509,6 +1511,7 @@ function getCategoryHeaderClass(status) {
     'cold': 'bg-gray-100',
     'warm': 'bg-yellow-50',
     'hot': 'bg-red-50',
+    'recurring': 'bg-purple-50',
     'won': 'bg-green-50',
     'lost': 'bg-gray-50'
   }
@@ -1520,6 +1523,7 @@ function getStatusColor(status) {
     'cold': '#6b7280',    // gray
     'warm': '#f59e0b',    // yellow
     'hot': '#ef4444',     // red
+    'recurring': '#8b5cf6', // purple
     'won': '#10b981',     // green
     'lost': '#374151'     // dark gray
   }
