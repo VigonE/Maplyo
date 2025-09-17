@@ -597,10 +597,33 @@
               <template #item="{ element: prospect }">
                 <div 
                   class="bg-white rounded-lg shadow-sm border border-blue-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  :class="{ 'ring-2 ring-red-400': isFollowupDue(prospect) }"
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  
+                  <!-- Affichage du followup si configuré -->
+                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                    <span 
+                      v-if="isFollowupDue(prospect)"
+                      class="text-red-600 font-bold ml-1"
+                    >
+                      ⚠️ DUE
+                    </span>
+                  </div>
+                  
+                  <!-- Bouton Mark Followup Complete pour les prospects dus -->
+                  <button 
+                    v-if="isFollowupDue(prospect)"
+                    @click.stop="markFollowupComplete(prospect)"
+                    class="w-full text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded border border-red-300 transition-colors mb-2"
+                    title="Followup due"
+                  >
+                    ✅ Mark Followup Complete
+                  </button>
+                  
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                     <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
@@ -649,10 +672,33 @@
               <template #item="{ element: prospect }">
                 <div 
                   class="bg-white rounded-lg shadow-sm border border-yellow-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  :class="{ 'ring-2 ring-red-400': isFollowupDue(prospect) }"
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  
+                  <!-- Affichage du followup si configuré -->
+                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                    <span 
+                      v-if="isFollowupDue(prospect)"
+                      class="text-red-600 font-bold ml-1"
+                    >
+                      ⚠️ DUE
+                    </span>
+                  </div>
+                  
+                  <!-- Bouton Mark Followup Complete pour les prospects dus -->
+                  <button 
+                    v-if="isFollowupDue(prospect)"
+                    @click.stop="markFollowupComplete(prospect)"
+                    class="w-full text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded border border-red-300 transition-colors mb-2"
+                    title="Followup due"
+                  >
+                    ✅ Mark Followup Complete
+                  </button>
+                  
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                     <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
@@ -701,11 +747,34 @@
               <template #item="{ element: prospect }">
                 <div 
                   class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                  :class="{ 'ring-2 ring-red-400': isFollowupDue(prospect) }"
                   @click="openProspectModal(prospect)"
                 >
                   <!-- Mini carte prospect pour funnel -->
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  
+                  <!-- Affichage du followup si configuré -->
+                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                    <span 
+                      v-if="isFollowupDue(prospect)"
+                      class="text-red-600 font-bold ml-1"
+                    >
+                      ⚠️ DUE
+                    </span>
+                  </div>
+                  
+                  <!-- Bouton Mark Followup Complete pour les prospects dus -->
+                  <button 
+                    v-if="isFollowupDue(prospect)"
+                    @click.stop="markFollowupComplete(prospect)"
+                    class="w-full text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded border border-red-300 transition-colors mb-2"
+                    title="Followup due"
+                  >
+                    ✅ Mark Followup Complete
+                  </button>
+                  
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                     <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
@@ -1759,6 +1828,38 @@ function formatEstimatedDate(dateString) {
   }
 }
 
+// Fonction pour formater la date de followup
+function formatFollowupDate(dateString) {
+  if (!dateString) return 'Non définie'
+  
+  const date = new Date(dateString)
+  const today = new Date()
+  const diffTime = date - today
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  const formatted = date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+  
+  if (diffDays < 0) {
+    return `${formatted} (${Math.abs(diffDays)}j en retard)`
+  } else if (diffDays === 0) {
+    return `${formatted} (Aujourd'hui)`
+  } else if (diffDays === 1) {
+    return `${formatted} (Demain)`
+  } else if (diffDays <= 7) {
+    return `${formatted} (${diffDays}j)`
+  } else if (diffDays <= 30) {
+    const weeks = Math.round(diffDays / 7)
+    return `${formatted} (${weeks}sem)`
+  } else {
+    const months = Math.round(diffDays / 30)
+    return `${formatted} (${months}m)`
+  }
+}
+
 // Fonctions pour l'édition des notes directement sur la carte
 function startEditingNotes(prospect) {
   editingNotes.value[prospect.id] = true
@@ -2164,18 +2265,45 @@ function getRecurringDueCount() {
 // Marquer un suivi comme terminé et programmer le prochain
 async function markFollowupComplete(prospect) {
   try {
-    // Calculer la prochaine date de suivi
+    // Calculer la prochaine date de suivi selon le type de prospect
     const currentDate = new Date()
-    const recurrenceMonths = prospect.recurrence_months || 12
-    const nextFollowupDate = new Date(currentDate)
-    nextFollowupDate.setMonth(currentDate.getMonth() + recurrenceMonths)
+    let nextFollowupDate = null
     
-    // Mettre à jour le prospect
-    const updateData = {
-      ...prospect,
-      next_followup_date: nextFollowupDate.toISOString().split('T')[0],
-      last_followup_date: currentDate.toISOString().split('T')[0]
+    if (prospect.status === 'recurring') {
+      // Pour les prospects récurrents : ajouter l'intervalle de récurrence
+      const recurrenceMonths = prospect.recurrence_months || 12
+      nextFollowupDate = new Date(currentDate)
+      nextFollowupDate.setMonth(currentDate.getMonth() + recurrenceMonths)
+    } else {
+      // Pour les prospects normaux : supprimer la date de suivi (une seule fois)
+      nextFollowupDate = null
     }
+    
+    // Préparer les données de mise à jour - SEULEMENT les champs nécessaires
+    const updateData = {
+      name: prospect.name,
+      email: prospect.email || '',
+      phone: prospect.phone || '',
+      company: prospect.company || '',
+      contact: prospect.contact || '',
+      address: prospect.address || '',
+      status: prospect.status,
+      revenue: prospect.revenue || 0,
+      probability_coefficient: prospect.probability_coefficient || 100,
+      notes: prospect.notes || '',
+      estimated_completion_date: prospect.estimated_completion_date || '',
+      recurrence_months: prospect.recurrence_months || null,
+      next_followup_date: nextFollowupDate ? nextFollowupDate.toISOString().split('T')[0] : null,
+      last_followup_date: currentDate.toISOString().split('T')[0],
+      tabId: prospect.tabId || prospect.tab_id || 'default'
+    }
+    
+    console.log(`🔄 Marking followup complete for ${prospect.name}:`, {
+      status: prospect.status,
+      oldNextFollowup: prospect.next_followup_date,
+      newNextFollowup: updateData.next_followup_date,
+      isRecurring: prospect.status === 'recurring'
+    })
     
     const result = await prospectsStore.updateProspect(prospect.id, updateData)
     
@@ -2184,10 +2312,15 @@ async function markFollowupComplete(prospect) {
       prospect.next_followup_date = updateData.next_followup_date
       prospect.last_followup_date = updateData.last_followup_date
       
-      console.log(`✅ Followup marked complete for ${prospect.name}, next due: ${updateData.next_followup_date}`)
+      console.log(`✅ Followup marked complete for ${prospect.name}`)
+      if (updateData.next_followup_date) {
+        console.log(`   Next followup: ${updateData.next_followup_date}`)
+      } else {
+        console.log(`   No more followups scheduled (non-recurring)`)
+      }
       
-      // Forcer la mise à jour de l'affichage
-      initializeFunnelProspects()
+      // Forcer la mise à jour de l'affichage sans rechargement complet
+      forceRerender.value++
     } else {
       console.error('❌ Failed to update followup date')
     }
