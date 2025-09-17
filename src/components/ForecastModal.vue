@@ -865,16 +865,50 @@ const createChart = async () => {
   
   const datasets = []
   
-  // Add bar chart if enabled
+  // Add bar chart if enabled - now split between recurring and non-recurring
   if (showBars.value) {
+    // Calculate recurring and non-recurring revenue for each month
+    const recurringRevenue = []
+    const nonRecurringRevenue = []
+    
+    forecast.value.forEach(monthData => {
+      let recurringTotal = 0
+      let nonRecurringTotal = 0
+      
+      monthData.prospects.forEach(prospect => {
+        if (prospect.isRecurring) {
+          recurringTotal += prospect.expectedRevenue
+        } else {
+          nonRecurringTotal += prospect.expectedRevenue
+        }
+      })
+      
+      recurringRevenue.push(recurringTotal)
+      nonRecurringRevenue.push(nonRecurringTotal)
+    })
+    
+    // Non-recurring revenue (base bar)
     datasets.push({
       type: 'bar',
-      label: 'Monthly Revenue',
-      data: forecast.value.map(f => f.revenue),
-      backgroundColor: 'rgba(59, 130, 246, 0.3)',
-      borderColor: 'rgba(59, 130, 246, 0.6)',
+      label: 'Non-Recurring Revenue',
+      data: nonRecurringRevenue,
+      backgroundColor: 'rgba(59, 130, 246, 0.6)',
+      borderColor: 'rgba(59, 130, 246, 0.8)',
       borderWidth: 1,
-      yAxisID: 'y'
+      yAxisID: 'y',
+      stack: 'revenue'
+    })
+    
+    // Recurring revenue (stacked on top)
+    datasets.push({
+      type: 'bar',
+      label: 'Recurring Revenue',
+      data: recurringRevenue,
+      backgroundColor: 'rgba(147, 51, 234, 0.6)',
+      borderColor: 'rgba(147, 51, 234, 0.8)',
+      borderWidth: 1,
+      yAxisID: 'y',
+      stack: 'revenue'
     })
   }
   
@@ -916,11 +950,23 @@ const createChart = async () => {
         legend: {
           display: true,
           position: 'top'
+        },
+        tooltip: {
+          callbacks: {
+            footer: function(tooltipItems) {
+              let total = 0
+              tooltipItems.forEach(function(tooltipItem) {
+                total += tooltipItem.parsed.y
+              })
+              return 'Total: ' + formatCurrency(total)
+            }
+          }
         }
       },
       scales: {
         y: {
           beginAtZero: true,
+          stacked: true,
           ticks: {
             callback: function(value) {
               return formatCurrency(value)
@@ -928,6 +974,7 @@ const createChart = async () => {
           }
         },
         x: {
+          stacked: true,
           ticks: {
             maxTicksLimit: 12
           }
