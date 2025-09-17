@@ -156,7 +156,21 @@ export const useProspectsStore = defineStore('prospects', () => {
       // Mettre à jour localement d'abord pour une réactivité immédiate
       updateProspectLocal(id, prospectData)
       
-      const response = await api.put(`/prospects/${id}`, prospectData)
+      // S'assurer que tous les champs sont inclus, même s'ils sont null
+      const completeData = {
+        ...prospectData
+      }
+      
+      // Pour les prospects récurrents, s'assurer que les champs récurrents sont inclus
+      if (prospectData.status === 'recurring') {
+        if (completeData.recurrence_months === undefined) {
+          completeData.recurrence_months = 12 // Valeur par défaut
+        }
+      }
+      
+      console.log('📤 Sending prospect update:', { id, data: completeData })
+      
+      const response = await api.put(`/prospects/${id}`, completeData)
       
       // Mettre à jour avec les données du serveur
       updateProspectLocal(id, response.data)

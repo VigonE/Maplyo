@@ -293,6 +293,8 @@ function initializeDatabase() {
       tab_id TEXT DEFAULT 'default',
       display_order INTEGER DEFAULT 0,
       estimated_completion_date DATE,
+      recurrence_months INTEGER DEFAULT 12,
+      next_followup_date DATE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
@@ -337,7 +339,9 @@ function initializeDatabase() {
       { name: 'display_order', sql: `ALTER TABLE prospects ADD COLUMN display_order INTEGER DEFAULT 0` },
       { name: 'probability_coefficient', sql: `ALTER TABLE prospects ADD COLUMN probability_coefficient REAL DEFAULT 100` },
       { name: 'estimated_completion_date', sql: `ALTER TABLE prospects ADD COLUMN estimated_completion_date DATE` },
-      { name: 'contact', sql: `ALTER TABLE prospects ADD COLUMN contact TEXT` }
+      { name: 'contact', sql: `ALTER TABLE prospects ADD COLUMN contact TEXT` },
+      { name: 'recurrence_months', sql: `ALTER TABLE prospects ADD COLUMN recurrence_months INTEGER DEFAULT 12` },
+      { name: 'next_followup_date', sql: `ALTER TABLE prospects ADD COLUMN next_followup_date DATE` }
     ];
 
     migrations.forEach(migration => {
@@ -880,7 +884,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
@@ -913,12 +917,31 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
     }
 
     // Calculate estimated completion date
-    const estimatedDate = await getEstimatedCompletionDate(
-      req.user.userId, 
-      status || 'cold', 
-      estimated_completion_date
-    );
-    console.log('📅 Calculated estimated completion date:', estimatedDate);
+    let estimatedDate = null;
+    let nextFollowupDate = null;
+    let recurrenceMonthsValue = null;
+
+    if (status === 'recurring') {
+      // For recurring prospects, calculate next followup date
+      recurrenceMonthsValue = recurrence_months || 12;
+      if (next_followup_date) {
+        nextFollowupDate = next_followup_date;
+      } else {
+        // Calculate next followup date
+        const nextDate = new Date();
+        nextDate.setMonth(nextDate.getMonth() + recurrenceMonthsValue);
+        nextFollowupDate = nextDate.toISOString().split('T')[0];
+      }
+      console.log('🔄 Setting up recurring prospect:', recurrenceMonthsValue, 'months, next followup:', nextFollowupDate);
+    } else {
+      // For regular prospects, calculate estimated completion date
+      estimatedDate = await getEstimatedCompletionDate(
+        req.user.userId, 
+        status || 'cold', 
+        estimated_completion_date
+      );
+      console.log('📅 Calculated estimated completion date:', estimatedDate);
+    }
 
     // Décaler tous les prospects existants de l'utilisateur vers le bas
     db.run(
@@ -933,12 +956,12 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             contact || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0, estimatedDate // Nouveau prospect en haut
+            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
@@ -1032,7 +1055,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1082,31 +1105,59 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           longitude = prospect.longitude;
         }
 
-        // Calculate estimated completion date if status changed or not provided
+        // Calculate dates based on status
         let estimatedDate = prospect.estimated_completion_date;
-        if (estimated_completion_date !== undefined) {
-          estimatedDate = estimated_completion_date;
-        } else if (status !== prospect.status) {
-          // Status changed, recalculate estimated date
+        let nextFollowupDate = prospect.next_followup_date;
+        let recurrenceMonthsValue = prospect.recurrence_months;
+
+        if (status === 'recurring') {
+          // Moving to or updating recurring status
+          recurrenceMonthsValue = recurrence_months || prospect.recurrence_months || 12;
+          if (next_followup_date) {
+            nextFollowupDate = next_followup_date;
+          } else {
+            // Calculate next followup date
+            const nextDate = new Date();
+            nextDate.setMonth(nextDate.getMonth() + recurrenceMonthsValue);
+            nextFollowupDate = nextDate.toISOString().split('T')[0];
+          }
+          estimatedDate = null; // Clear estimated completion date for recurring
+          console.log('🔄 Setting up recurring prospect:', recurrenceMonthsValue, 'months, next followup:', nextFollowupDate);
+        } else if (prospect.status === 'recurring' && status !== 'recurring') {
+          // Moving from recurring to regular status
+          recurrenceMonthsValue = null;
+          nextFollowupDate = null;
           estimatedDate = await getEstimatedCompletionDate(
             req.user.userId, 
             status || prospect.status, 
-            null
+            estimated_completion_date
           );
-          console.log('📅 Recalculated estimated completion date due to status change:', estimatedDate);
+          console.log('📅 Moving from recurring to regular, calculated estimated date:', estimatedDate);
+        } else if (status !== prospect.status) {
+          // Status changed for regular prospects
+          estimatedDate = await getEstimatedCompletionDate(
+            req.user.userId, 
+            status || prospect.status, 
+            estimated_completion_date
+          );
+          console.log('📅 Status changed, recalculated estimated completion date:', estimatedDate);
+        } else if (estimated_completion_date !== undefined) {
+          // Manually setting estimated date
+          estimatedDate = estimated_completion_date;
         }
 
         db.run(
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, contact = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
-           probability_coefficient = ?, notes = ?, tab_id = ?, estimated_completion_date = ?, updated_at = CURRENT_TIMESTAMP
+           probability_coefficient = ?, notes = ?, tab_id = ?, estimated_completion_date = ?, 
+           recurrence_months = ?, next_followup_date = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', contact || '',
             address || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
-            notes || '', tabId || 'default', estimatedDate, prospectId, req.user.userId
+            notes || '', tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, prospectId, req.user.userId
           ],
           function(err) {
             if (err) {

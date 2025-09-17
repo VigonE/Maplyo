@@ -2072,6 +2072,18 @@ async function handleFunnelDrop(event, newStatus) {
       updateData.next_followup_date = prospect.next_followup_date
       
       console.log(`🔄 Setting up recurring prospect: ${prospect.recurrence_months}mo cycle, next followup: ${prospect.next_followup_date}`)
+    } else if (prospect.status === 'recurring' && newStatus !== 'recurring') {
+      // Si le prospect n'est plus récurrent, nettoyer les données de récurrence
+      prospect.recurrence_months = null
+      prospect.next_followup_date = null
+      updateData.recurrence_months = null
+      updateData.next_followup_date = null
+      
+      console.log(`🔄 Removing recurring settings from prospect`)
+    } else if (newStatus === 'recurring' && prospect.status === 'recurring') {
+      // Si c'est déjà un prospect récurrent qui reste récurrent, conserver les paramètres
+      updateData.recurrence_months = prospect.recurrence_months
+      updateData.next_followup_date = prospect.next_followup_date
     }
     
     // Forcer la mise à jour des arrays du funnel pour la réactivité des computed properties
