@@ -801,7 +801,7 @@
                     <h3 class="font-semibold text-purple-800">🔄 RECURRING</h3>
                   </div>
                   <div class="text-xs text-purple-600 mt-1">
-                    ⏰ Regular followups • 📅 Monthly/Quarterly cycles
+                    ⏱️ {{ props.leadTimes.recurring }}mo • 🎯 {{ props.leadTimes.recurringProbability }}%
                   </div>
                 </div>
                 <div class="text-right">
@@ -1025,9 +1025,11 @@ const props = defineProps({
       cold: 12,
       warm: 6,
       hot: 3,
+      recurring: 12,
       coldProbability: 15,
       warmProbability: 45,
-      hotProbability: 80
+      hotProbability: 80,
+      recurringProbability: 30
     })
   }
 })

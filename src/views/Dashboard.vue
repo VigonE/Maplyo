@@ -469,6 +469,39 @@
                   </div>
                 </div>
 
+                <!-- Recurring Leads -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-purple-400 rounded-full mr-2"></div>
+                      <label class="text-sm font-medium text-gray-700">Recurring Leads</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.recurring"
+                        type="number"
+                        min="1"
+                        max="60"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">months</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pl-5">
+                    <label class="text-xs text-gray-600">Probability</label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model.number="closingLeadTimes.recurringProbability"
+                        type="number"
+                        min="1"
+                        max="100"
+                        class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <span class="text-sm text-gray-500">%</span>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Save Button -->
                 <div class="pt-3 border-t border-gray-200">
                   <button
@@ -753,10 +786,12 @@ const closingLeadTimes = ref({
   cold: 12,  // mois
   warm: 6,   // mois
   hot: 3,    // mois
+  recurring: 12, // mois
   // Probabilités de conversion par catégorie (en pourcentage)
   coldProbability: 15,
   warmProbability: 45,
-  hotProbability: 80
+  hotProbability: 80,
+  recurringProbability: 30
 })
 const leadTimeLoading = ref(false)
 
@@ -1363,9 +1398,11 @@ async function loadClosingLeadTimes() {
           cold: data.settings.cold || 12,
           warm: data.settings.warm || 6,
           hot: data.settings.hot || 3,
+          recurring: data.settings.recurring || 12,
           coldProbability: data.settings.coldProbability || 15,
           warmProbability: data.settings.warmProbability || 45,
-          hotProbability: data.settings.hotProbability || 80
+          hotProbability: data.settings.hotProbability || 80,
+          recurringProbability: data.settings.recurringProbability || 30
         }
       }
     }
@@ -1379,20 +1416,26 @@ async function saveClosingLeadTimes() {
   systemMessage.value = ''
   
   try {
+    const payload = {
+      cold: closingLeadTimes.value.cold,
+      warm: closingLeadTimes.value.warm,
+      hot: closingLeadTimes.value.hot,
+      recurring: closingLeadTimes.value.recurring,
+      coldProbability: closingLeadTimes.value.coldProbability,
+      warmProbability: closingLeadTimes.value.warmProbability,
+      hotProbability: closingLeadTimes.value.hotProbability,
+      recurringProbability: closingLeadTimes.value.recurringProbability
+    }
+    
+    console.log('📤 Sending lead times payload:', payload)
+    
     const response = await fetch('/api/settings/closing-lead-times', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        cold: closingLeadTimes.value.cold,
-        warm: closingLeadTimes.value.warm,
-        hot: closingLeadTimes.value.hot,
-        coldProbability: closingLeadTimes.value.coldProbability,
-        warmProbability: closingLeadTimes.value.warmProbability,
-        hotProbability: closingLeadTimes.value.hotProbability
-      })
+      body: JSON.stringify(payload)
     })
     
     const data = await response.json()
@@ -1400,6 +1443,8 @@ async function saveClosingLeadTimes() {
     if (data.success) {
       systemMessage.value = 'Closing lead time settings saved successfully!'
       systemMessageType.value = 'success'
+      // Reload settings to confirm they were saved correctly
+      await loadClosingLeadTimes()
     } else {
       throw new Error(data.error || 'Failed to save settings')
     }

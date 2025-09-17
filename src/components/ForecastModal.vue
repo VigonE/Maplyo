@@ -400,7 +400,7 @@ const getAdjustedProbabilities = () => {
     hot: Math.min(100, Math.max(1, (props.leadTimes.hotProbability || 80) * adjustment)) / 100,
     warm: Math.min(100, Math.max(1, (props.leadTimes.warmProbability || 45) * adjustment)) / 100,
     cold: Math.min(100, Math.max(1, (props.leadTimes.coldProbability || 15) * adjustment)) / 100,
-    recurring: Math.min(100, Math.max(1, 95 * adjustment)) / 100 // High probability for recurring prospects
+    recurring: Math.min(100, Math.max(1, (props.leadTimes.recurringProbability || 30) * adjustment)) / 100
   }
 }
 

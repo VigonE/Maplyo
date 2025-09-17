@@ -758,9 +758,11 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
             cold: 12,
             warm: 6,
             hot: 3,
+            recurring: 12,
             coldProbability: 15,
             warmProbability: 45,
-            hotProbability: 80
+            hotProbability: 80,
+            recurringProbability: 30
           }
         });
       }
@@ -781,9 +783,11 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
             cold: 12,
             warm: 6,
             hot: 3,
+            recurring: 12,
             coldProbability: 15,
             warmProbability: 45,
-            hotProbability: 80
+            hotProbability: 80,
+            recurringProbability: 30
           }
         });
       }
@@ -795,15 +799,23 @@ app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
   console.log('💾 Saving closing lead times for user:', req.user.userId);
   console.log('📦 Request body:', req.body);
   
-  const { cold, warm, hot, coldProbability, warmProbability, hotProbability } = req.body;
+  const { cold, warm, hot, recurring, coldProbability, warmProbability, hotProbability, recurringProbability } = req.body;
   
-  console.log('🔍 Extracted values:', { cold, warm, hot, coldProbability, warmProbability, hotProbability });
+  console.log('🔍 Extracted values:', { cold, warm, hot, recurring, coldProbability, warmProbability, hotProbability, recurringProbability });
   
-  // Validate input
+  // Validate input (recurring is optional for backward compatibility)
   if (!cold || !warm || !hot || cold < 1 || warm < 1 || hot < 1) {
     return res.status(400).json({
       success: false,
-      error: 'Invalid lead time values. All values must be positive numbers.'
+      error: 'Invalid lead time values. Cold, warm, and hot values must be positive numbers.'
+    });
+  }
+  
+  // Validate recurring separately (optional)
+  if (recurring && recurring < 1) {
+    return res.status(400).json({
+      success: false,
+      error: 'Recurring lead time must be a positive number.'
     });
   }
   
@@ -811,13 +823,15 @@ app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
   const probabilities = {
     coldProbability: (coldProbability >= 1 && coldProbability <= 100) ? coldProbability : 15,
     warmProbability: (warmProbability >= 1 && warmProbability <= 100) ? warmProbability : 45,
-    hotProbability: (hotProbability >= 1 && hotProbability <= 100) ? hotProbability : 80
+    hotProbability: (hotProbability >= 1 && hotProbability <= 100) ? hotProbability : 80,
+    recurringProbability: (recurringProbability >= 1 && recurringProbability <= 100) ? recurringProbability : 30
   };
   
   const settingValue = { 
     cold, 
     warm, 
     hot,
+    recurring: recurring || 12, // Default to 12 if not provided
     ...probabilities
   };
   
@@ -843,6 +857,8 @@ app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
       }
       
       console.log('✅ Closing lead times saved successfully');
+      console.log('🔍 Saved data:', JSON.stringify(settingValue));
+      console.log('🔍 For user ID:', req.user.userId);
       res.json({
         success: true,
         message: 'Closing lead time settings saved successfully'
