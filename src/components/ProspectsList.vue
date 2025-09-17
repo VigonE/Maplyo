@@ -604,8 +604,8 @@
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
-                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
-                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                  <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date || prospect.estimated_completion_date) }}
                     <span 
                       v-if="isFollowupDue(prospect)"
                       class="text-red-600 font-bold ml-1"
@@ -679,8 +679,8 @@
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
-                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
-                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                  <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date || prospect.estimated_completion_date) }}
                     <span 
                       v-if="isFollowupDue(prospect)"
                       class="text-red-600 font-bold ml-1"
@@ -755,8 +755,8 @@
                   <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
-                  <div v-if="prospect.next_followup_date" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
-                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date) }}
+                  <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
+                    📅 Follow-up: {{ formatFollowupDate(prospect.next_followup_date || prospect.estimated_completion_date) }}
                     <span 
                       v-if="isFollowupDue(prospect)"
                       class="text-red-600 font-bold ml-1"
@@ -2251,10 +2251,28 @@ onUnmounted(() => {
 
 // Vérifier si un suivi est dû pour un prospect récurrent
 function isFollowupDue(prospect) {
-  if (!prospect.next_followup_date) return false
-  const today = new Date()
-  const followupDate = new Date(prospect.next_followup_date)
-  return followupDate <= today
+  // Pour les prospects récurrents : utiliser next_followup_date
+  if (prospect.status === 'recurring' && prospect.next_followup_date) {
+    const today = new Date()
+    const followupDate = new Date(prospect.next_followup_date)
+    return followupDate <= today
+  }
+  
+  // Pour les prospects cold/warm/hot : utiliser estimated_completion_date si elle est passée
+  if (['cold', 'warm', 'hot'].includes(prospect.status) && prospect.estimated_completion_date) {
+    const today = new Date()
+    const estimatedDate = new Date(prospect.estimated_completion_date)
+    return estimatedDate <= today
+  }
+  
+  // Pour les prospects cold/warm/hot avec next_followup_date configuré manuellement
+  if (['cold', 'warm', 'hot'].includes(prospect.status) && prospect.next_followup_date) {
+    const today = new Date()
+    const followupDate = new Date(prospect.next_followup_date)
+    return followupDate <= today
+  }
+  
+  return false
 }
 
 // Compter le nombre de suivis dus
@@ -2268,14 +2286,26 @@ async function markFollowupComplete(prospect) {
     // Calculer la prochaine date de suivi selon le type de prospect
     const currentDate = new Date()
     let nextFollowupDate = null
+    let newEstimatedDate = prospect.estimated_completion_date
     
     if (prospect.status === 'recurring') {
       // Pour les prospects récurrents : ajouter l'intervalle de récurrence
       const recurrenceMonths = prospect.recurrence_months || 12
       nextFollowupDate = new Date(currentDate)
       nextFollowupDate.setMonth(currentDate.getMonth() + recurrenceMonths)
+    } else if (['cold', 'warm', 'hot'].includes(prospect.status)) {
+      // Pour les prospects normaux : gérer selon le type de date due
+      if (prospect.next_followup_date) {
+        // Si c'est un followup manuel qui est dû, le supprimer
+        nextFollowupDate = null
+      } else if (prospect.estimated_completion_date && isFollowupDue(prospect)) {
+        // Si c'est l'estimated_completion_date qui est dépassée, la reporter de 30 jours
+        const newDate = new Date(currentDate)
+        newDate.setDate(currentDate.getDate() + 30)
+        newEstimatedDate = newDate.toISOString().split('T')[0]
+      }
     } else {
-      // Pour les prospects normaux : supprimer la date de suivi (une seule fois)
+      // Pour les autres statuts : supprimer la date de suivi (une seule fois)
       nextFollowupDate = null
     }
     
@@ -2291,7 +2321,7 @@ async function markFollowupComplete(prospect) {
       revenue: prospect.revenue || 0,
       probability_coefficient: prospect.probability_coefficient || 100,
       notes: prospect.notes || '',
-      estimated_completion_date: prospect.estimated_completion_date || '',
+      estimated_completion_date: newEstimatedDate || '',
       recurrence_months: prospect.recurrence_months || null,
       next_followup_date: nextFollowupDate ? nextFollowupDate.toISOString().split('T')[0] : null,
       last_followup_date: currentDate.toISOString().split('T')[0],
@@ -2301,7 +2331,9 @@ async function markFollowupComplete(prospect) {
     console.log(`🔄 Marking followup complete for ${prospect.name}:`, {
       status: prospect.status,
       oldNextFollowup: prospect.next_followup_date,
+      oldEstimatedDate: prospect.estimated_completion_date,
       newNextFollowup: updateData.next_followup_date,
+      newEstimatedDate: updateData.estimated_completion_date,
       isRecurring: prospect.status === 'recurring'
     })
     
@@ -2310,13 +2342,16 @@ async function markFollowupComplete(prospect) {
     if (result.success) {
       // Mettre à jour le prospect local
       prospect.next_followup_date = updateData.next_followup_date
+      prospect.estimated_completion_date = updateData.estimated_completion_date
       prospect.last_followup_date = updateData.last_followup_date
       
       console.log(`✅ Followup marked complete for ${prospect.name}`)
       if (updateData.next_followup_date) {
         console.log(`   Next followup: ${updateData.next_followup_date}`)
+      } else if (updateData.estimated_completion_date !== prospect.estimated_completion_date) {
+        console.log(`   Estimated date moved to: ${updateData.estimated_completion_date}`)
       } else {
-        console.log(`   No more followups scheduled (non-recurring)`)
+        console.log(`   No more followups scheduled`)
       }
       
       // Forcer la mise à jour de l'affichage sans rechargement complet
