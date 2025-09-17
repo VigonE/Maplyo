@@ -259,7 +259,78 @@
                     <option value="cold">❄️ COLD</option>
                     <option value="warm">🌡️ WARM</option>
                     <option value="hot">🔥 HOT</option>
+                    <option value="recurring">🔄 RECURRING</option>
+                    <option value="won">✅ WON</option>
+                    <option value="lost">❌ LOST</option>
                   </select>
+                </div>
+              </div>
+
+              <!-- Recurring Settings - show only if status is recurring -->
+              <div v-if="form.status === 'recurring'" class="space-y-4 border-t pt-4 mt-4">
+                <h5 class="font-medium text-purple-800 flex items-center">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Recurring Settings
+                </h5>
+                
+                <!-- Recurrence Interval -->
+                <div class="flex items-center">
+                  <label class="w-24 text-sm font-medium text-gray-600">Interval:</label>
+                  <div class="flex-1 flex items-center">
+                    <span v-if="!editing.recurrence_months" class="text-purple-700">
+                      {{ getRecurrenceText(form.recurrence_months) }}
+                    </span>
+                    <select 
+                      v-else 
+                      v-model.number="form.recurrence_months"
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      @blur="saveField('recurrence_months')"
+                      @change="saveField('recurrence_months')"
+                    >
+                      <option :value="1">Every month</option>
+                      <option :value="2">Every 2 months</option>
+                      <option :value="3">Every 3 months (Quarterly)</option>
+                      <option :value="6">Every 6 months</option>
+                      <option :value="12">Every 12 months (Yearly)</option>
+                      <option :value="24">Every 24 months</option>
+                    </select>
+                    <button 
+                      @click="toggleEdit('recurrence_months')"
+                      class="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Next Followup Date -->
+                <div class="flex items-center">
+                  <label class="w-24 text-sm font-medium text-gray-600">Next Due:</label>
+                  <div class="flex-1 flex items-center">
+                    <span v-if="!editing.next_followup_date" class="text-purple-700">
+                      {{ form.next_followup_date ? formatDate(form.next_followup_date) : 'No date set' }}
+                    </span>
+                    <input 
+                      v-else 
+                      v-model="form.next_followup_date"
+                      type="date"
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      @blur="saveField('next_followup_date')"
+                      @keyup.enter="saveField('next_followup_date')"
+                    >
+                    <button 
+                      @click="toggleEdit('next_followup_date')"
+                      class="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -343,7 +414,9 @@ const form = reactive({
   revenue: 0,
   probability_coefficient: 100,
   notes: '',
-  estimated_completion_date: ''
+  estimated_completion_date: '',
+  recurrence_months: 12,
+  next_followup_date: ''
 })
 
 // Editing state for each field
@@ -357,7 +430,9 @@ const editing = reactive({
   probability_coefficient: false,
   estimated_completion_date: false,
   status: false,
-  notes: false
+  notes: false,
+  recurrence_months: false,
+  next_followup_date: false
 })
 
 // Watch for prospect changes
@@ -374,7 +449,9 @@ watch(() => props.prospect, (newProspect) => {
       revenue: newProspect.revenue || 0,
       probability_coefficient: newProspect.probability_coefficient || 100,
       notes: newProspect.notes || '',
-      estimated_completion_date: newProspect.estimated_completion_date || ''
+      estimated_completion_date: newProspect.estimated_completion_date || '',
+      recurrence_months: newProspect.recurrence_months || 12,
+      next_followup_date: newProspect.next_followup_date || ''
     })
   }
 }, { immediate: true })
@@ -502,6 +579,21 @@ function formatDate(dateString) {
   return formatted
 }
 
+function getRecurrenceText(months) {
+  if (!months) return 'Not set'
+  
+  const texts = {
+    1: 'Every month',
+    2: 'Every 2 months',
+    3: 'Every 3 months (Quarterly)',
+    6: 'Every 6 months',
+    12: 'Every 12 months (Yearly)',
+    24: 'Every 24 months'
+  }
+  
+  return texts[months] || `Every ${months} months`
+}
+
 function getWeightedRevenue() {
   return (form.revenue || 0) * (form.probability_coefficient || 100) / 100
 }
@@ -510,7 +602,10 @@ function getStatusColor(status) {
   const colors = {
     hot: 'bg-red-500',
     warm: 'bg-yellow-500',
-    cold: 'bg-blue-500'
+    cold: 'bg-blue-500',
+    recurring: 'bg-purple-500',
+    won: 'bg-green-500',
+    lost: 'bg-gray-500'
   }
   return colors[status] || 'bg-gray-500'
 }
@@ -519,7 +614,10 @@ function getStatusBadge(status) {
   const badges = {
     hot: 'bg-red-100 text-red-800',
     warm: 'bg-yellow-100 text-yellow-800',
-    cold: 'bg-blue-100 text-blue-800'
+    cold: 'bg-blue-100 text-blue-800',
+    recurring: 'bg-purple-100 text-purple-800',
+    won: 'bg-green-100 text-green-800',
+    lost: 'bg-gray-100 text-gray-800'
   }
   return badges[status] || 'bg-gray-100 text-gray-800'
 }
