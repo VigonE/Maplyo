@@ -382,7 +382,7 @@ function calculateEstimatedCompletionDate(userId, status, providedDate = null) {
       (err, row) => {
         try {
           // Default lead times if no settings found or error
-          const defaultLeadTimes = { cold: 12, warm: 6, hot: 3 };
+          const defaultLeadTimes = { cold: 12, warm: 6, hot: 3, recurring: 12 };
           let leadTimes = defaultLeadTimes;
           
           if (!err && row) {
@@ -402,6 +402,9 @@ function calculateEstimatedCompletionDate(userId, status, providedDate = null) {
             leadTimeMonths = leadTimes.warm || 6;
           } else if (status === 'cold') {
             leadTimeMonths = leadTimes.cold || 12;
+          } else if (status === 'recurring') {
+            // For recurring prospects, use recurrence_months if provided, otherwise default to 12
+            leadTimeMonths = 12; // Default for recurring
           }
           
           // Calculate estimated completion date: current date + lead time
@@ -1010,7 +1013,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Status and order array are required' });
     }
 
-    if (!['hot', 'warm', 'cold', 'won', 'lost'].includes(status)) {
+    if (!['hot', 'warm', 'cold', 'won', 'lost', 'recurring'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
@@ -2184,7 +2187,7 @@ async function getEstimatedCompletionDate(userId, status, providedDate = null) {
       'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
       [userId, 'closing_lead_times'],
       (err, row) => {
-        let leadTimes = { cold: 12, warm: 6, hot: 3 }; // Default values
+        let leadTimes = { cold: 12, warm: 6, hot: 3, recurring: 12 }; // Default values
         if (!err && row) {
           try {
             leadTimes = JSON.parse(row.setting_value);
@@ -2380,7 +2383,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
       'SELECT setting_value FROM settings WHERE user_id = ? AND setting_key = ?',
       [req.user.userId, 'closing_lead_times'],
       (err, leadTimesRow) => {
-        let leadTimes = { cold: 12, warm: 6, hot: 3 }; // Default values
+        let leadTimes = { cold: 12, warm: 6, hot: 3, recurring: 12 }; // Default values
         if (!err && leadTimesRow) {
           try {
             leadTimes = JSON.parse(leadTimesRow.setting_value);
@@ -2495,13 +2498,15 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                 address: prospect.address || '',
                 latitude: (prospect.latitude !== undefined && prospect.latitude !== null && !isNaN(prospect.latitude)) ? parseFloat(prospect.latitude) : null,
                 longitude: (prospect.longitude !== undefined && prospect.longitude !== null && !isNaN(prospect.longitude)) ? parseFloat(prospect.longitude) : null,
-                status: ['hot', 'warm', 'cold', 'won', 'lost'].includes(prospect.status) ? prospect.status : 'cold',
+                status: ['hot', 'warm', 'cold', 'won', 'lost', 'recurring'].includes(prospect.status) ? prospect.status : 'cold',
                 revenue: !isNaN(parseFloat(prospect.revenue)) ? parseFloat(prospect.revenue) : 0,
                 probability_coefficient: !isNaN(parseFloat(prospect.probability_coefficient)) ? parseFloat(prospect.probability_coefficient) : 100,
                 notes: prospect.notes || '',
                 tab_id: defaultTabId, // Default assignment
                 display_order: !isNaN(parseInt(prospect.display_order)) ? parseInt(prospect.display_order) : i,
                 estimated_completion_date: prospect.estimated_completion_date || null,
+                recurrence_months: !isNaN(parseInt(prospect.recurrence_months)) ? parseInt(prospect.recurrence_months) : 12,
+                next_followup_date: prospect.next_followup_date || null,
                 created_at: prospect.created_at || null,
                 updated_at: prospect.updated_at || null
               };
@@ -2524,8 +2529,8 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                   `INSERT INTO prospects 
                    (user_id, name, email, phone, company, contact, address, latitude, longitude, 
                     status, revenue, probability_coefficient, notes, tab_id, display_order, 
-                    estimated_completion_date, created_at, updated_at) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                    estimated_completion_date, recurrence_months, next_followup_date, created_at, updated_at) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
                            COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
                   [
                     req.user.userId, mappedProspect.name, mappedProspect.email, mappedProspect.phone,
@@ -2533,6 +2538,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                     mappedProspect.latitude, mappedProspect.longitude, mappedProspect.status,
                     mappedProspect.revenue, mappedProspect.probability_coefficient, mappedProspect.notes,
                     mappedProspect.tab_id, mappedProspect.display_order, mappedProspect.estimated_completion_date,
+                    mappedProspect.recurrence_months, mappedProspect.next_followup_date,
                     mappedProspect.created_at, mappedProspect.updated_at
                   ],
                   function(err) {

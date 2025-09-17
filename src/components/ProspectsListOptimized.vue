@@ -361,7 +361,7 @@ const totalRevenue = computed(() => {
 const loading = computed(() => prospectsStore.loading)
 
 // Ordre des statuts dans le funnel
-const statusOrder = ['hot', 'warm', 'cold', 'won', 'lost']
+const statusOrder = ['hot', 'warm', 'cold', 'recurring', 'won', 'lost']
 
 // Cache pour les prospects par statut
 const prospectsByStatusCache = new Map()
@@ -469,24 +469,6 @@ const onStatusChange = async (evt) => {
       
       const newCategoryOrder = newOrder.map(p => p.id)
       console.log('📋 New order for category', status, ':', newCategoryOrder)
-      
-      try {
-        const result = await prospectsStore.reorderProspectsInCategory(status, newCategoryOrder)
-        if (result.success) {
-          console.log(`✅ Prospects reordered successfully within ${status}`)
-          // Vider les caches après succès
-          clearAllCaches()
-          // Attendre un peu pour que la base de données soit mise à jour
-          await new Promise(resolve => setTimeout(resolve, 100))
-        } else {
-          console.error('❌ Failed to reorder prospects:', result.error)
-        }
-      } catch (error) {
-        console.error('❌ Error reordering prospects:', error)
-      }
-    }
-  }
-}
       
       try {
         const result = await prospectsStore.reorderProspectsInCategory(status, newCategoryOrder)
