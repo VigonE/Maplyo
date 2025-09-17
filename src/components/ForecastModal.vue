@@ -248,12 +248,14 @@
           <!-- Category Analysis -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
             <h4 class="text-lg font-semibold text-gray-800 mb-4">📊 Category Analysis</h4>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div v-for="(data, category) in categoryAnalysis" :key="category" class="text-center p-4 rounded-lg" :class="getCategoryClass(category)">
-                <div class="text-sm font-medium text-gray-600 uppercase">{{ category }}</div>
+                <div class="text-sm font-medium text-gray-600 uppercase">{{ category === 'recurring' ? '🔄 Recurring' : category }}</div>
                 <div class="text-xl font-bold mt-1">{{ data.count }} prospects</div>
                 <div class="text-sm text-gray-500">{{ formatCurrency(data.value) }}</div>
-                <div class="text-xs text-gray-400">Avg: {{ data.avgMonths }} months</div>
+                <div class="text-xs text-gray-400">
+                  {{ category === 'recurring' ? `Avg: ${data.avgMonths.toFixed(1)} months cycle` : `Avg: ${data.avgMonths} months` }}
+                </div>
               </div>
             </div>
           </div>
@@ -373,7 +375,8 @@ const getAdjustedProbabilities = () => {
   return {
     hot: Math.min(100, Math.max(1, (props.leadTimes.hotProbability || 80) * adjustment)) / 100,
     warm: Math.min(100, Math.max(1, (props.leadTimes.warmProbability || 45) * adjustment)) / 100,
-    cold: Math.min(100, Math.max(1, (props.leadTimes.coldProbability || 15) * adjustment)) / 100
+    cold: Math.min(100, Math.max(1, (props.leadTimes.coldProbability || 15) * adjustment)) / 100,
+    recurring: Math.min(100, Math.max(1, 95 * adjustment)) / 100 // High probability for recurring prospects
   }
 }
 
@@ -382,7 +385,8 @@ const categoryAnalysis = computed(() => {
   const analysis = {
     hot: { count: 0, value: 0, avgMonths: props.leadTimes.hot },
     warm: { count: 0, value: 0, avgMonths: props.leadTimes.warm },
-    cold: { count: 0, value: 0, avgMonths: props.leadTimes.cold }
+    cold: { count: 0, value: 0, avgMonths: props.leadTimes.cold },
+    recurring: { count: 0, value: 0, avgMonths: 0 } // For recurring, avgMonths represents the average recurrence interval
   }
   
   props.prospects.forEach(prospect => {
@@ -392,6 +396,11 @@ const categoryAnalysis = computed(() => {
     if (analysis[category]) {
       analysis[category].count++
       analysis[category].value += prospect.revenue || 0
+      
+      // For recurring prospects, track the average recurrence interval
+      if (category === 'recurring') {
+        analysis[category].avgMonths = (analysis[category].avgMonths * (analysis[category].count - 1) + (prospect.recurrence_months || 12)) / analysis[category].count
+      }
     }
   })
 
@@ -401,7 +410,7 @@ const categoryAnalysis = computed(() => {
 // Function to convert status to temperature category
 const getProspectCategory = (status) => {
   // Statuses are already hot/warm/cold in your system
-  const validCategories = ['hot', 'warm', 'cold']
+  const validCategories = ['hot', 'warm', 'cold', 'recurring']
   return validCategories.includes(status) ? status : 'cold'
 }
 
@@ -430,46 +439,88 @@ const generateForecast = () => {
     const revenue = prospect.revenue || 0
     const status = prospect.status || 'cold'
     const category = getProspectCategory(status)
-    const categoryProbability = getCategoryProbability(category)
-    
-    // Use individual probability coefficient if available, otherwise use category probability
-    const prospectProbability = (prospect.probability_coefficient || 100) / 100 // Convert percentage to decimal
-    const finalProbability = categoryProbability * prospectProbability // Combine both probabilities
-    
-    // Calculate target month using estimated_completion_date if available
-    let targetMonth = 0
-    if (prospect.estimated_completion_date) {
-      const estimatedDate = new Date(prospect.estimated_completion_date)
-      let monthsDiff = (estimatedDate.getFullYear() - today.getFullYear()) * 12 + 
-                       (estimatedDate.getMonth() - today.getMonth())
-      
-      // Apply lead time adjustment to the estimated completion date
-      const leadTimeAdjustmentFactor = 1 + (leadTimeAdjustment.value / 100)
-      monthsDiff = Math.round(monthsDiff * leadTimeAdjustmentFactor)
-      
-      targetMonth = Math.max(0, Math.min(monthsDiff, forecastMonths - 1))
-    } else {
-      // Fallback to adjusted lead time if no estimated date
-      const adjustedLeadTimes = getAdjustedLeadTimes()
-      const leadTimeMonths = adjustedLeadTimes[category] || 6
-      targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
-    }
     
     if (revenue <= 0) {
       return
     }
-    
-    // ENHANCED ALGORITHM: Use estimated_completion_date for more accurate forecasting
-    const expectedRevenue = revenue * finalProbability
-    
-    forecastData[targetMonth].revenue += expectedRevenue
-    forecastData[targetMonth].prospects.push({
-      id: prospect.id,
-      name: prospect.name,
-      expectedRevenue,
-      probability: finalProbability,
-      estimatedDate: prospect.estimated_completion_date
-    })
+
+    // Handle recurring prospects separately
+    if (status === 'recurring') {
+      // For recurring prospects, calculate multiple occurrences
+      const recurrenceMonths = prospect.recurrence_months || 12
+      let nextFollowupDate = prospect.next_followup_date
+
+      if (nextFollowupDate) {
+        const firstDate = new Date(nextFollowupDate)
+        
+        // Calculate each recurrence within the forecast period
+        for (let occurrence = 0; occurrence < forecastMonths; occurrence++) {
+          const occurrenceDate = new Date(firstDate)
+          occurrenceDate.setMonth(firstDate.getMonth() + (occurrence * recurrenceMonths))
+          
+          // Check if this occurrence is within our forecast window
+          if (occurrenceDate >= today) {
+            const monthsDiff = (occurrenceDate.getFullYear() - today.getFullYear()) * 12 + 
+                             (occurrenceDate.getMonth() - today.getMonth())
+            
+            if (monthsDiff < forecastMonths) {
+              // Use prospect probability coefficient for each occurrence
+              const prospectProbability = (prospect.probability_coefficient || 100) / 100
+              const expectedRevenue = revenue * prospectProbability
+              
+              forecastData[monthsDiff].revenue += expectedRevenue
+              forecastData[monthsDiff].prospects.push({
+                id: `${prospect.id}_${occurrence}`,
+                name: `${prospect.name} (Recurrence ${occurrence + 1})`,
+                expectedRevenue,
+                probability: prospectProbability,
+                estimatedDate: occurrenceDate.toISOString().split('T')[0],
+                isRecurring: true,
+                originalId: prospect.id
+              })
+            }
+          }
+        }
+      }
+    } else {
+      // Regular prospects (non-recurring)
+      const categoryProbability = getCategoryProbability(category)
+      
+      // Use individual probability coefficient if available, otherwise use category probability
+      const prospectProbability = (prospect.probability_coefficient || 100) / 100 // Convert percentage to decimal
+      const finalProbability = categoryProbability * prospectProbability // Combine both probabilities
+      
+      // Calculate target month using estimated_completion_date if available
+      let targetMonth = 0
+      if (prospect.estimated_completion_date) {
+        const estimatedDate = new Date(prospect.estimated_completion_date)
+        let monthsDiff = (estimatedDate.getFullYear() - today.getFullYear()) * 12 + 
+                         (estimatedDate.getMonth() - today.getMonth())
+        
+        // Apply lead time adjustment to the estimated completion date
+        const leadTimeAdjustmentFactor = 1 + (leadTimeAdjustment.value / 100)
+        monthsDiff = Math.round(monthsDiff * leadTimeAdjustmentFactor)
+        
+        targetMonth = Math.max(0, Math.min(monthsDiff, forecastMonths - 1))
+      } else {
+        // Fallback to adjusted lead time if no estimated date
+        const adjustedLeadTimes = getAdjustedLeadTimes()
+        const leadTimeMonths = adjustedLeadTimes[category] || 6
+        targetMonth = Math.min(leadTimeMonths, forecastMonths - 1)
+      }
+      
+      // ENHANCED ALGORITHM: Use estimated_completion_date for more accurate forecasting
+      const expectedRevenue = revenue * finalProbability
+      
+      forecastData[targetMonth].revenue += expectedRevenue
+      forecastData[targetMonth].prospects.push({
+        id: prospect.id,
+        name: prospect.name,
+        expectedRevenue,
+        probability: finalProbability,
+        estimatedDate: prospect.estimated_completion_date
+      })
+    }
   })
 
   return forecastData
@@ -905,7 +956,8 @@ const getCategoryClass = (category) => {
   const classes = {
     hot: 'bg-red-50 border border-red-200',
     warm: 'bg-yellow-50 border border-yellow-200',
-    cold: 'bg-blue-50 border border-blue-200'
+    cold: 'bg-blue-50 border border-blue-200',
+    recurring: 'bg-purple-50 border border-purple-200'
   }
   return classes[category] || 'bg-gray-50 border border-gray-200'
 }
