@@ -259,6 +259,30 @@
               </div>
             </div>
           </div>
+
+          <!-- Recurring Prospects Next Occurrences -->
+          <div v-if="getRecurringProspects().length > 0" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h4 class="text-lg font-semibold text-purple-800 mb-4">🔄 Prochaines échéances récurrentes</h4>
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+              <div 
+                v-for="occurrence in getNextRecurringOccurrences()" 
+                :key="`${occurrence.prospectId}_${occurrence.date}`"
+                class="flex justify-between items-center p-3 bg-white rounded border border-purple-100"
+              >
+                <div class="flex-1">
+                  <div class="font-medium text-purple-900">{{ occurrence.name }}</div>
+                  <div class="text-sm text-purple-600">
+                    Cycle: {{ occurrence.recurrenceMonths }} mois | 
+                    Probabilité: {{ (occurrence.probability * 100).toFixed(0) }}%
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-medium text-purple-800">{{ formatDateShort(occurrence.date) }}</div>
+                  <div class="text-sm text-purple-600">{{ formatCurrency(occurrence.expectedRevenue) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Actions -->
@@ -454,7 +478,8 @@ const generateForecast = () => {
         const firstDate = new Date(nextFollowupDate)
         
         // Calculate each recurrence within the forecast period
-        for (let occurrence = 0; occurrence < forecastMonths; occurrence++) {
+        let occurrence = 0
+        while (occurrence < 50) { // Limite de sécurité pour éviter les boucles infinies
           const occurrenceDate = new Date(firstDate)
           occurrenceDate.setMonth(firstDate.getMonth() + (occurrence * recurrenceMonths))
           
@@ -464,21 +489,61 @@ const generateForecast = () => {
                              (occurrenceDate.getMonth() - today.getMonth())
             
             if (monthsDiff < forecastMonths) {
-              // Use prospect probability coefficient for each occurrence
+              // Use high probability for recurring prospects (95% by default)
+              const adjustedProbabilities = getAdjustedProbabilities()
+              const recurringProbability = adjustedProbabilities.recurring
               const prospectProbability = (prospect.probability_coefficient || 100) / 100
-              const expectedRevenue = revenue * prospectProbability
+              const finalProbability = recurringProbability * prospectProbability
+              const expectedRevenue = revenue * finalProbability
               
               forecastData[monthsDiff].revenue += expectedRevenue
               forecastData[monthsDiff].prospects.push({
                 id: `${prospect.id}_${occurrence}`,
-                name: `${prospect.name} (Recurrence ${occurrence + 1})`,
+                name: `${prospect.name} (Occurrence ${occurrence + 1})`,
                 expectedRevenue,
-                probability: prospectProbability,
+                probability: finalProbability,
                 estimatedDate: occurrenceDate.toISOString().split('T')[0],
                 isRecurring: true,
-                originalId: prospect.id
+                originalId: prospect.id,
+                recurrenceMonths: recurrenceMonths
               })
+              occurrence++
+            } else {
+              // On a dépassé la période de forecast
+              break
             }
+          } else {
+            occurrence++
+          }
+        }
+      } else {
+        // Si pas de next_followup_date définie, utiliser la date du jour + 1 mois comme première occurrence
+        const adjustedProbabilities = getAdjustedProbabilities()
+        const recurringProbability = adjustedProbabilities.recurring
+        const prospectProbability = (prospect.probability_coefficient || 100) / 100
+        const finalProbability = recurringProbability * prospectProbability
+        
+        for (let occurrence = 0; occurrence < Math.floor(forecastMonths / recurrenceMonths); occurrence++) {
+          const occurrenceDate = new Date(today)
+          occurrenceDate.setMonth(today.getMonth() + 1 + (occurrence * recurrenceMonths)) // Commencer dans 1 mois
+          
+          const monthsDiff = (occurrenceDate.getFullYear() - today.getFullYear()) * 12 + 
+                           (occurrenceDate.getMonth() - today.getMonth())
+          
+          if (monthsDiff < forecastMonths) {
+            const expectedRevenue = revenue * finalProbability
+            
+            forecastData[monthsDiff].revenue += expectedRevenue
+            forecastData[monthsDiff].prospects.push({
+              id: `${prospect.id}_${occurrence}`,
+              name: `${prospect.name} (Occurrence ${occurrence + 1})`,
+              expectedRevenue,
+              probability: finalProbability,
+              estimatedDate: occurrenceDate.toISOString().split('T')[0],
+              isRecurring: true,
+              originalId: prospect.id,
+              recurrenceMonths: recurrenceMonths
+            })
           }
         }
       }
@@ -952,6 +1017,80 @@ const formatDateRange = (months) => {
   return `${startMonth} - ${endMonth}`
 }
 
+const formatDateShort = (date) => {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  }).format(new Date(date))
+}
+
+const getRecurringProspects = () => {
+  return props.prospects.filter(p => p.status === 'recurring')
+}
+
+const getNextRecurringOccurrences = () => {
+  const occurrences = []
+  const today = new Date()
+  const recurringProspects = getRecurringProspects()
+  
+  recurringProspects.forEach(prospect => {
+    const recurrenceMonths = prospect.recurrence_months || 12
+    let nextFollowupDate = prospect.next_followup_date
+    
+    if (nextFollowupDate) {
+      const firstDate = new Date(nextFollowupDate)
+      
+      // Calculer les 3 prochaines occurrences pour chaque prospect récurrent
+      for (let i = 0; i < 3; i++) {
+        const occurrenceDate = new Date(firstDate)
+        occurrenceDate.setMonth(firstDate.getMonth() + (i * recurrenceMonths))
+        
+        if (occurrenceDate >= today) {
+          const adjustedProbabilities = getAdjustedProbabilities()
+          const recurringProbability = adjustedProbabilities.recurring
+          const prospectProbability = (prospect.probability_coefficient || 100) / 100
+          const finalProbability = recurringProbability * prospectProbability
+          
+          occurrences.push({
+            prospectId: prospect.id,
+            name: prospect.name,
+            date: occurrenceDate.toISOString().split('T')[0],
+            expectedRevenue: (prospect.revenue || 0) * finalProbability,
+            probability: finalProbability,
+            recurrenceMonths: recurrenceMonths,
+            occurrenceIndex: i + 1
+          })
+        }
+      }
+    } else {
+      // Si pas de next_followup_date, commencer dans un mois
+      for (let i = 0; i < 3; i++) {
+        const occurrenceDate = new Date(today)
+        occurrenceDate.setMonth(today.getMonth() + 1 + (i * recurrenceMonths))
+        
+        const adjustedProbabilities = getAdjustedProbabilities()
+        const recurringProbability = adjustedProbabilities.recurring
+        const prospectProbability = (prospect.probability_coefficient || 100) / 100
+        const finalProbability = recurringProbability * prospectProbability
+        
+        occurrences.push({
+          prospectId: prospect.id,
+          name: prospect.name,
+          date: occurrenceDate.toISOString().split('T')[0],
+          expectedRevenue: (prospect.revenue || 0) * finalProbability,
+          probability: finalProbability,
+          recurrenceMonths: recurrenceMonths,
+          occurrenceIndex: i + 1
+        })
+      }
+    }
+  })
+  
+  // Trier par date
+  return occurrences.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 10) // Limiter à 10 prochaines échéances
+}
+
 const getCategoryClass = (category) => {
   const classes = {
     hot: 'bg-red-50 border border-red-200',
@@ -1023,6 +1162,43 @@ watch([leadTimeAdjustment, probabilityAdjustment], () => {
     updateChart()
   }
 })
+
+// Watcher pour détecter les changements dans les prospects récurrents
+watch(() => props.prospects, (newProspects, oldProspects) => {
+  // Vérifier si des prospects récurrents ont changé (périodicité ou next_followup_date)
+  if (oldProspects && newProspects) {
+    let recurringChanged = false
+    
+    const newRecurring = newProspects.filter(p => p.status === 'recurring')
+    const oldRecurring = oldProspects.filter(p => p.status === 'recurring')
+    
+    // Vérifier si le nombre de prospects récurrents a changé
+    if (newRecurring.length !== oldRecurring.length) {
+      recurringChanged = true
+    } else {
+      // Vérifier si des propriétés de récurrence ont changé
+      newRecurring.forEach(newP => {
+        const oldP = oldRecurring.find(p => p.id === newP.id)
+        if (oldP) {
+          if (newP.recurrence_months !== oldP.recurrence_months || 
+              newP.next_followup_date !== oldP.next_followup_date ||
+              newP.revenue !== oldP.revenue ||
+              newP.probability_coefficient !== oldP.probability_coefficient) {
+            recurringChanged = true
+          }
+        } else {
+          recurringChanged = true
+        }
+      })
+    }
+    
+    // Si des prospects récurrents ont changé, mettre à jour le forecast
+    if (recurringChanged && props.isVisible) {
+      console.log('🔄 Recurring prospects changed, updating forecast...')
+      updateChart()
+    }
+  }
+}, { deep: true })
 
 // Cleanup chart on unmount
 onUnmounted(() => {

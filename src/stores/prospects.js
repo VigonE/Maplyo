@@ -168,16 +168,29 @@ export const useProspectsStore = defineStore('prospects', () => {
         }
       }
       
-      console.log('📤 Sending prospect update:', { id, data: completeData })
+      console.log('📤 Sending prospect update to server:')
+      console.log('   - Prospect ID:', id)
+      console.log('   - Data being sent:', completeData)
+      console.log('   - Recurrence fields:', {
+        recurrence_months: completeData.recurrence_months,
+        next_followup_date: completeData.next_followup_date
+      })
       
       const response = await api.put(`/prospects/${id}`, completeData)
+      
+      console.log('✅ Server response:', response.data)
+      console.log('   - Returned recurrence fields:', {
+        recurrence_months: response.data.recurrence_months,
+        next_followup_date: response.data.next_followup_date
+      })
       
       // Mettre à jour avec les données du serveur
       updateProspectLocal(id, response.data)
       
       return { success: true, data: response.data }
     } catch (error) {
-      console.error('Error updating prospect:', error)
+      console.error('❌ Error updating prospect:', error)
+      console.error('Response data:', error.response?.data)
       // En cas d'erreur, recharger pour assurer la cohérence
       await fetchProspects(true)
       return { success: false, error: error.response?.data?.error || 'Update error' }

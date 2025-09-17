@@ -404,8 +404,28 @@ async function handleSubmit() {
 
   try {
     // Debug: vérifier les valeurs
-    console.log('Form data:', { ...form })
+    console.log('Form data before submission:', { ...form })
     console.log('Current tab ID:', props.currentTabId)
+    
+    // Préparer les données complètes avec tous les champs, y compris les champs de récurrence
+    const completeFormData = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      company: form.company,
+      contact: form.contact,
+      address: form.address,
+      revenue: form.revenue,
+      probability_coefficient: form.probability_coefficient,
+      status: form.status,
+      tabId: form.tabId || (availableTabsRef.value.length > 0 ? availableTabsRef.value[0].id : ''),
+      notes: form.notes,
+      estimated_completion_date: form.estimated_completion_date,
+      recurrence_months: form.recurrence_months, // Toujours inclure
+      next_followup_date: form.next_followup_date // Toujours inclure
+    }
+    
+    console.log('Complete form data being sent:', completeFormData)
     
     // Utilisons le store directement dans le modal
     const prospectsStore = useProspectsStore()
@@ -413,15 +433,11 @@ async function handleSubmit() {
     let result;
     if (props.prospect) {
       // Mode édition
-      result = await prospectsStore.updateProspect(props.prospect.id, { ...form })
+      result = await prospectsStore.updateProspect(props.prospect.id, completeFormData)
     } else {
       // Mode création
-      const prospectData = { 
-        ...form,
-        tabId: form.tabId || (availableTabsRef.value.length > 0 ? availableTabsRef.value[0].id : '')
-      }
-      console.log('Creating prospect with data:', prospectData)
-      result = await prospectsStore.createProspect(prospectData)
+      console.log('Creating prospect with data:', completeFormData)
+      result = await prospectsStore.createProspect(completeFormData)
     }
 
     if (result.success) {

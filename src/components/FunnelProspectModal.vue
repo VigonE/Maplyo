@@ -496,10 +496,21 @@ async function saveField(field) {
       probability_coefficient: form.probability_coefficient,
       notes: form.notes,
       estimated_completion_date: form.estimated_completion_date,
+      recurrence_months: form.recurrence_months, // ✅ Ajouter les champs de récurrence
+      next_followup_date: form.next_followup_date, // ✅ Ajouter les champs de récurrence
       tabId: props.prospect.tabId || props.prospect.tab_id || 'default'
     }
 
     console.log(`🔄 Full update data for ${field}:`, updateData)
+    
+    // Log spécifique pour les champs de récurrence
+    if (field === 'recurrence_months' || field === 'next_followup_date') {
+      console.log(`🔄 Saving recurring field '${field}':`, {
+        recurrence_months: updateData.recurrence_months,
+        next_followup_date: updateData.next_followup_date,
+        status: updateData.status
+      })
+    }
 
     const result = await prospectsStore.updateProspect(props.prospect.id, updateData)
     
@@ -512,6 +523,11 @@ async function saveField(field) {
       if (field === 'estimated_completion_date') {
         console.log(`✅ Successfully saved estimated_completion_date: ${form.estimated_completion_date}`)
         console.log(`📅 Updated prospect object:`, props.prospect.estimated_completion_date)
+      }
+      
+      // Log spécial pour les champs de récurrence
+      if (field === 'recurrence_months' || field === 'next_followup_date') {
+        console.log(`✅ Successfully saved recurring field '${field}':`, form[field])
       }
       
       console.log(`✅ Updated ${field} for ${props.prospect.name}`)
