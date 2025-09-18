@@ -105,27 +105,97 @@
             <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
               💰 Revenue Forecast
             </h4>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Until end of year</div>
-                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenueEndOfYear) }}</div>
-                <div class="text-xs text-green-500 mt-1">{{ getMonthsUntilEndOfYear() }} months</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Until end of year -->
+              <div class="bg-white rounded-lg border border-green-100 p-4">
+                <div class="text-sm font-medium text-green-600 mb-3 text-center">Until end of year</div>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span class="text-xs text-blue-600 font-medium">🎯 Leads</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-blue-900">{{ formatCurrency(metrics.leadsRevenueEndOfYear) }}</div>
+                      <div class="text-xs text-blue-600">{{ metrics.leadsCountEndOfYear }} leads</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-purple-50 rounded">
+                    <span class="text-xs text-purple-600 font-medium">🔄 Recurring</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-purple-900">{{ formatCurrency(metrics.recurringRevenueEndOfYear) }}</div>
+                      <div class="text-xs text-purple-600">{{ metrics.recurringCountEndOfYear }} clients</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-green-50 rounded border-t border-green-200">
+                    <span class="text-xs text-green-600 font-bold">💰 Total</span>
+                    <div class="text-right">
+                      <div class="text-lg font-bold text-green-900">{{ formatCurrency(metrics.revenueEndOfYear) }}</div>
+                      <div class="text-xs text-green-500">{{ getMonthsUntilEndOfYear() }} months</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Next 6 months</div>
-                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue6Months) }}</div>
-                <div class="text-xs text-green-500 mt-1">{{ formatDateRange(6) }}</div>
+
+              <!-- Next 6 months -->
+              <div class="bg-white rounded-lg border border-green-100 p-4">
+                <div class="text-sm font-medium text-green-600 mb-3 text-center">Next 6 months</div>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span class="text-xs text-blue-600 font-medium">🎯 Leads</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-blue-900">{{ formatCurrency(metrics.leadsRevenue6Months) }}</div>
+                      <div class="text-xs text-blue-600">{{ metrics.leadsCount6Months }} leads</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-purple-50 rounded">
+                    <span class="text-xs text-purple-600 font-medium">🔄 Recurring</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-purple-900">{{ formatCurrency(metrics.recurringRevenue6Months) }}</div>
+                      <div class="text-xs text-purple-600">{{ metrics.recurringCount6Months }} clients</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-green-50 rounded border-t border-green-200">
+                    <span class="text-xs text-green-600 font-bold">💰 Total</span>
+                    <div class="text-right">
+                      <div class="text-lg font-bold text-green-900">{{ formatCurrency(metrics.revenue6Months) }}</div>
+                      <div class="text-xs text-green-500">{{ formatDateRange(6) }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Next 12 months</div>
-                <div class="text-xl font-bold text-green-900">{{ formatCurrency(metrics.revenue12Months) }}</div>
-                <div class="text-xs text-green-500 mt-1">{{ formatDateRange(12) }}</div>
+
+              <!-- Next 12 months -->
+              <div class="bg-white rounded-lg border border-green-100 p-4">
+                <div class="text-sm font-medium text-green-600 mb-3 text-center">Next 12 months</div>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span class="text-xs text-blue-600 font-medium">🎯 Leads</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-blue-900">{{ formatCurrency(metrics.leadsRevenue12Months) }}</div>
+                      <div class="text-xs text-blue-600">{{ metrics.leadsCount12Months }} leads</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-purple-50 rounded">
+                    <span class="text-xs text-purple-600 font-medium">🔄 Recurring</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-purple-900">{{ formatCurrency(metrics.recurringRevenue12Months) }}</div>
+                      <div class="text-xs text-purple-600">{{ metrics.recurringCount12Months }} clients</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-green-50 rounded border-t border-green-200">
+                    <span class="text-xs text-green-600 font-bold">💰 Total</span>
+                    <div class="text-right">
+                      <div class="text-lg font-bold text-green-900">{{ formatCurrency(metrics.revenue12Months) }}</div>
+                      <div class="text-xs text-green-500">{{ formatDateRange(12) }}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="text-center p-4 bg-white rounded-lg border border-green-100">
-                <div class="text-sm font-medium text-green-600">Conversion rate</div>
-                <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
-                <div class="text-xs text-green-500 mt-1">Average probability</div>
-              </div>
+            </div>
+
+            <!-- Conversion rate moved below -->
+            <div class="mt-4 text-center p-4 bg-white rounded-lg border border-green-100">
+              <div class="text-sm font-medium text-green-600">Conversion rate</div>
+              <div class="text-xl font-bold text-green-900">{{ (metrics.conversionRate * 100).toFixed(1) }}%</div>
+              <div class="text-xs text-green-500 mt-1">Average probability</div>
             </div>
           </div>
 
@@ -366,6 +436,25 @@ const metrics = ref({
   revenue6Months: 0,
   revenue12Months: 0,
   revenueEndOfYear: 0,
+  
+  // Separated metrics for End of Year
+  leadsRevenueEndOfYear: 0,
+  recurringRevenueEndOfYear: 0,
+  leadsCountEndOfYear: 0,
+  recurringCountEndOfYear: 0,
+  
+  // Separated metrics for 6 months
+  leadsRevenue6Months: 0,
+  recurringRevenue6Months: 0,
+  leadsCount6Months: 0,
+  recurringCount6Months: 0,
+  
+  // Separated metrics for 12 months
+  leadsRevenue12Months: 0,
+  recurringRevenue12Months: 0,
+  leadsCount12Months: 0,
+  recurringCount12Months: 0,
+  
   conversionRate: 0,
   riskFactors: []
 })
@@ -616,6 +705,39 @@ const calculateMetrics = (forecastData) => {
   const endOfYear = new Date(today.getFullYear(), 11, 31) // December 31st
   const monthsUntilEndOfYear = Math.max(0, (endOfYear.getFullYear() - today.getFullYear()) * 12 + (endOfYear.getMonth() - today.getMonth()) + 1)
   
+  // Calculate separated metrics for each time period
+  const calculatePeriodMetrics = (periodMonths) => {
+    let leadsRevenue = 0
+    let recurringRevenue = 0
+    let leadsCount = 0
+    const recurringClientsSet = new Set() // Pour compter les clients uniques
+    
+    forecastData.slice(0, periodMonths).forEach(monthData => {
+      monthData.prospects.forEach(prospect => {
+        if (prospect.isRecurring) {
+          recurringRevenue += prospect.expectedRevenue
+          // Utiliser l'ID original du prospect pour compter les clients uniques
+          recurringClientsSet.add(prospect.originalId || prospect.id)
+        } else {
+          leadsRevenue += prospect.expectedRevenue
+          leadsCount++
+        }
+      })
+    })
+    
+    return { 
+      leadsRevenue, 
+      recurringRevenue, 
+      leadsCount, 
+      recurringCount: recurringClientsSet.size // Nombre de clients uniques
+    }
+  }
+  
+  // Calculate metrics for different periods
+  const endOfYearMetrics = calculatePeriodMetrics(monthsUntilEndOfYear)
+  const sixMonthsMetrics = calculatePeriodMetrics(6)
+  const twelveMonthsMetrics = calculatePeriodMetrics(12)
+  
   const revenue6Months = forecastData.slice(0, 6).reduce((sum, f) => sum + f.revenue, 0)
   const revenue12Months = forecastData.slice(0, 12).reduce((sum, f) => sum + f.revenue, 0)
   const revenueEndOfYear = forecastData.slice(0, monthsUntilEndOfYear).reduce((sum, f) => sum + f.revenue, 0)
@@ -627,6 +749,25 @@ const calculateMetrics = (forecastData) => {
     revenue6Months,
     revenue12Months,
     revenueEndOfYear,
+    
+    // Separated metrics for End of Year
+    leadsRevenueEndOfYear: endOfYearMetrics.leadsRevenue,
+    recurringRevenueEndOfYear: endOfYearMetrics.recurringRevenue,
+    leadsCountEndOfYear: endOfYearMetrics.leadsCount,
+    recurringCountEndOfYear: endOfYearMetrics.recurringCount,
+    
+    // Separated metrics for 6 months
+    leadsRevenue6Months: sixMonthsMetrics.leadsRevenue,
+    recurringRevenue6Months: sixMonthsMetrics.recurringRevenue,
+    leadsCount6Months: sixMonthsMetrics.leadsCount,
+    recurringCount6Months: sixMonthsMetrics.recurringCount,
+    
+    // Separated metrics for 12 months
+    leadsRevenue12Months: twelveMonthsMetrics.leadsRevenue,
+    recurringRevenue12Months: twelveMonthsMetrics.recurringRevenue,
+    leadsCount12Months: twelveMonthsMetrics.leadsCount,
+    recurringCount12Months: twelveMonthsMetrics.recurringCount,
+    
     conversionRate: totalPipeline > 0 ? forecastTotal / totalPipeline : 0,
     riskFactors: identifyRiskFactors()
   }
