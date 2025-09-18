@@ -105,7 +105,7 @@
             <h4 class="text-lg font-semibold text-green-800 mb-4 flex items-center">
               💰 Revenue Forecast
             </h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <!-- Until end of year -->
               <div class="bg-white rounded-lg border border-green-100 p-4">
                 <div class="text-sm font-medium text-green-600 mb-3 text-center">Until end of year</div>
@@ -185,6 +185,34 @@
                     <div class="text-right">
                       <div class="text-lg font-bold text-green-900">{{ formatCurrency(metrics.revenue12Months) }}</div>
                       <div class="text-xs text-green-500">{{ formatDateRange(12) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Next year -->
+              <div class="bg-white rounded-lg border border-green-100 p-4">
+                <div class="text-sm font-medium text-green-600 mb-3 text-center">Next year</div>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-2 bg-blue-50 rounded">
+                    <span class="text-xs text-blue-600 font-medium">🎯 Leads</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-blue-900">{{ formatCurrency(metrics.leadsRevenueNextYear) }}</div>
+                      <div class="text-xs text-blue-600">{{ metrics.leadsCountNextYear }} leads</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-purple-50 rounded">
+                    <span class="text-xs text-purple-600 font-medium">🔄 Recurring</span>
+                    <div class="text-right">
+                      <div class="text-sm font-bold text-purple-900">{{ formatCurrency(metrics.recurringRevenueNextYear) }}</div>
+                      <div class="text-xs text-purple-600">{{ metrics.recurringCountNextYear }} clients</div>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center p-2 bg-green-50 rounded border-t border-green-200">
+                    <span class="text-xs text-green-600 font-bold">💰 Total</span>
+                    <div class="text-right">
+                      <div class="text-lg font-bold text-green-900">{{ formatCurrency(metrics.revenueNextYear) }}</div>
+                      <div class="text-xs text-green-500">{{ formatDateRange(12, true) }}</div>
                     </div>
                   </div>
                 </div>
@@ -436,6 +464,7 @@ const metrics = ref({
   revenue6Months: 0,
   revenue12Months: 0,
   revenueEndOfYear: 0,
+  revenueNextYear: 0,
   
   // Separated metrics for End of Year
   leadsRevenueEndOfYear: 0,
@@ -454,6 +483,12 @@ const metrics = ref({
   recurringRevenue12Months: 0,
   leadsCount12Months: 0,
   recurringCount12Months: 0,
+  
+  // Separated metrics for Next Year
+  leadsRevenueNextYear: 0,
+  recurringRevenueNextYear: 0,
+  leadsCountNextYear: 0,
+  recurringCountNextYear: 0,
   
   conversionRate: 0,
   riskFactors: []
@@ -738,9 +773,40 @@ const calculateMetrics = (forecastData) => {
   const sixMonthsMetrics = calculatePeriodMetrics(6)
   const twelveMonthsMetrics = calculatePeriodMetrics(12)
   
+  // Calculate Next Year metrics (months 13-24)
+  const calculateNextYearMetrics = () => {
+    let leadsRevenue = 0
+    let recurringRevenue = 0
+    let leadsCount = 0
+    const recurringClientsSet = new Set()
+    
+    // Next year = mois 13 à 24 (12 mois après les 12 premiers mois)
+    forecastData.slice(12, 24).forEach(monthData => {
+      monthData.prospects.forEach(prospect => {
+        if (prospect.isRecurring) {
+          recurringRevenue += prospect.expectedRevenue
+          recurringClientsSet.add(prospect.originalId || prospect.id)
+        } else {
+          leadsRevenue += prospect.expectedRevenue
+          leadsCount++
+        }
+      })
+    })
+    
+    return { 
+      leadsRevenue, 
+      recurringRevenue, 
+      leadsCount, 
+      recurringCount: recurringClientsSet.size
+    }
+  }
+  
+  const nextYearMetrics = calculateNextYearMetrics()
+  
   const revenue6Months = forecastData.slice(0, 6).reduce((sum, f) => sum + f.revenue, 0)
   const revenue12Months = forecastData.slice(0, 12).reduce((sum, f) => sum + f.revenue, 0)
   const revenueEndOfYear = forecastData.slice(0, monthsUntilEndOfYear).reduce((sum, f) => sum + f.revenue, 0)
+  const revenueNextYear = forecastData.slice(12, 24).reduce((sum, f) => sum + f.revenue, 0)
   
   return {
     pipelineValue: totalPipeline,
@@ -749,6 +815,7 @@ const calculateMetrics = (forecastData) => {
     revenue6Months,
     revenue12Months,
     revenueEndOfYear,
+    revenueNextYear,
     
     // Separated metrics for End of Year
     leadsRevenueEndOfYear: endOfYearMetrics.leadsRevenue,
@@ -767,6 +834,12 @@ const calculateMetrics = (forecastData) => {
     recurringRevenue12Months: twelveMonthsMetrics.recurringRevenue,
     leadsCount12Months: twelveMonthsMetrics.leadsCount,
     recurringCount12Months: twelveMonthsMetrics.recurringCount,
+    
+    // Separated metrics for Next Year
+    leadsRevenueNextYear: nextYearMetrics.leadsRevenue,
+    recurringRevenueNextYear: nextYearMetrics.recurringRevenue,
+    leadsCountNextYear: nextYearMetrics.leadsCount,
+    recurringCountNextYear: nextYearMetrics.recurringCount,
     
     conversionRate: totalPipeline > 0 ? forecastTotal / totalPipeline : 0,
     riskFactors: identifyRiskFactors()
@@ -1222,8 +1295,15 @@ const getMonthsUntilEndOfYear = () => {
   return monthsUntilEndOfYear
 }
 
-const formatDateRange = (months) => {
+const formatDateRange = (months, isNextYear = false) => {
   const today = new Date()
+  
+  if (isNextYear) {
+    // Pour "Next year", afficher l'année suivante
+    const nextYear = today.getFullYear() + 1
+    return `Jan ${nextYear.toString().slice(-2)} - Dec ${nextYear.toString().slice(-2)}`
+  }
+  
   const endDate = new Date(today.getFullYear(), today.getMonth() + months, 0) // Last day of the target month
   
   const startMonth = today.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
