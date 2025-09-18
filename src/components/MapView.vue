@@ -1,5 +1,75 @@
 <template>
   <div class="h-full relative">
+    <!-- Status Filter Toggles -->
+    <div class="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+      <div class="bg-white rounded-lg shadow-lg border p-3">
+        <div class="text-sm font-medium text-gray-700 mb-2">Filtres</div>
+        <div class="flex flex-col gap-2">
+          <!-- All button -->
+          <button
+            @click="toggleAllStatuses"
+            :class="{
+              'bg-gray-600 text-white': showAllStatuses,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !showAllStatuses
+            }"
+            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span class="w-3 h-3 rounded-full bg-current"></span>
+            All
+          </button>
+          
+          <!-- Individual status filters -->
+          <button
+            @click="toggleStatusFilter('cold')"
+            :class="{
+              'bg-gray-600 text-white': statusFilters.cold,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.cold
+            }"
+            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></span>
+            Cold
+          </button>
+          
+          <button
+            @click="toggleStatusFilter('warm')"
+            :class="{
+              'bg-yellow-600 text-white': statusFilters.warm,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.warm
+            }"
+            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span class="w-3 h-3 rounded-full" style="background-color: #f59e0b;"></span>
+            Warm
+          </button>
+          
+          <button
+            @click="toggleStatusFilter('hot')"
+            :class="{
+              'bg-red-600 text-white': statusFilters.hot,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.hot
+            }"
+            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span class="w-3 h-3 rounded-full" style="background-color: #ef4444;"></span>
+            Hot
+          </button>
+          
+          <button
+            @click="toggleStatusFilter('recurring')"
+            :class="{
+              'bg-purple-600 text-white': statusFilters.recurring,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.recurring
+            }"
+            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <span class="w-3 h-3 rounded-full" style="background-color: #8b5cf6;"></span>
+            Recurring
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Heatmap toggle button -->
     <div class="absolute top-4 right-4 z-[1000]">
       <button
@@ -42,7 +112,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 // Importer le plugin heatmap
@@ -66,6 +136,56 @@ let heatmapLayer = null
 const showHeatmap = ref(false)
 const colorIntensity = ref(1.0)  // Valeur par défaut du slider
 
+// Filtres de statut
+const statusFilters = ref({
+  cold: true,
+  warm: true,
+  hot: true,
+  recurring: true,
+  won: false,
+  lost: false
+})
+
+// Computed properties pour les filtres
+const showAllStatuses = computed(() => 
+  Object.values(statusFilters.value).every(value => value)
+)
+
+const filteredProspects = computed(() => {
+  if (!props.prospects) return []
+  
+  return props.prospects.filter(prospect => {
+    const status = prospect.status || 'cold'
+    return statusFilters.value[status] === true
+  })
+})
+
+// Fonctions de gestion des filtres
+function toggleStatusFilter(status) {
+  statusFilters.value[status] = !statusFilters.value[status]
+  updateDisplay()
+}
+
+function toggleAllStatuses() {
+  const newValue = !showAllStatuses.value
+  // Active/désactive tous les statuts principaux
+  statusFilters.value.cold = newValue
+  statusFilters.value.warm = newValue
+  statusFilters.value.hot = newValue
+  statusFilters.value.recurring = newValue
+  updateDisplay()
+}
+
+function updateDisplay() {
+  if (map) {
+    if (showHeatmap.value) {
+      updateHeatmap()
+    } else {
+      updateMarkers(filteredProspects.value)
+    }
+  }
+}
+
 onMounted(async () => {
   await nextTick()
   initMap()
@@ -76,7 +196,17 @@ watch(() => props.prospects, (newProspects) => {
     if (showHeatmap.value) {
       updateHeatmap()
     } else {
-      updateMarkers(newProspects)
+      updateMarkers(filteredProspects.value)
+    }
+  }
+}, { deep: true })
+
+watch(filteredProspects, (newFilteredProspects) => {
+  if (map) {
+    if (showHeatmap.value) {
+      updateHeatmap()
+    } else {
+      updateMarkers(newFilteredProspects)
     }
   }
 }, { deep: true })
@@ -110,7 +240,7 @@ function initMap() {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map)
 
-  updateMarkers(props.prospects)
+  updateMarkers(filteredProspects.value)
 }
 
 function toggleHeatmap() {
@@ -123,17 +253,17 @@ function toggleHeatmap() {
   } else {
     // Cacher la heatmap et afficher les marqueurs
     clearHeatmap()
-    updateMarkers(props.prospects)
+    updateMarkers(filteredProspects.value)
   }
 }
 
 function updateHeatmap() {
-  if (!map || !props.prospects) return
+  if (!map || !filteredProspects.value) return
   
   clearHeatmap()
   
   // Préparer les données pour la heatmap (prospects filtrés pour l'affichage)
-  const prospectsWithCoords = props.prospects.filter(prospect => 
+  const prospectsWithCoords = filteredProspects.value.filter(prospect => 
     prospect.latitude && prospect.longitude && getComparableRevenue(prospect) > 0
   )
   
@@ -146,7 +276,7 @@ function updateHeatmap() {
   const visibleRevenueRange = visibleMaxRevenue - visibleMinRevenue
   
   // Calculer aussi l'échelle globale pour la cohérence relative
-  const allProspectsWithRevenue = (props.allProspects || props.prospects).filter(prospect => 
+  const allProspectsWithRevenue = (props.allProspects || filteredProspects.value).filter(prospect => 
     getComparableRevenue(prospect) > 0
   )
   const allRevenues = allProspectsWithRevenue.map(p => getComparableRevenue(p))
