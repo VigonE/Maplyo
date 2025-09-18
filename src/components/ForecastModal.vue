@@ -156,6 +156,14 @@
                       Show Bars
                     </label>
                   </div>
+                  <div class="flex items-center space-x-2">
+                    <label class="text-sm text-gray-600">Moving Average Type:</label>
+                    <select v-model="movingAverageType" @change="updateChart" class="text-sm border border-gray-300 rounded px-2 py-1">
+                      <option value="both">📈 Both (Total)</option>
+                      <option value="leads">🎯 Leads Only</option>
+                      <option value="recurring">🔄 Recurring Only</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <!-- Sliders d'ajustement dynamique -->
@@ -348,6 +356,7 @@ const loading = ref(false)
 const chartCanvas = ref(null)
 const chart = ref(null)
 const movingAveragePeriod = ref(6) // Default to 6 months moving average
+const movingAverageType = ref('both') // Default to both leads and recurring
 const showBars = ref(true) // Show bars by default
 const forecast = ref([])
 const metrics = ref({
@@ -865,28 +874,28 @@ const createChart = async () => {
   
   const datasets = []
   
-  // Add bar chart if enabled - now split between recurring and non-recurring
-  if (showBars.value) {
-    // Calculate recurring and non-recurring revenue for each month
-    const recurringRevenue = []
-    const nonRecurringRevenue = []
+  // Calculate recurring and non-recurring revenue for each month (needed for both bars and moving average)
+  const recurringRevenue = []
+  const nonRecurringRevenue = []
+  
+  forecast.value.forEach(monthData => {
+    let recurringTotal = 0
+    let nonRecurringTotal = 0
     
-    forecast.value.forEach(monthData => {
-      let recurringTotal = 0
-      let nonRecurringTotal = 0
-      
-      monthData.prospects.forEach(prospect => {
-        if (prospect.isRecurring) {
-          recurringTotal += prospect.expectedRevenue
-        } else {
-          nonRecurringTotal += prospect.expectedRevenue
-        }
-      })
-      
-      recurringRevenue.push(recurringTotal)
-      nonRecurringRevenue.push(nonRecurringTotal)
+    monthData.prospects.forEach(prospect => {
+      if (prospect.isRecurring) {
+        recurringTotal += prospect.expectedRevenue
+      } else {
+        nonRecurringTotal += prospect.expectedRevenue
+      }
     })
     
+    recurringRevenue.push(recurringTotal)
+    nonRecurringRevenue.push(nonRecurringTotal)
+  })
+  
+  // Add bar chart if enabled - now split between recurring and non-recurring
+  if (showBars.value) {
     // Non-recurring revenue (base bar)
     datasets.push({
       type: 'bar',
@@ -912,15 +921,33 @@ const createChart = async () => {
     })
   }
   
-  // Add moving average trend line
-  const revenueData = forecast.value.map(f => f.revenue)
-  const movingAverageData = calculateMovingAverage(revenueData, movingAveragePeriod.value)
+  // Add moving average trend line based on selected type
+  let movingAverageData, movingAverageLabel, movingAverageColor
+  
+  switch (movingAverageType.value) {
+    case 'leads':
+      movingAverageData = calculateMovingAverage(nonRecurringRevenue, movingAveragePeriod.value)
+      movingAverageLabel = `🎯 Leads Moving Average (${movingAveragePeriod.value} months)`
+      movingAverageColor = '#3b82f6'
+      break
+    case 'recurring':
+      movingAverageData = calculateMovingAverage(recurringRevenue, movingAveragePeriod.value)
+      movingAverageLabel = `🔄 Recurring Moving Average (${movingAveragePeriod.value} months)`
+      movingAverageColor = '#9333ea'
+      break
+    default: // 'both'
+      const totalRevenueData = forecast.value.map(f => f.revenue)
+      movingAverageData = calculateMovingAverage(totalRevenueData, movingAveragePeriod.value)
+      movingAverageLabel = `📈 Total Moving Average (${movingAveragePeriod.value} months)`
+      movingAverageColor = '#ef4444'
+      break
+  }
   
   datasets.push({
     type: 'line',
-    label: `Moving Average (${movingAveragePeriod.value} months)`,
+    label: movingAverageLabel,
     data: movingAverageData,
-    borderColor: '#ef4444',
+    borderColor: movingAverageColor,
     backgroundColor: 'transparent',
     fill: false,
     tension: 0.2, // Slight smoothing for visual appeal
@@ -1204,7 +1231,7 @@ watch([() => loading.value, () => forecast.value.length], async ([newLoading, ne
 })
 
 // Watcher pour les ajustements en temps réel
-watch([leadTimeAdjustment, probabilityAdjustment], () => {
+watch([leadTimeAdjustment, probabilityAdjustment, movingAverageType], () => {
   if (chart.value && forecast.value.length > 0) {
     updateChart()
   }
