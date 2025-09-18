@@ -1,92 +1,190 @@
 <template>
   <div class="h-full relative">
-    <!-- Status Filter Toggles -->
-    <div class="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
-      <div class="bg-white rounded-lg shadow-lg border p-3">
-        <div class="text-sm font-medium text-gray-700 mb-2">Filtres</div>
-        <div class="flex flex-col gap-2">
-          <!-- All button -->
-          <button
-            @click="toggleAllStatuses"
-            :class="{
-              'bg-gray-600 text-white': showAllStatuses,
-              'bg-gray-100 text-gray-700 hover:bg-gray-200': !showAllStatuses
-            }"
-            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <span class="w-3 h-3 rounded-full bg-current"></span>
-            All
-          </button>
-          
-          <!-- Individual status filters -->
-          <button
-            @click="toggleStatusFilter('cold')"
-            :class="{
-              'bg-gray-600 text-white': statusFilters.cold,
-              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.cold
-            }"
-            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <span class="w-3 h-3 rounded-full" style="background-color: #6b7280;"></span>
-            Cold
-          </button>
-          
-          <button
-            @click="toggleStatusFilter('warm')"
-            :class="{
-              'bg-yellow-600 text-white': statusFilters.warm,
-              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.warm
-            }"
-            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <span class="w-3 h-3 rounded-full" style="background-color: #f59e0b;"></span>
-            Warm
-          </button>
-          
-          <button
-            @click="toggleStatusFilter('hot')"
-            :class="{
-              'bg-red-600 text-white': statusFilters.hot,
-              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.hot
-            }"
-            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <span class="w-3 h-3 rounded-full" style="background-color: #ef4444;"></span>
-            Hot
-          </button>
-          
-          <button
-            @click="toggleStatusFilter('recurring')"
-            :class="{
-              'bg-purple-600 text-white': statusFilters.recurring,
-              'bg-gray-100 text-gray-700 hover:bg-gray-200': !statusFilters.recurring
-            }"
-            class="px-3 py-2 rounded text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <span class="w-3 h-3 rounded-full" style="background-color: #8b5cf6;"></span>
-            Recurring
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Bouton pour ouvrir le volet des filtres -->
+    <div class="absolute top-4 right-4 z-[1001] flex gap-2 filters-panel-buttons">
+      <!-- Bouton Filtres -->
+      <button
+        @click="showFiltersPanel = !showFiltersPanel"
+        :class="{
+          'bg-blue-600 text-white': showFiltersPanel,
+          'bg-white text-gray-700 hover:bg-gray-50': !showFiltersPanel
+        }"
+        class="px-3 py-2 rounded-lg shadow-lg border transition-all duration-200 flex items-center gap-2 hover-lift"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+        </svg>
+        <span class="hidden sm:inline">Filtres</span>
+      </button>
 
-    <!-- Heatmap toggle button -->
-    <div class="absolute top-4 right-4 z-[1000]">
+      <!-- Bouton Heatmap -->
       <button
         @click="toggleHeatmap"
         :class="{
           'bg-blue-600 text-white': showHeatmap,
           'bg-white text-gray-700 hover:bg-gray-50': !showHeatmap
         }"
-        class="px-3 py-2 rounded-lg shadow-lg border transition-colors duration-200 flex items-center gap-2"
+        class="px-3 py-2 rounded-lg shadow-lg border transition-colors duration-200 flex items-center gap-2 hover-lift"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        {{ showHeatmap ? 'Hide Heatmap' : 'Show Heatmap' }}
+        <span class="hidden sm:inline">{{ showHeatmap ? 'Désactiver' : 'Heatmap' }}</span>
       </button>
     </div>
+
+    <!-- Volet des filtres (rétractable) -->
+    <div 
+      :class="{
+        'translate-x-0': showFiltersPanel,
+        'translate-x-full': !showFiltersPanel
+      }"
+      class="fixed top-0 right-0 h-full w-80 sm:w-80 md:w-80 lg:w-80 xl:w-80 max-w-full bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel"
+    >
+      <!-- En-tête du volet -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtres de statut
+        </h3>
+        <button
+          @click="showFiltersPanel = false"
+          class="p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all duration-200 text-gray-500 hover:text-gray-700"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Contenu du volet -->
+      <div class="p-4 space-y-4">
+        <!-- Bouton "Tout sélectionner" -->
+        <div class="mb-6">
+          <button
+            @click="toggleAllStatuses"
+            :class="{
+              'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md': showAllStatuses,
+              'bg-gray-100 text-gray-700 hover:bg-gray-200': !showAllStatuses
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-3 text-sm"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ showAllStatuses ? 'Désélectionner tout' : 'Sélectionner tout' }}
+          </button>
+        </div>
+
+        <!-- Filtres individuels -->
+        <div class="space-y-3">
+          <h4 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Statuts disponibles</h4>
+          
+          <!-- Cold -->
+          <button
+            @click="toggleStatusFilter('cold')"
+            :class="{
+              'bg-gray-600 text-white shadow-lg scale-105': statusFilters.cold,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.cold
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #6b7280;"></span>
+              <span>Cold</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.cold ? '✓' : '' }}
+            </div>
+          </button>
+          
+          <!-- Warm -->
+          <button
+            @click="toggleStatusFilter('warm')"
+            :class="{
+              'bg-yellow-500 text-white shadow-lg scale-105': statusFilters.warm,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.warm
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #f59e0b;"></span>
+              <span>Warm</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.warm ? '✓' : '' }}
+            </div>
+          </button>
+          
+          <!-- Hot -->
+          <button
+            @click="toggleStatusFilter('hot')"
+            :class="{
+              'bg-red-500 text-white shadow-lg scale-105': statusFilters.hot,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.hot
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #ef4444;"></span>
+              <span>Hot</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.hot ? '✓' : '' }}
+            </div>
+          </button>
+          
+          <!-- Recurring -->
+          <button
+            @click="toggleStatusFilter('recurring')"
+            :class="{
+              'bg-purple-500 text-white shadow-lg scale-105': statusFilters.recurring,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.recurring
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #8b5cf6;"></span>
+              <span>Recurring</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.recurring ? '✓' : '' }}
+            </div>
+          </button>
+        </div>
+
+        <!-- Statistiques des filtres -->
+        <div class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+          <h4 class="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Résultats
+          </h4>
+          <p class="text-sm text-gray-600">
+            <span class="font-semibold text-blue-600">{{ filteredProspects.length }}</span> 
+            prospect{{ filteredProspects.length > 1 ? 's' : '' }} affiché{{ filteredProspects.length > 1 ? 's' : '' }}
+            <span v-if="props.prospects && props.prospects.length > 0">
+              sur {{ props.prospects.length }} total{{ props.prospects.length > 1 ? 'aux' : '' }}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay pour fermer le volet en cliquant à côté -->
+    <div 
+      v-if="showFiltersPanel"
+      @click="showFiltersPanel = false"
+      class="fixed inset-0 bg-black bg-opacity-25 z-[999] transition-opacity duration-300"
+    ></div>
     
     <!-- Color intensity slider -->
     <div v-if="showHeatmap" class="absolute top-20 right-4 z-[1000] bg-white rounded-lg shadow-lg border p-3 min-w-[200px]">
@@ -112,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, watch, nextTick, computed, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 // Importer le plugin heatmap
@@ -145,6 +243,9 @@ const statusFilters = ref({
   won: false,
   lost: false
 })
+
+// État du volet des filtres
+const showFiltersPanel = ref(false)
 
 // Computed properties pour les filtres
 const showAllStatuses = computed(() => 
@@ -189,7 +290,21 @@ function updateDisplay() {
 onMounted(async () => {
   await nextTick()
   initMap()
+  
+  // Écouter la touche Escape pour fermer le volet
+  document.addEventListener('keydown', handleEscapeKey)
 })
+
+onUnmounted(() => {
+  // Nettoyer l'éventuel listener
+  document.removeEventListener('keydown', handleEscapeKey)
+})
+
+function handleEscapeKey(event) {
+  if (event.key === 'Escape' && showFiltersPanel.value) {
+    showFiltersPanel.value = false
+  }
+}
 
 watch(() => props.prospects, (newProspects) => {
   if (map) {
@@ -693,5 +808,55 @@ input[type="range"]::-moz-range-thumb {
 .custom-tooltip .leaflet-tooltip-top::before,
 .custom-tooltip .leaflet-tooltip-bottom::before {
   border-top-color: white !important;
+}
+
+/* Styles pour le volet des filtres */
+@media (max-width: 768px) {
+  .filters-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  
+  .filters-panel-buttons {
+    position: fixed !important;
+    top: 1rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+}
+
+/* Animation personnalisée pour les boutons de filtre */
+.filter-button-enter-active,
+.filter-button-leave-active {
+  transition: all 0.2s ease;
+}
+
+.filter-button-enter-from,
+.filter-button-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Effet de survol amélioré */
+.hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation du volet */
+.slide-panel-enter-active,
+.slide-panel-leave-active {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-panel-enter-from,
+.slide-panel-leave-to {
+  transform: translateX(100%);
 }
 </style>
