@@ -41,7 +41,7 @@
         'translate-x-0': showFiltersPanel,
         'translate-x-full': !showFiltersPanel
       }"
-      class="fixed top-0 right-0 h-full w-80 sm:w-80 md:w-80 lg:w-80 xl:w-80 max-w-full bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel"
+      class="fixed top-0 right-0 h-full w-64 sm:w-64 md:w-64 lg:w-64 xl:w-64 max-w-full bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel"
     >
       <!-- Panel header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
