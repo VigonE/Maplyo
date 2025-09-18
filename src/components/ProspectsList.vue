@@ -570,6 +570,15 @@
                 <div class="flex items-center gap-2">
                   <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                   <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
+                  <button
+                    @click="addProspectWithStatus('cold')"
+                    class="ml-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 p-1 transition-colors"
+                    title="Add cold prospect"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
                 </div>
                 <div class="text-xs text-blue-600 mt-1">
                   ⏱️ {{ props.leadTimes.cold }}mo • 🎯 {{ props.leadTimes.coldProbability }}%
@@ -645,6 +654,15 @@
                 <div class="flex items-center gap-2">
                   <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
+                  <button
+                    @click="addProspectWithStatus('warm')"
+                    class="ml-2 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 p-1 transition-colors"
+                    title="Add warm prospect"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
                 </div>
                 <div class="text-xs text-yellow-600 mt-1">
                   ⏱️ {{ props.leadTimes.warm }}mo • 🎯 {{ props.leadTimes.warmProbability }}%
@@ -720,6 +738,15 @@
                 <div class="flex items-center gap-2">
                   <div class="w-3 h-3 rounded-full bg-red-500"></div>
                   <h3 class="font-semibold text-red-800">🔥 HOT</h3>
+                  <button
+                    @click="addProspectWithStatus('hot')"
+                    class="ml-2 text-red-600 hover:text-red-800 hover:bg-red-200 p-1 transition-colors"
+                    title="Add hot prospect"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
                 </div>
                 <div class="text-xs text-red-600 mt-1">
                   ⏱️ {{ props.leadTimes.hot }}mo • 🎯 {{ props.leadTimes.hotProbability }}%
@@ -799,6 +826,15 @@
                   <div class="flex items-center gap-2">
                     <div class="w-3 h-3 rounded-full bg-purple-500"></div>
                     <h3 class="font-semibold text-purple-800">🔄 RECURRING</h3>
+                    <button
+                      @click="addProspectWithStatus('recurring')"
+                      class="ml-2 text-purple-600 hover:text-purple-800 hover:bg-purple-200 p-1 transition-colors"
+                      title="Add recurring prospect"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
                   </div>
                   <div class="text-xs text-purple-600 mt-1">
                     ⏱️ {{ props.leadTimes.recurring }}mo • 🎯 {{ props.leadTimes.recurringProbability }}%
@@ -2214,6 +2250,16 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleModalKeydown)
   document.removeEventListener('keydown', handleGlobalKeydown)
 })
+
+// ===============================
+// FONCTION POUR AJOUTER UN PROSPECT AVEC STATUS
+// ===============================
+
+// Fonction pour ajouter un prospect avec un status spécifique
+function addProspectWithStatus(status) {
+  console.log(`🆕 Adding prospect with status: ${status}`)
+  emit('add-prospect', { status: status })
+}
 
 // ===============================
 // FONCTIONS POUR LES PROSPECTS RÉCURRENTS

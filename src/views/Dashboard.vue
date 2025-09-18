@@ -80,7 +80,7 @@
         <TabsManager
           ref="tabsManager"
           :lead-times="closingLeadTimes"
-          @add-prospect="showAddModal = true"
+          @add-prospect="openAddModal"
           @edit-prospect="editProspect"
           @delete-prospect="deleteProspect"
           @select-prospect="selectProspect"
@@ -115,6 +115,7 @@
       :show="showAddModal || showEditModal"
       :prospect="editingProspect"
       :current-tab-id="currentTabId"
+      :initial-status="modalInitialStatus"
       :key="modalKey"
       @close="closeModal"
       @save="closeModal"
@@ -760,6 +761,7 @@ const showAddModal = ref(false)
 const showEditModal = ref(false)
 const editingProspect = ref(null)
 const selectedProspect = ref(null)
+const modalInitialStatus = ref('cold')
 const tabsManager = ref(null)
 const currentTabId = ref('default')
 const showSettingsMenu = ref(false)
@@ -1069,6 +1071,21 @@ async function scrollToProspectInList(prospect) {
       }, 2000)
     }
   }, 200)
+}
+
+function openAddModal(data) {
+  // Gérer les deux formats : soit une string simple, soit un objet
+  if (typeof data === 'string') {
+    modalInitialStatus.value = data
+  } else if (data && typeof data === 'object' && data.status) {
+    modalInitialStatus.value = data.status
+  } else {
+    modalInitialStatus.value = 'cold'
+  }
+  
+  console.log(`🆕 Opening add modal with status: ${modalInitialStatus.value}`)
+  editingProspect.value = null
+  showAddModal.value = true
 }
 
 function editProspect(prospect) {

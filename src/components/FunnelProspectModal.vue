@@ -479,6 +479,10 @@ const props = defineProps({
   currentTabId: {
     type: String,
     default: 'default'
+  },
+  initialStatus: {
+    type: String,
+    default: 'cold'
   }
 })
 
@@ -539,7 +543,7 @@ const form = reactive({
   company: '',
   contact: '',
   address: '',
-  status: 'cold',
+  status: props.initialStatus || 'cold',
   revenue: 0,
   probability_coefficient: 100,
   notes: '',
@@ -595,7 +599,7 @@ watch(() => props.prospect, (newProspect) => {
       company: '',
       contact: '',
       address: '',
-      status: 'cold',
+      status: props.initialStatus || 'cold',
       revenue: 0,
       probability_coefficient: 100,
       notes: '',
