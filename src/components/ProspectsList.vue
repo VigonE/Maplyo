@@ -845,7 +845,10 @@
                     {{ getProspectsByStatus('recurring').length }}
                   </span>
                   <div class="text-xs font-medium text-purple-700 mt-1">
-                    💰 {{ formatCurrency(recurringWeightedRevenue) }}
+                    <div class="flex flex-col items-end">
+                      <div class="text-xs text-purple-600">Monthly: {{ formatCurrency(recurringMonthlyRevenue) }}</div>
+                      <div class="font-medium text-purple-800">Annual: {{ formatCurrency(recurringAnnualRevenue) }}</div>
+                    </div>
                   </div>
                   <div v-if="getRecurringDueCount() > 0" class="text-xs text-red-600 font-medium mt-1">
                     🚨 {{ getRecurringDueCount() }} due for followup
@@ -1182,6 +1185,22 @@ const recurringWeightedRevenue = computed(() => {
   return recurringProspects.value.reduce((total, prospect) => {
     return total + getWeightedRevenue(prospect)
   }, 0)
+})
+
+// Computed property pour le revenu récurrent extrapolé par mois
+const recurringMonthlyRevenue = computed(() => {
+  return recurringProspects.value.reduce((total, prospect) => {
+    const weightedRevenue = getWeightedRevenue(prospect)
+    const recurrenceMonths = prospect.recurrence_months || 12
+    // Calcul du revenu mensuel en divisant par l'intervalle de récurrence
+    const monthlyRevenue = weightedRevenue / recurrenceMonths
+    return total + monthlyRevenue
+  }, 0)
+})
+
+// Computed property pour le revenu récurrent extrapolé par an
+const recurringAnnualRevenue = computed(() => {
+  return recurringMonthlyRevenue.value * 12
 })
 
 // Fonction pour initialiser les listes de prospects
