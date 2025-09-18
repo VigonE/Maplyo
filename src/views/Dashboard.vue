@@ -111,12 +111,13 @@
     </div>
 
     <!-- Add/Edit Modal -->
-    <ProspectModal
+    <FunnelProspectModal
       :show="showAddModal || showEditModal"
       :prospect="editingProspect"
       :current-tab-id="currentTabId"
       :key="modalKey"
       @close="closeModal"
+      @save="closeModal"
     />
 
     <!-- CSV Import Modal -->
@@ -746,7 +747,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
-import ProspectModal from '@/components/ProspectModal.vue'
+import FunnelProspectModal from '@/components/FunnelProspectModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import ForecastModal from '@/components/ForecastModal.vue'
 import api, { profileAPI } from '@/services/api'

@@ -971,23 +971,14 @@
     </div>
   </div>
 
-  <!-- Modal ProspectModal pour l'édition complète -->
-  <ProspectModal 
-    v-if="showProspectModal && selectedProspectForModal"
-    :prospect="selectedProspectForModal"
-    :show="showProspectModal"
-    :current-tab-id="tabId"
-    @close="closeProspectModal"
-    @save="closeProspectModal"
-  />
-
-  <!-- Modal FunnelProspectModal pour la vue funnel (large et paysage) -->
+  <!-- Modal FunnelProspectModal pour toutes les interactions -->
   <FunnelProspectModal
     v-if="showFunnelProspectModal && selectedProspectForFunnelModal"
     :prospect="selectedProspectForFunnelModal"
     :show="showFunnelProspectModal"
+    :current-tab-id="tabId"
     @close="closeFunnelProspectModal"
-    @edit="openClassicEditModal"
+    @save="closeFunnelProspectModal"
   />
 </template>
 
@@ -997,7 +988,6 @@ import { debounce, throttle } from 'lodash-es'
 import draggable from 'vuedraggable'
 import { useProspectsStore } from '../stores/prospects'
 import { QuillEditor } from '@vueup/vue-quill'
-import ProspectModal from './ProspectModal.vue'
 import FunnelProspectModal from './FunnelProspectModal.vue'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
@@ -1191,11 +1181,7 @@ const selectedProspectForNotes = ref(null)
 const isEditingInModal = ref(false)
 const tempNotesForModal = ref('')
 
-// Variables pour la modal ProspectModal
-const showProspectModal = ref(false)
-const selectedProspectForModal = ref(null)
-
-// Variables pour la nouvelle modal FunnelProspectModal
+// Variables pour la modal FunnelProspectModal
 const showFunnelProspectModal = ref(false)
 const selectedProspectForFunnelModal = ref(null)
 
@@ -2109,28 +2095,10 @@ function openProspectModal(prospect) {
   showFunnelProspectModal.value = true
 }
 
-// Fonction pour fermer la modal ProspectModal
-function closeProspectModal() {
-  showProspectModal.value = false
-  selectedProspectForModal.value = null
-}
-
 // Fonction pour fermer la modal FunnelProspectModal
 function closeFunnelProspectModal() {
   showFunnelProspectModal.value = false
   selectedProspectForFunnelModal.value = null
-}
-
-// Fonction pour ouvrir la modal classique depuis la modal funnel
-function openClassicEditModal(prospect) {
-  console.log('🔧 Opening classic edit modal for:', prospect.name)
-  
-  // Fermer la modal funnel
-  closeFunnelProspectModal()
-  
-  // Ouvrir la modal classique
-  selectedProspectForModal.value = prospect
-  showProspectModal.value = true
 }
 
 // Fonction simple pour gérer le drop dans le funnel (sans rechargement)

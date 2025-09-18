@@ -12,14 +12,17 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-6">
         <div class="flex items-center">
-          <div class="w-3 h-3 rounded-full mr-3" :class="getStatusColor(prospect.status)"></div>
-          <h3 class="text-2xl font-bold text-gray-900">{{ prospect.name }}</h3>
-          <span class="ml-3 px-3 py-1 text-sm rounded-full" :class="getStatusBadge(prospect.status)">
+          <div v-if="prospect" class="w-3 h-3 rounded-full mr-3" :class="getStatusColor(prospect.status)"></div>
+          <h3 class="text-2xl font-bold text-gray-900">
+            {{ prospect ? prospect.name : 'New Lead' }}
+          </h3>
+          <span v-if="prospect" class="ml-3 px-3 py-1 text-sm rounded-full" :class="getStatusBadge(prospect.status)">
             {{ prospect.status?.toUpperCase() }}
           </span>
         </div>
         <div class="flex items-center gap-2">
           <button 
+            v-if="prospect"
             @click="openEditModal" 
             class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
             title="Edit in full modal"
@@ -48,16 +51,19 @@
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Name:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.name" class="text-gray-900">{{ form.name }}</span>
+                  <span v-if="!editing.name && prospect" class="text-gray-900">{{ form.name }}</span>
                   <input 
-                    v-else 
+                    v-if="editing.name || !prospect"
                     v-model="form.name"
                     type="text"
+                    required
+                    placeholder="Enter prospect name"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('name')"
-                    @keyup.enter="saveField('name')"
+                    @blur="prospect ? saveField('name') : null"
+                    @keyup.enter="prospect ? saveField('name') : null"
                   >
                   <button 
+                    v-if="prospect"
                     @click="toggleEdit('name')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
@@ -72,16 +78,18 @@
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Email:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.email" class="text-gray-900">{{ form.email || 'No email' }}</span>
+                  <span v-if="!editing.email && prospect" class="text-gray-900">{{ form.email || 'No email' }}</span>
                   <input 
-                    v-else 
+                    v-if="editing.email || !prospect"
                     v-model="form.email"
                     type="email"
+                    placeholder="Enter email address"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('email')"
-                    @keyup.enter="saveField('email')"
+                    @blur="prospect ? saveField('email') : null"
+                    @keyup.enter="prospect ? saveField('email') : null"
                   >
                   <button 
+                    v-if="prospect"
                     @click="toggleEdit('email')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
@@ -96,16 +104,18 @@
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Phone:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.phone" class="text-gray-900">{{ form.phone || 'No phone' }}</span>
+                  <span v-if="!editing.phone && prospect" class="text-gray-900">{{ form.phone || 'No phone' }}</span>
                   <input 
-                    v-else 
+                    v-if="editing.phone || !prospect"
                     v-model="form.phone"
                     type="tel"
+                    placeholder="Enter phone number"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('phone')"
-                    @keyup.enter="saveField('phone')"
+                    @blur="prospect ? saveField('phone') : null"
+                    @keyup.enter="prospect ? saveField('phone') : null"
                   >
                   <button 
+                    v-if="prospect"
                     @click="toggleEdit('phone')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
@@ -120,16 +130,18 @@
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Company:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.company" class="text-gray-900">{{ form.company || 'No company' }}</span>
+                  <span v-if="!editing.company && prospect" class="text-gray-900">{{ form.company || 'No company' }}</span>
                   <input 
-                    v-else 
+                    v-if="editing.company || !prospect"
                     v-model="form.company"
                     type="text"
+                    placeholder="Enter company name"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('company')"
-                    @keyup.enter="saveField('company')"
+                    @blur="prospect ? saveField('company') : null"
+                    @keyup.enter="prospect ? saveField('company') : null"
                   >
                   <button 
+                    v-if="prospect"
                     @click="toggleEdit('company')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
@@ -144,17 +156,74 @@
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Contact:</label>
                 <div class="flex-1 flex items-center">
-                  <span v-if="!editing.contact" class="text-gray-900">{{ form.contact || 'No contact' }}</span>
+                  <span v-if="!editing.contact && prospect" class="text-gray-900">{{ form.contact || 'No contact' }}</span>
                   <input 
-                    v-else 
+                    v-if="editing.contact || !prospect"
                     v-model="form.contact"
                     type="text"
+                    placeholder="Enter contact person"
                     class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="saveField('contact')"
-                    @keyup.enter="saveField('contact')"
+                    @blur="prospect ? saveField('contact') : null"
+                    @keyup.enter="prospect ? saveField('contact') : null"
                   >
                   <button 
+                    v-if="prospect"
                     @click="toggleEdit('contact')"
+                    class="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="flex items-center">
+                <label class="w-20 text-sm font-medium text-gray-600">Address:</label>
+                <div class="flex-1 flex items-center">
+                  <span v-if="!editing.address && prospect" class="text-gray-900">{{ form.address || 'No address' }}</span>
+                  <textarea 
+                    v-if="editing.address || !prospect"
+                    v-model="form.address"
+                    rows="2"
+                    placeholder="Complete address for geolocation"
+                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    @blur="prospect ? saveField('address') : null"
+                  ></textarea>
+                  <button 
+                    v-if="prospect"
+                    @click="toggleEdit('address')"
+                    class="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tab Selection -->
+              <div class="flex items-center">
+                <label class="w-20 text-sm font-medium text-gray-600">Tab:</label>
+                <div class="flex-1 flex items-center">
+                  <span v-if="!editing.tabId && prospect" class="text-gray-900">
+                    {{ getTabName(form.tabId) || 'No tab' }}
+                  </span>
+                  <select 
+                    v-if="editing.tabId || !prospect"
+                    v-model="form.tabId"
+                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    @blur="prospect ? saveField('tabId') : null"
+                    @change="prospect ? saveField('tabId') : null"
+                  >
+                    <option v-for="tab in availableTabs" :key="tab.id" :value="tab.id">
+                      {{ tab.name }}
+                    </option>
+                  </select>
+                  <button 
+                    v-if="prospect"
+                    @click="toggleEdit('tabId')"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,6 +412,7 @@
             <div class="flex items-center justify-between mb-4">
               <h4 class="text-lg font-semibold text-gray-800">Notes</h4>
               <button 
+                v-if="prospect"
                 @click="toggleEdit('notes')"
                 class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
               >
@@ -353,14 +423,14 @@
             <div class="h-96">
               <!-- Display mode -->
               <div 
-                v-if="!editing.notes" 
+                v-if="!editing.notes && prospect" 
                 class="h-full p-3 bg-white rounded border overflow-y-auto"
                 v-html="form.notes || '<em class=\'text-gray-500\'>No notes yet...</em>'"
               ></div>
               
-              <!-- Edit mode -->
+              <!-- Edit mode or new prospect mode -->
               <RichTextEditor
-                v-else
+                v-if="editing.notes || !prospect"
                 v-model="form.notes"
                 placeholder="Add your notes here..."
                 class="h-80"
@@ -380,7 +450,15 @@
             @click="closeModal"
             class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
           >
-            Close
+            Cancel
+          </button>
+          <button 
+            v-if="!prospect"
+            @click="createProspect"
+            :disabled="!form.name.trim()"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create Lead
           </button>
         </div>
       </div>
@@ -389,18 +467,69 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProspectsStore } from '../stores/prospects'
+import { useAuthStore } from '../stores/auth'
+import axios from 'axios'
 import RichTextEditor from './RichTextEditor.vue'
 
 const props = defineProps({
   show: Boolean,
-  prospect: Object
+  prospect: Object,
+  currentTabId: {
+    type: String,
+    default: 'default'
+  }
 })
 
 const emit = defineEmits(['close', 'save', 'edit'])
 
 const prospectsStore = useProspectsStore()
+const authStore = useAuthStore()
+const availableTabsRef = ref([])
+
+// Fonction pour charger les onglets depuis l'API
+const loadAvailableTabs = async () => {
+  try {
+    console.log('📋 Loading available tabs from API...')
+    const response = await axios.get('/api/tabs', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
+    // Filtrer pour ne garder que les onglets non-spéciaux pour l'assignation
+    availableTabsRef.value = response.data.filter(tab => !tab.is_special)
+    console.log('📋 Available tabs for assignment:', availableTabsRef.value)
+    
+    // Si on crée un nouveau prospect et qu'on n'a pas encore de tabId, utiliser le premier onglet disponible
+    if (!props.prospect && !form.tabId && availableTabsRef.value.length > 0) {
+      // Essayer d'utiliser l'onglet actuel ou le premier disponible
+      const defaultTab = availableTabsRef.value.find(t => t.id === props.currentTabId) || availableTabsRef.value[0]
+      form.tabId = defaultTab.id
+      console.log('📋 Set default tab for new prospect:', defaultTab.name)
+    }
+  } catch (error) {
+    console.error('❌ Error loading tabs:', error)
+    availableTabsRef.value = []
+  }
+}
+
+// Écouter les changements d'onglets
+const handleTabsChanged = () => {
+  console.log('📋 FunnelProspectModal: Received tabsChanged event, reloading tabs')
+  loadAvailableTabs()
+}
+
+// Computed pour les onglets disponibles
+const availableTabs = computed(() => availableTabsRef.value)
+
+// Lifecycle hooks
+onMounted(() => {
+  loadAvailableTabs()
+  window.addEventListener('tabsChanged', handleTabsChanged)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('tabsChanged', handleTabsChanged)
+})
 
 // Form data
 const form = reactive({
@@ -416,7 +545,8 @@ const form = reactive({
   notes: '',
   estimated_completion_date: '',
   recurrence_months: 12,
-  next_followup_date: ''
+  next_followup_date: '',
+  tabId: ''
 })
 
 // Editing state for each field
@@ -426,13 +556,15 @@ const editing = reactive({
   phone: false,
   company: false,
   contact: false,
+  address: false,
   revenue: false,
   probability_coefficient: false,
   estimated_completion_date: false,
   status: false,
   notes: false,
   recurrence_months: false,
-  next_followup_date: false
+  next_followup_date: false,
+  tabId: false
 })
 
 // Watch for prospect changes
@@ -451,10 +583,46 @@ watch(() => props.prospect, (newProspect) => {
       notes: newProspect.notes || '',
       estimated_completion_date: newProspect.estimated_completion_date || '',
       recurrence_months: newProspect.recurrence_months || 12,
-      next_followup_date: newProspect.next_followup_date || ''
+      next_followup_date: newProspect.next_followup_date || '',
+      tabId: newProspect.tab_id || newProspect.tabId || ''
     })
+  } else {
+    // Reset form for new prospect
+    Object.assign(form, {
+      name: '',
+      email: '',
+      phone: '',
+      company: '',
+      contact: '',
+      address: '',
+      status: 'cold',
+      revenue: 0,
+      probability_coefficient: 100,
+      notes: '',
+      estimated_completion_date: '',
+      recurrence_months: 12,
+      next_followup_date: '',
+      tabId: ''
+    })
+    // Re-set default tab for new prospect
+    if (availableTabsRef.value.length > 0) {
+      const defaultTab = availableTabsRef.value.find(t => t.id === props.currentTabId) || availableTabsRef.value[0]
+      form.tabId = defaultTab.id
+    }
   }
 }, { immediate: true })
+
+// Watch pour currentTabId
+watch(() => props.currentTabId, (newTabId) => {
+  if (!props.prospect && newTabId && availableTabsRef.value.length > 0) {
+    // Pour un nouveau lead, mettre à jour le tabId si l'onglet existe
+    const targetTab = availableTabsRef.value.find(t => t.id === newTabId)
+    if (targetTab) {
+      form.tabId = targetTab.id
+      console.log('Updated form tabId to:', targetTab.id)
+    }
+  }
+})
 
 // Toggle edit mode for a field
 function toggleEdit(field) {
@@ -496,23 +664,30 @@ async function saveField(field) {
       probability_coefficient: form.probability_coefficient,
       notes: form.notes,
       estimated_completion_date: form.estimated_completion_date,
-      recurrence_months: form.recurrence_months, // ✅ Ajouter les champs de récurrence
-      next_followup_date: form.next_followup_date, // ✅ Ajouter les champs de récurrence
-      tabId: props.prospect.tabId || props.prospect.tab_id || 'default'
+      recurrence_months: form.recurrence_months,
+      next_followup_date: form.next_followup_date,
+      tabId: form.tabId || props.prospect?.tabId || props.prospect?.tab_id || 'default'
     }
 
     console.log(`🔄 Full update data for ${field}:`, updateData)
     
-    // Log spécifique pour les champs de récurrence
-    if (field === 'recurrence_months' || field === 'next_followup_date') {
-      console.log(`🔄 Saving recurring field '${field}':`, {
-        recurrence_months: updateData.recurrence_months,
-        next_followup_date: updateData.next_followup_date,
-        status: updateData.status
-      })
+    // Pour les nouveaux prospects, on utilise createProspect au lieu d'updateProspect
+    let result;
+    if (props.prospect && props.prospect.id) {
+      // Mode édition
+      result = await prospectsStore.updateProspect(props.prospect.id, updateData)
+    } else {
+      // Mode création
+      console.log('Creating prospect with data:', updateData)
+      result = await prospectsStore.createProspect(updateData)
+      
+      if (result.success) {
+        // Update the form with the new prospect data
+        Object.assign(form, result.prospect)
+        emit('save', result.prospect)
+        return
+      }
     }
-
-    const result = await prospectsStore.updateProspect(props.prospect.id, updateData)
     
     if (result.success) {
       // Update the original prospect object
@@ -556,10 +731,46 @@ function onProbabilityChange() {
 // Close modal
 function closeModal() {
   // Save notes if they were being edited
-  if (editing.notes) {
+  if (editing.notes && props.prospect) {
     saveField('notes')
   }
   emit('close')
+}
+
+// Create new prospect
+async function createProspect() {
+  try {
+    console.log('🆕 Creating new prospect with data:', form)
+    
+    const prospectData = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      company: form.company,
+      contact: form.contact,
+      address: form.address,
+      status: form.status,
+      revenue: form.revenue,
+      probability_coefficient: form.probability_coefficient,
+      notes: form.notes,
+      estimated_completion_date: form.estimated_completion_date,
+      recurrence_months: form.recurrence_months,
+      next_followup_date: form.next_followup_date,
+      tabId: form.tabId || (availableTabsRef.value.length > 0 ? availableTabsRef.value[0].id : '')
+    }
+
+    const result = await prospectsStore.createProspect(prospectData)
+    
+    if (result.success) {
+      console.log('✅ Successfully created prospect:', result.prospect)
+      emit('save', result.prospect)
+      emit('close')
+    } else {
+      console.error('❌ Failed to create prospect:', result.error)
+    }
+  } catch (error) {
+    console.error('❌ Error creating prospect:', error)
+  }
 }
 
 // Open edit modal
@@ -608,6 +819,12 @@ function getRecurrenceText(months) {
   }
   
   return texts[months] || `Every ${months} months`
+}
+
+function getTabName(tabId) {
+  if (!tabId) return 'No tab'
+  const tab = availableTabsRef.value.find(t => t.id === tabId)
+  return tab ? tab.name : 'Unknown tab'
 }
 
 function getWeightedRevenue() {
