@@ -1074,11 +1074,16 @@ async function scrollToProspectInList(prospect) {
 }
 
 function openAddModal(data) {
+  console.log('🔍 openAddModal called with:', data, typeof data)
+  
   // Gérer les deux formats : soit une string simple, soit un objet
   if (typeof data === 'string') {
     modalInitialStatus.value = data
   } else if (data && typeof data === 'object' && data.status) {
     modalInitialStatus.value = data.status
+  } else if (data === undefined || data === null) {
+    // Cas par défaut quand aucun paramètre n'est passé
+    modalInitialStatus.value = 'cold'
   } else {
     modalInitialStatus.value = 'cold'
   }
@@ -1107,6 +1112,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editingProspect.value = null
+  modalInitialStatus.value = 'cold'  // Réinitialiser le status
   
   // Forcer le re-rendu du modal pour la prochaine ouverture
   modalKey.value++

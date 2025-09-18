@@ -93,7 +93,7 @@
         :is-all-leads-view="activeTab.name === 'All Leads'"
         :all-tabs="tabs"
         :lead-times="leadTimes"
-        @add-prospect="$emit('add-prospect')"
+        @add-prospect="$emit('add-prospect', $event)"
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
         @select="$emit('select-prospect', $event)"

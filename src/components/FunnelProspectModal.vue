@@ -616,6 +616,13 @@ watch(() => props.prospect, (newProspect) => {
   }
 }, { immediate: true })
 
+// Watch for initialStatus changes (for new prospects)
+watch(() => props.initialStatus, (newStatus) => {
+  if (!props.prospect && newStatus) {
+    form.status = newStatus
+  }
+}, { immediate: true })
+
 // Watch pour currentTabId
 watch(() => props.currentTabId, (newTabId) => {
   if (!props.prospect && newTabId && availableTabsRef.value.length > 0) {

@@ -90,7 +90,7 @@
         :tab-id="activeTabId"
         :tab-name="activeTab.name"
         :is-special-tab="activeTab.is_special"
-        @add-prospect="$emit('add-prospect')"
+        @add-prospect="$emit('add-prospect', $event)"
         @edit-prospect="$emit('edit-prospect', $event)"
         @delete-prospect="$emit('delete-prospect', $event)"
         @select-prospect="$emit('select-prospect', $event)"

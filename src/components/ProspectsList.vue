@@ -23,7 +23,7 @@
             {{ viewMode === 'list' ? 'Funnel' : 'List' }}
           </button>
           <button
-            @click="$emit('add-prospect')"
+            @click="addProspectWithStatus('cold')"
             class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
           >
             Add
