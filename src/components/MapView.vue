@@ -134,29 +134,29 @@ function updateHeatmap() {
   
   // Préparer les données pour la heatmap (prospects filtrés pour l'affichage)
   const prospectsWithCoords = props.prospects.filter(prospect => 
-    prospect.latitude && prospect.longitude && prospectsStore.getWeightedRevenue(prospect) > 0
+    prospect.latitude && prospect.longitude && getComparableRevenue(prospect) > 0
   )
   
   if (prospectsWithCoords.length === 0) return
 
   // Calculer l'échelle basée sur les prospects VISIBLES pour avoir toujours du rouge
-  const visibleRevenues = prospectsWithCoords.map(p => prospectsStore.getWeightedRevenue(p))
+  const visibleRevenues = prospectsWithCoords.map(p => getComparableRevenue(p))
   const visibleMaxRevenue = Math.max(...visibleRevenues)
   const visibleMinRevenue = Math.min(...visibleRevenues)
   const visibleRevenueRange = visibleMaxRevenue - visibleMinRevenue
   
   // Calculer aussi l'échelle globale pour la cohérence relative
   const allProspectsWithRevenue = (props.allProspects || props.prospects).filter(prospect => 
-    prospectsStore.getWeightedRevenue(prospect) > 0
+    getComparableRevenue(prospect) > 0
   )
-  const allRevenues = allProspectsWithRevenue.map(p => prospectsStore.getWeightedRevenue(p))
+  const allRevenues = allProspectsWithRevenue.map(p => getComparableRevenue(p))
   const globalMaxRevenue = Math.max(...allRevenues)
   
   // Créer plusieurs points pour les gros revenus (effet de densité)
   const heatmapData = []
   
   prospectsWithCoords.forEach(prospect => {
-    const revenue = prospectsStore.getWeightedRevenue(prospect)
+    const revenue = getComparableRevenue(prospect)
     const lat = parseFloat(prospect.latitude)
     const lng = parseFloat(prospect.longitude)
     
@@ -256,10 +256,11 @@ function updateMarkers(prospects) {
   if (!prospects?.length) return
 
   // Calculer les statistiques de revenus pondérés une seule fois pour tous les markers
-  const allWeightedRevenues = prospects.map(p => prospectsStore.getWeightedRevenue(p)).filter(r => r > 0)
-  const revenueStats = allWeightedRevenues.length > 0 ? {
-    min: Math.min(...allWeightedRevenues),
-    max: Math.max(...allWeightedRevenues)
+  // Pour les prospects récurrents, utiliser le montant annualisé
+  const allComparableRevenues = prospects.map(p => getComparableRevenue(p)).filter(r => r > 0)
+  const revenueStats = allComparableRevenues.length > 0 ? {
+    min: Math.min(...allComparableRevenues),
+    max: Math.max(...allComparableRevenues)
   } : null
 
   prospects.forEach(prospect => {
@@ -275,23 +276,42 @@ function updateMarkers(prospects) {
   }
 }
 
+// Nouvelle fonction pour calculer le revenu comparable entre leads et récurrents
+function getComparableRevenue(prospect) {
+  if (prospect.status === 'recurring') {
+    // Pour les prospects récurrents, calculer le montant annuel total
+    const baseRevenue = prospect.revenue || 0
+    const probability = (prospect.probability_coefficient || 100) / 100
+    const recurrenceMonths = prospect.recurrence_months || 12
+    
+    // Calculer combien d'occurrences dans une année
+    const occurrencesPerYear = 12 / recurrenceMonths
+    
+    // Montant annuel total pondéré par la probabilité
+    return baseRevenue * probability * occurrencesPerYear
+  } else {
+    // Pour les leads normaux, utiliser le revenu pondéré standard
+    return prospectsStore.getWeightedRevenue(prospect)
+  }
+}
+
 function createMarker(prospect, revenueStats) {
-  // Calculer le rayon proportionnel au revenu pondéré avec une progression visuelle agréable
+  // Calculer le rayon proportionnel au revenu comparable avec une progression visuelle agréable
   
   const minRadius = 8   // Rayon minimum pour les leads sans revenu ou très faibles
   const maxRadius = 25  // Rayon maximum pour les plus gros revenus
   
   let radius = minRadius
   
-  const weightedRevenue = prospectsStore.getWeightedRevenue(prospect)
+  const comparableRevenue = getComparableRevenue(prospect)
   
-  if (weightedRevenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
+  if (comparableRevenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
     // Calculer l'écart relatif des revenus
     const revenueRange = revenueStats.max - revenueStats.min
     const relativeRange = revenueRange / revenueStats.max // Écart relatif par rapport au max
     
-    // Normaliser le revenu pondéré entre 0 et 1
-    let normalizedRevenue = (weightedRevenue - revenueStats.min) / revenueRange
+    // Normaliser le revenu comparable entre 0 et 1
+    let normalizedRevenue = (comparableRevenue - revenueStats.min) / revenueRange
     
     // Si l'écart relatif est très faible (moins de 10%), respecter la vraie proportion
     if (relativeRange < 0.1) {
@@ -307,8 +327,13 @@ function createMarker(prospect, revenueStats) {
     radius = minRadius + normalizedRevenue * (maxRadius - minRadius)
     
     // Debug log pour vérifier les calculs
-    console.log(`Lead ${prospect.name}: revenue=${prospect.revenue}, weighted=${weightedRevenue.toFixed(2)}, range=${revenueRange}, relativeRange=${(relativeRange*100).toFixed(1)}%, normalized=${normalizedRevenue.toFixed(3)}, radius=${radius.toFixed(1)}`)
-  } else if (weightedRevenue > 0) {
+    const isRecurring = prospect.status === 'recurring'
+    const debugInfo = isRecurring 
+      ? `recurring: ${prospect.revenue}€ × ${(prospect.probability_coefficient || 100)}% × ${12/(prospect.recurrence_months || 12)} occ/year`
+      : `lead: ${prospect.revenue}€ × ${(prospect.probability_coefficient || 100)}%`
+    
+    console.log(`${isRecurring ? '🔄' : '🎯'} ${prospect.name}: ${debugInfo} = ${comparableRevenue.toFixed(2)}€, radius=${radius.toFixed(1)}`)
+  } else if (comparableRevenue > 0) {
     // Si tous les revenus sont identiques, utiliser un rayon moyen
     radius = (minRadius + maxRadius) / 2
   }
@@ -322,16 +347,31 @@ function createMarker(prospect, revenueStats) {
     fillOpacity: 0.6
   })
 
-  // Tooltip au survol
+  // Tooltip au survol - afficher le revenu comparable pour cohérence
+  const baseRevenue = prospect.revenue || 0
   const hasLowerProbability = prospect.probability_coefficient && prospect.probability_coefficient < 100
+  const isRecurring = prospect.status === 'recurring'
+  
+  let revenueDisplay = ''
+  if (isRecurring) {
+    const occurrencesPerYear = 12 / (prospect.recurrence_months || 12)
+    revenueDisplay = `💰 ${formatCurrency(comparableRevenue)} /year`
+    if (hasLowerProbability || (prospect.recurrence_months && prospect.recurrence_months !== 12)) {
+      revenueDisplay += `<div class="text-xs text-gray-500">(${formatCurrency(baseRevenue)} × ${occurrencesPerYear.toFixed(1)} occ/year${hasLowerProbability ? ` at ${prospect.probability_coefficient}%` : ''})</div>`
+    }
+  } else {
+    revenueDisplay = `💰 ${formatCurrency(comparableRevenue)}`
+    if (hasLowerProbability) {
+      revenueDisplay += `<div class="text-xs text-gray-500">(${formatCurrency(baseRevenue)} at ${prospect.probability_coefficient}%)</div>`
+    }
+  }
   
   const tooltipContent = `
     <div class="text-sm">
       <div class="font-bold text-gray-900 mb-1">${prospect.name}</div>
       <div class="text-gray-600 text-xs mb-1">📍 ${getCity(prospect.address)}</div>
       <div class="text-green-700 font-semibold mb-1">
-        💰 ${formatCurrency(weightedRevenue)}
-        ${hasLowerProbability ? `<div class="text-xs text-gray-500">(${formatCurrency(prospect.revenue || 0)} at ${prospect.probability_coefficient}%)</div>` : ''}
+        ${revenueDisplay}
       </div>
       <div class="text-xs px-2 py-1 rounded-full bg-blue-600 text-white inline-block">${getStatusLabel(prospect.status)}</div>
     </div>
@@ -345,14 +385,30 @@ function createMarker(prospect, revenueStats) {
   })
 
   // Popup au clic (informations plus détaillées)
+  let popupRevenueInfo = ''
+  if (isRecurring) {
+    const occurrencesPerYear = 12 / (prospect.recurrence_months || 12)
+    popupRevenueInfo = `
+      <span class="font-medium text-green-600">${formatCurrency(comparableRevenue)} /year</span>
+      <div class="text-xs text-gray-500">
+        ${formatCurrency(baseRevenue)} every ${prospect.recurrence_months || 12} months
+        ${hasLowerProbability ? ` (${prospect.probability_coefficient}%)` : ''}
+      </div>
+    `
+  } else {
+    popupRevenueInfo = `
+      <span class="font-medium text-green-600">${formatCurrency(comparableRevenue)}</span>
+      ${hasLowerProbability ? `<div class="text-xs text-gray-500">Base: ${formatCurrency(baseRevenue)} (${prospect.probability_coefficient}%)</div>` : ''}
+    `
+  }
+
   const popupContent = `
     <div class="p-2">
       <h3 class="font-semibold text-lg">${prospect.name}</h3>
       <p class="text-sm text-gray-600 mb-2">${prospect.address || 'No address'}</p>
       <div class="flex justify-between items-center">
         <div>
-          <span class="font-medium text-green-600">${formatCurrency(weightedRevenue)}</span>
-          ${hasLowerProbability ? `<div class="text-xs text-gray-500">Base: ${formatCurrency(prospect.revenue || 0)} (${prospect.probability_coefficient}%)</div>` : ''}
+          ${popupRevenueInfo}
         </div>
         <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">${getStatusLabel(prospect.status)}</span>
       </div>
@@ -381,6 +437,7 @@ function getStatusLabel(status) {
     'cold': 'Cold',
     'warm': 'Warm',
     'hot': 'Hot',
+    'recurring': 'Recurring',
     'won': 'Won',
     'lost': 'Lost'
   }
@@ -392,6 +449,7 @@ function getStatusColor(status) {
     'cold': '#6b7280',    // gray
     'warm': '#f59e0b',    // yellow
     'hot': '#ef4444',     // red
+    'recurring': '#8b5cf6', // purple
     'won': '#10b981',     // green
     'lost': '#374151'     // dark gray
   }
