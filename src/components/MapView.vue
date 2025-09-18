@@ -1,8 +1,8 @@
 <template>
   <div class="h-full relative">
-    <!-- Bouton pour ouvrir le volet des filtres -->
+    <!-- Button to open filters panel -->
     <div class="absolute top-4 right-4 z-[1001] flex gap-2 filters-panel-buttons">
-      <!-- Bouton Filtres -->
+      <!-- Filters Button -->
       <button
         @click="showFiltersPanel = !showFiltersPanel"
         :class="{
@@ -15,10 +15,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
-        <span class="hidden sm:inline">Filtres</span>
+        <span class="hidden sm:inline">Filters</span>
       </button>
 
-      <!-- Bouton Heatmap -->
+      <!-- Heatmap Button -->
       <button
         @click="toggleHeatmap"
         :class="{
@@ -31,11 +31,11 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        <span class="hidden sm:inline">{{ showHeatmap ? 'Désactiver' : 'Heatmap' }}</span>
+        <span class="hidden sm:inline">{{ showHeatmap ? 'Hide' : 'Heatmap' }}</span>
       </button>
     </div>
 
-    <!-- Volet des filtres (rétractable) -->
+    <!-- Filters panel (collapsible) -->
     <div 
       :class="{
         'translate-x-0': showFiltersPanel,
@@ -43,14 +43,14 @@
       }"
       class="fixed top-0 right-0 h-full w-80 sm:w-80 md:w-80 lg:w-80 xl:w-80 max-w-full bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel"
     >
-      <!-- En-tête du volet -->
+      <!-- Panel header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
-          Filtres de statut
+          Status Filters
         </h3>
         <button
           @click="showFiltersPanel = false"
@@ -64,7 +64,7 @@
 
       <!-- Contenu du volet -->
       <div class="p-4 space-y-4">
-        <!-- Bouton "Tout sélectionner" -->
+        <!-- "Select All" button -->
         <div class="mb-6">
           <button
             @click="toggleAllStatuses"
@@ -78,13 +78,13 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {{ showAllStatuses ? 'Désélectionner tout' : 'Sélectionner tout' }}
+            {{ showAllStatuses ? 'Deselect All' : 'Select All' }}
           </button>
         </div>
 
-        <!-- Filtres individuels -->
+        <!-- Individual filters -->
         <div class="space-y-3">
-          <h4 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Statuts disponibles</h4>
+          <h4 class="text-sm font-medium text-gray-600 uppercase tracking-wide">Available Statuses</h4>
           
           <!-- Cold -->
           <button
@@ -159,27 +159,27 @@
           </button>
         </div>
 
-        <!-- Statistiques des filtres -->
+        <!-- Filter statistics -->
         <div class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
           <h4 class="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Résultats
+            Results
           </h4>
           <p class="text-sm text-gray-600">
             <span class="font-semibold text-blue-600">{{ filteredProspects.length }}</span> 
-            prospect{{ filteredProspects.length > 1 ? 's' : '' }} affiché{{ filteredProspects.length > 1 ? 's' : '' }}
+            prospect{{ filteredProspects.length !== 1 ? 's' : '' }} displayed
             <span v-if="props.prospects && props.prospects.length > 0">
-              sur {{ props.prospects.length }} total{{ props.prospects.length > 1 ? 'aux' : '' }}
+              out of {{ props.prospects.length }} total
             </span>
           </p>
         </div>
       </div>
     </div>
 
-    <!-- Overlay pour fermer le volet en cliquant à côté -->
+    <!-- Overlay to close panel by clicking outside -->
     <div 
       v-if="showFiltersPanel"
       @click="showFiltersPanel = false"
@@ -213,13 +213,13 @@
 import { ref, onMounted, watch, nextTick, computed, onUnmounted } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-// Importer le plugin heatmap
+// Import heatmap plugin
 import 'leaflet.heat'
 import { useProspectsStore } from '../stores/prospects'
 
 const props = defineProps({
-  prospects: Array,           // Prospects filtrés (pour affichage)
-  allProspects: Array,       // Tous les prospects (pour échelle de couleur)
+  prospects: Array,           // Filtered prospects (for display)
+  allProspects: Array,       // All prospects (for color scale)
   selectedProspect: Object
 })
 
@@ -232,9 +232,9 @@ let map = null
 const markers = new Map()
 let heatmapLayer = null
 const showHeatmap = ref(false)
-const colorIntensity = ref(1.0)  // Valeur par défaut du slider
+const colorIntensity = ref(1.0)  // Default slider value
 
-// Filtres de statut
+// Status filters
 const statusFilters = ref({
   cold: true,
   warm: true,
@@ -244,10 +244,10 @@ const statusFilters = ref({
   lost: false
 })
 
-// État du volet des filtres
+// Filters panel state
 const showFiltersPanel = ref(false)
 
-// Computed properties pour les filtres
+// Computed properties for filters
 const showAllStatuses = computed(() => 
   Object.values(statusFilters.value).every(value => value)
 )
@@ -261,7 +261,7 @@ const filteredProspects = computed(() => {
   })
 })
 
-// Fonctions de gestion des filtres
+// Filter management functions
 function toggleStatusFilter(status) {
   statusFilters.value[status] = !statusFilters.value[status]
   updateDisplay()
@@ -269,7 +269,7 @@ function toggleStatusFilter(status) {
 
 function toggleAllStatuses() {
   const newValue = !showAllStatuses.value
-  // Active/désactive tous les statuts principaux
+  // Enable/disable all main statuses
   statusFilters.value.cold = newValue
   statusFilters.value.warm = newValue
   statusFilters.value.hot = newValue
@@ -291,12 +291,12 @@ onMounted(async () => {
   await nextTick()
   initMap()
   
-  // Écouter la touche Escape pour fermer le volet
+  // Listen for Escape key to close panel
   document.addEventListener('keydown', handleEscapeKey)
 })
 
 onUnmounted(() => {
-  // Nettoyer l'éventuel listener
+  // Clean up event listener
   document.removeEventListener('keydown', handleEscapeKey)
 })
 
@@ -362,11 +362,11 @@ function toggleHeatmap() {
   showHeatmap.value = !showHeatmap.value
   
   if (showHeatmap.value) {
-    // Cacher les marqueurs et afficher la heatmap
+    // Hide markers and show heatmap
     clearMarkers()
     updateHeatmap()
   } else {
-    // Cacher la heatmap et afficher les marqueurs
+    // Hide heatmap and show markers
     clearHeatmap()
     updateMarkers(filteredProspects.value)
   }
@@ -377,27 +377,27 @@ function updateHeatmap() {
   
   clearHeatmap()
   
-  // Préparer les données pour la heatmap (prospects filtrés pour l'affichage)
+  // Prepare heatmap data (filtered prospects for display)
   const prospectsWithCoords = filteredProspects.value.filter(prospect => 
     prospect.latitude && prospect.longitude && getComparableRevenue(prospect) > 0
   )
   
   if (prospectsWithCoords.length === 0) return
 
-  // Calculer l'échelle basée sur les prospects VISIBLES pour avoir toujours du rouge
+  // Calculate scale based on VISIBLE prospects to always have red
   const visibleRevenues = prospectsWithCoords.map(p => getComparableRevenue(p))
   const visibleMaxRevenue = Math.max(...visibleRevenues)
   const visibleMinRevenue = Math.min(...visibleRevenues)
   const visibleRevenueRange = visibleMaxRevenue - visibleMinRevenue
   
-  // Calculer aussi l'échelle globale pour la cohérence relative
+  // Also calculate global scale for relative consistency
   const allProspectsWithRevenue = (props.allProspects || filteredProspects.value).filter(prospect => 
     getComparableRevenue(prospect) > 0
   )
   const allRevenues = allProspectsWithRevenue.map(p => getComparableRevenue(p))
   const globalMaxRevenue = Math.max(...allRevenues)
   
-  // Créer plusieurs points pour les gros revenus (effet de densité)
+  // Create multiple points for large revenues (density effect)
   const heatmapData = []
   
   prospectsWithCoords.forEach(prospect => {
@@ -408,39 +408,39 @@ function updateHeatmap() {
     let intensity
     
     if (visibleRevenueRange === 0) {
-      // Tous les revenus visibles sont identiques
-      intensity = 0.9  // Plus élevé pour être visible
+      // All visible revenues are identical
+      intensity = 0.9  // Higher to be visible
     } else {
-      // Normalisation hybride : basée sur les visibles mais avec influence globale
+      // Hybrid normalization: based on visible but with global influence
       const visibleNormalized = (revenue - visibleMinRevenue) / visibleRevenueRange
       const globalNormalized = revenue / globalMaxRevenue
       
-      // Mélange : 70% basé sur les visibles, 30% sur l'échelle globale
-      // Cela garantit que le max visible soit proche de rouge, mais garde une cohérence
+      // Mix: 70% based on visible, 30% on global scale
+      // This ensures max visible is close to red, but maintains consistency
       const hybridNormalized = (visibleNormalized * 0.7) + (globalNormalized * 0.3)
       
-      // S'assurer que le max visible atteigne au moins 0.9 (rouge vif)
+      // Ensure max visible reaches at least 0.9 (bright red)
       const minIntensityForMax = 0.9
       const adjustedNormalized = hybridNormalized * (1 - minIntensityForMax) + 
                                  (visibleNormalized * minIntensityForMax)
       
-      // Intensité plus élevée avec minimum à 0.4 pour éviter le violet fade
+      // Higher intensity with minimum at 0.4 to avoid faded purple
       intensity = Math.pow(adjustedNormalized, 0.6) * 0.6 + 0.4
     }
     
-    // Appliquer le multiplicateur d'intensité du slider
+    // Apply slider intensity multiplier
     intensity = Math.min(1.0, intensity * colorIntensity.value)
     
-    // Garantir que le prospect avec le plus gros revenu visible soit au moins à 0.95
+    // Ensure prospect with largest visible revenue is at least 0.95
     if (revenue === visibleMaxRevenue) {
       intensity = Math.max(intensity, 0.95 * Math.min(1.0, colorIntensity.value))
     }
     
-    // Réduire le nombre de points multiples pour un lissage plus naturel
+    // Reduce number of multiple points for more natural smoothing
     const numPoints = Math.max(1, Math.floor(intensity * 2) + 1)
     
     for (let i = 0; i < numPoints; i++) {
-      // Décalage plus important pour un effet plus lissé
+      // Larger offset for smoother effect
       const latOffset = (Math.random() - 0.5) * 0.004
       const lngOffset = (Math.random() - 0.5) * 0.004
       
@@ -454,23 +454,23 @@ function updateHeatmap() {
 
   if (heatmapData.length > 0) {
     heatmapLayer = L.heatLayer(heatmapData, {
-      radius: 50,        // Rayon plus large pour plus de lissage
-      blur: 30,          // Plus de flou pour un lissage plus doux
-      maxZoom: 18,       // Zoom max plus élevé
-      minOpacity: Math.max(0.1, 0.3 * colorIntensity.value),   // Opacité minimum adaptée au slider
-      max: Math.max(0.5, 0.9 / colorIntensity.value),          // Max adapté pour équilibrer
+      radius: 50,        // Larger radius for more smoothing
+      blur: 30,          // More blur for softer smoothing
+      maxZoom: 18,       // Higher max zoom
+      minOpacity: Math.max(0.1, 0.3 * colorIntensity.value),   // Min opacity adapted to slider
+      max: Math.max(0.5, 0.9 / colorIntensity.value),          // Max adapted to balance
       gradient: {
-        0.0: 'rgba(0, 50, 255, 0.2)',   // Bleu transparent
-        0.1: 'rgba(0, 100, 255, 0.4)',  // Bleu léger
-        0.2: 'rgba(0, 150, 255, 0.5)',  // Bleu plus visible
-        0.3: 'rgba(0, 200, 150, 0.6)',  // Vert-bleu
-        0.4: 'rgba(100, 255, 100, 0.7)', // Vert clair
-        0.5: 'rgba(255, 255, 0, 0.8)',  // Jaune vif
+        0.0: 'rgba(0, 50, 255, 0.2)',   // Transparent blue
+        0.1: 'rgba(0, 100, 255, 0.4)',  // Light blue
+        0.2: 'rgba(0, 150, 255, 0.5)',  // More visible blue
+        0.3: 'rgba(0, 200, 150, 0.6)',  // Blue-green
+        0.4: 'rgba(100, 255, 100, 0.7)', // Light green
+        0.5: 'rgba(255, 255, 0, 0.8)',  // Bright yellow
         0.6: 'rgba(255, 180, 0, 0.85)', // Orange
-        0.7: 'rgba(255, 100, 0, 0.9)',  // Orange-rouge
-        0.8: 'rgba(255, 20, 0, 0.95)',  // Rouge vif
-        0.9: 'rgba(255, 0, 0, 1.0)',    // Rouge intense
-        1.0: 'rgba(200, 0, 0, 1.0)'     // Rouge foncé
+        0.7: 'rgba(255, 100, 0, 0.9)',  // Orange-red
+        0.8: 'rgba(255, 20, 0, 0.95)',  // Bright red
+        0.9: 'rgba(255, 0, 0, 1.0)',    // Intense red
+        1.0: 'rgba(200, 0, 0, 1.0)'     // Dark red
       }
     }).addTo(map)
   }
@@ -500,8 +500,8 @@ function updateMarkers(prospects) {
 
   if (!prospects?.length) return
 
-  // Calculer les statistiques de revenus pondérés une seule fois pour tous les markers
-  // Pour les prospects récurrents, utiliser le montant annualisé
+  // Calculate weighted revenue statistics once for all markers
+  // For recurring prospects, use annualized amount
   const allComparableRevenues = prospects.map(p => getComparableRevenue(p)).filter(r => r > 0)
   const revenueStats = allComparableRevenues.length > 0 ? {
     min: Math.min(...allComparableRevenues),
@@ -521,57 +521,57 @@ function updateMarkers(prospects) {
   }
 }
 
-// Nouvelle fonction pour calculer le revenu comparable entre leads et récurrents
+// New function to calculate comparable revenue between leads and recurring prospects
 function getComparableRevenue(prospect) {
   if (prospect.status === 'recurring') {
-    // Pour les prospects récurrents, calculer le montant annuel total
+    // For recurring prospects, calculate total annual amount
     const baseRevenue = prospect.revenue || 0
     const probability = (prospect.probability_coefficient || 100) / 100
     const recurrenceMonths = prospect.recurrence_months || 12
     
-    // Calculer combien d'occurrences dans une année
+    // Calculate how many occurrences in a year
     const occurrencesPerYear = 12 / recurrenceMonths
     
-    // Montant annuel total pondéré par la probabilité
+    // Total annual amount weighted by probability
     return baseRevenue * probability * occurrencesPerYear
   } else {
-    // Pour les leads normaux, utiliser le revenu pondéré standard
+    // For normal leads, use standard weighted revenue
     return prospectsStore.getWeightedRevenue(prospect)
   }
 }
 
 function createMarker(prospect, revenueStats) {
-  // Calculer le rayon proportionnel au revenu comparable avec une progression visuelle agréable
+  // Calculate radius proportional to comparable revenue with pleasant visual progression
   
-  const minRadius = 8   // Rayon minimum pour les leads sans revenu ou très faibles
-  const maxRadius = 25  // Rayon maximum pour les plus gros revenus
+  const minRadius = 8   // Minimum radius for leads with no or very low revenue
+  const maxRadius = 25  // Maximum radius for largest revenues
   
   let radius = minRadius
   
   const comparableRevenue = getComparableRevenue(prospect)
   
   if (comparableRevenue > 0 && revenueStats && revenueStats.max > revenueStats.min) {
-    // Calculer l'écart relatif des revenus
+    // Calculate relative revenue difference
     const revenueRange = revenueStats.max - revenueStats.min
-    const relativeRange = revenueRange / revenueStats.max // Écart relatif par rapport au max
+    const relativeRange = revenueRange / revenueStats.max // Relative difference from max
     
-    // Normaliser le revenu comparable entre 0 et 1
+    // Normalize comparable revenue between 0 and 1
     let normalizedRevenue = (comparableRevenue - revenueStats.min) / revenueRange
     
-    // Si l'écart relatif est très faible (moins de 10%), respecter la vraie proportion
+    // If relative difference is very small (less than 10%), respect true proportion
     if (relativeRange < 0.1) {
-      // Garder la proportion exacte mais avec un écart minimal visible (2px)
-      const minVisibleDiff = 2 / (maxRadius - minRadius) // 2px en proportion
+      // Keep exact proportion but with minimal visible difference (2px)
+      const minVisibleDiff = 2 / (maxRadius - minRadius) // 2px in proportion
       normalizedRevenue = Math.max(normalizedRevenue, minVisibleDiff)
     } else {
-      // Pour les écarts plus importants, utiliser une racine carrée pour adoucir
+      // For larger differences, use square root to soften
       normalizedRevenue = Math.sqrt(normalizedRevenue)
     }
     
-    // Calculer le rayon final
+    // Calculate final radius
     radius = minRadius + normalizedRevenue * (maxRadius - minRadius)
     
-    // Debug log pour vérifier les calculs
+    // Debug log to verify calculations
     const isRecurring = prospect.status === 'recurring'
     const debugInfo = isRecurring 
       ? `recurring: ${prospect.revenue}€ × ${(prospect.probability_coefficient || 100)}% × ${12/(prospect.recurrence_months || 12)} occ/year`
@@ -579,7 +579,7 @@ function createMarker(prospect, revenueStats) {
     
     console.log(`${isRecurring ? '🔄' : '🎯'} ${prospect.name}: ${debugInfo} = ${comparableRevenue.toFixed(2)}€, radius=${radius.toFixed(1)}`)
   } else if (comparableRevenue > 0) {
-    // Si tous les revenus sont identiques, utiliser un rayon moyen
+    // If all revenues are identical, use average radius
     radius = (minRadius + maxRadius) / 2
   }
   
@@ -592,7 +592,7 @@ function createMarker(prospect, revenueStats) {
     fillOpacity: 0.6
   })
 
-  // Tooltip au survol - afficher le revenu comparable pour cohérence
+  // Tooltip on hover - show comparable revenue for consistency
   const baseRevenue = prospect.revenue || 0
   const hasLowerProbability = prospect.probability_coefficient && prospect.probability_coefficient < 100
   const isRecurring = prospect.status === 'recurring'
@@ -629,7 +629,7 @@ function createMarker(prospect, revenueStats) {
     className: 'custom-tooltip'
   })
 
-  // Popup au clic (informations plus détaillées)
+  // Popup on click (more detailed information)
   let popupRevenueInfo = ''
   if (isRecurring) {
     const occurrencesPerYear = 12 / (prospect.recurrence_months || 12)
@@ -704,14 +704,14 @@ function getStatusColor(status) {
 function getCity(address) {
   if (!address) return 'No city'
   
-  // Essayer d'extraire la ville de l'adresse
-  // Format typique: "123 rue, 75001 Paris, France" ou "123 rue, Paris, France"
+  // Try to extract city from address
+  // Typical format: "123 rue, 75001 Paris, France" or "123 rue, Paris, France"
   const parts = address.split(',')
   if (parts.length >= 2) {
-    // Prendre la partie qui contient probablement la ville
+    // Take the part that probably contains the city
     let cityPart = parts[parts.length - 2].trim()
     
-    // Si ça ressemble à un code postal + ville, prendre juste la ville
+    // If it looks like postal code + city, take just the city
     const zipCityMatch = cityPart.match(/^\d{5}\s+(.+)$/)
     if (zipCityMatch) {
       return zipCityMatch[1]
@@ -720,7 +720,7 @@ function getCity(address) {
     return cityPart
   }
   
-  // Si pas de virgule, prendre les derniers mots
+  // If no comma, take the last words
   const words = address.split(' ')
   return words.slice(-2).join(' ')
 }
@@ -735,7 +735,7 @@ function getCity(address) {
   margin: 0;
 }
 
-/* Style du slider */
+/* Slider styles */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
