@@ -2781,6 +2781,225 @@ app.get('/test-geocoding', async (req, res) => {
   res.end();
 });
 
+// ===== DANGER ZONE: FULL DATABASE DUMP & IMPORT =====
+
+// Full database dump endpoint (DANGER ZONE - Admin only)
+app.get('/api/database/full-dump', authenticateToken, async (req, res) => {
+  try {
+    console.log(`🚨 DANGER ZONE: Full database dump requested by user ${req.user.userId}`);
+    
+    // Get all table schemas first
+    const tableSchemas = {};
+    
+    // Get all table names
+    const tables = await new Promise((resolve, reject) => {
+      db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows.map(row => row.name));
+      });
+    });
+    
+    console.log(`📋 Found tables: ${tables.join(', ')}`);
+    
+    // Get schema for each table
+    for (const tableName of tables) {
+      const schema = await new Promise((resolve, reject) => {
+        db.all(`PRAGMA table_info(${tableName})`, (err, columns) => {
+          if (err) reject(err);
+          else resolve(columns);
+        });
+      });
+      tableSchemas[tableName] = schema;
+    }
+    
+    // Get all data from all tables
+    const fullDump = {
+      version: '3.0-full',
+      exported_at: new Date().toISOString(),
+      exported_by: req.user.userId,
+      database_schema: tableSchemas,
+      tables: {}
+    };
+    
+    for (const tableName of tables) {
+      const data = await new Promise((resolve, reject) => {
+        db.all(`SELECT * FROM ${tableName}`, (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+      fullDump.tables[tableName] = data;
+      console.log(`📊 Exported ${data.length} rows from table ${tableName}`);
+    }
+    
+    console.log(`✅ Full database dump completed: ${Object.keys(fullDump.tables).length} tables`);
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="maplyo-full-dump-${new Date().toISOString().split('T')[0]}.json"`);
+    res.json(fullDump);
+    
+  } catch (error) {
+    console.error('❌ Full database dump error:', error);
+    res.status(500).json({ 
+      error: 'Full database dump failed', 
+      details: error.message 
+    });
+  }
+});
+
+// Full database import endpoint (DANGER ZONE - Admin only)
+app.post('/api/database/full-import', authenticateToken, async (req, res) => {
+  try {
+    console.log(`🚨 DANGER ZONE: Full database import requested by user ${req.user.userId}`);
+    
+    const importData = req.body;
+    
+    // Validate import data structure
+    if (!importData || !importData.tables || !importData.database_schema) {
+      return res.status(400).json({ 
+        error: 'Invalid full dump format - missing tables or schema information' 
+      });
+    }
+    
+    console.log(`📋 Import data contains ${Object.keys(importData.tables).length} tables`);
+    console.log(`📋 Available tables in dump: ${Object.keys(importData.tables).join(', ')}`);
+    
+    const results = {
+      imported_tables: 0,
+      imported_rows: {},
+      skipped_tables: 0,
+      errors: [],
+      schema_migrations: []
+    };
+    
+    // Get current database schema
+    const currentTables = await new Promise((resolve, reject) => {
+      db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'", (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows.map(row => row.name));
+      });
+    });
+    
+    // Process each table in the dump
+    for (const [tableName, tableData] of Object.entries(importData.tables)) {
+      try {
+        console.log(`🔄 Processing table: ${tableName} (${tableData.length} rows)`);
+        
+        // Check if table exists in current database
+        if (!currentTables.includes(tableName)) {
+          console.log(`⚠️ Table ${tableName} doesn't exist in current database, skipping`);
+          results.skipped_tables++;
+          results.errors.push(`Table ${tableName} not found in current database`);
+          continue;
+        }
+        
+        // Get current table schema
+        const currentSchema = await new Promise((resolve, reject) => {
+          db.all(`PRAGMA table_info(${tableName})`, (err, columns) => {
+            if (err) reject(err);
+            else resolve(columns);
+          });
+        });
+        
+        const currentColumns = currentSchema.map(col => col.name);
+        const importSchema = importData.database_schema[tableName] || [];
+        const importColumns = importSchema.map(col => col.name);
+        
+        // Find common columns (intelligent import)
+        const commonColumns = currentColumns.filter(col => importColumns.includes(col));
+        const newColumns = currentColumns.filter(col => !importColumns.includes(col));
+        const droppedColumns = importColumns.filter(col => !currentColumns.includes(col));
+        
+        console.log(`📊 Table ${tableName} schema analysis:`);
+        console.log(`   Common columns: ${commonColumns.join(', ')}`);
+        if (newColumns.length > 0) {
+          console.log(`   New columns (will be NULL): ${newColumns.join(', ')}`);
+          results.schema_migrations.push(`Table ${tableName}: Added columns ${newColumns.join(', ')}`);
+        }
+        if (droppedColumns.length > 0) {
+          console.log(`   Dropped columns (ignored): ${droppedColumns.join(', ')}`);
+          results.schema_migrations.push(`Table ${tableName}: Ignored columns ${droppedColumns.join(', ')}`);
+        }
+        
+        if (commonColumns.length === 0) {
+          console.log(`⚠️ No common columns found for table ${tableName}, skipping`);
+          results.skipped_tables++;
+          results.errors.push(`No compatible columns found for table ${tableName}`);
+          continue;
+        }
+        
+        // Clear existing data (DANGER!)
+        await new Promise((resolve, reject) => {
+          db.run(`DELETE FROM ${tableName}`, (err) => {
+            if (err) reject(err);
+            else {
+              console.log(`🗑️ Cleared existing data from ${tableName}`);
+              resolve();
+            }
+          });
+        });
+        
+        // Import data row by row with intelligent column mapping
+        let importedRows = 0;
+        for (const row of tableData) {
+          try {
+            // Build INSERT with only common columns
+            const values = [];
+            const placeholders = [];
+            const columns = [];
+            
+            for (const column of commonColumns) {
+              columns.push(column);
+              placeholders.push('?');
+              values.push(row[column] !== undefined ? row[column] : null);
+            }
+            
+            const sql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`;
+            
+            await new Promise((resolve, reject) => {
+              db.run(sql, values, function(err) {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+            
+            importedRows++;
+          } catch (rowError) {
+            console.error(`❌ Error importing row in ${tableName}:`, rowError.message);
+            results.errors.push(`Row error in ${tableName}: ${rowError.message}`);
+          }
+        }
+        
+        results.imported_tables++;
+        results.imported_rows[tableName] = importedRows;
+        console.log(`✅ Imported ${importedRows}/${tableData.length} rows into ${tableName}`);
+        
+      } catch (tableError) {
+        console.error(`❌ Error processing table ${tableName}:`, tableError);
+        results.skipped_tables++;
+        results.errors.push(`Table ${tableName}: ${tableError.message}`);
+      }
+    }
+    
+    console.log(`✅ Full database import completed:`);
+    console.log(`   Tables imported: ${results.imported_tables}`);
+    console.log(`   Tables skipped: ${results.skipped_tables}`);
+    console.log(`   Total rows imported: ${Object.values(results.imported_rows).reduce((a, b) => a + b, 0)}`);
+    
+    res.json({
+      message: 'Full database import completed',
+      ...results
+    });
+    
+  } catch (error) {
+    console.error('❌ Full database import error:', error);
+    res.status(500).json({ 
+      error: 'Full database import failed', 
+      details: error.message 
+    });
+  }
+});
+
 // Servir les fichiers statiques et gestion du SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));

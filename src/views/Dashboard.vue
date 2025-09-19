@@ -536,6 +536,43 @@
                 </button>
                 <p class="text-xs text-orange-700">Remove prospects that are only in "All Leads" tab or not assigned to any specific tab. This helps clean up prospects that are not properly categorized.</p>
                 
+                <!-- Full Database Dump -->
+                <button
+                  @click="downloadFullDatabaseDump"
+                  :disabled="dumpLoading"
+                  class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="!dumpLoading" class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                  <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {{ dumpLoading ? 'Dumping...' : 'Full Database Dump' }}
+                </button>
+                <p class="text-xs text-purple-700">Download a complete backup of the entire database (all users, all data). This includes database structure for intelligent imports.</p>
+                
+                <!-- Full Database Import -->
+                <div class="relative">
+                  <input
+                    ref="fullImportFileInput"
+                    type="file"
+                    accept=".json"
+                    @change="handleFullDatabaseImport"
+                    class="hidden"
+                  />
+                  <button
+                    @click="$refs.fullImportFileInput.click()"
+                    :disabled="fullImportLoading"
+                    class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg v-if="!fullImportLoading" class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    <div v-else class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {{ fullImportLoading ? 'Importing...' : 'Full Database Import' }}
+                  </button>
+                  <p class="text-xs text-indigo-700 mt-1">Import a complete database dump. ⚠️ This will REPLACE ALL DATA in the database! Supports intelligent schema migration.</p>
+                </div>
+                
                 <button
                   @click="openDeleteAllDataModal"
                   :disabled="deleteLoading"
@@ -771,8 +808,13 @@ const deleteConfirmText = ref('')
 const deleteLoading = ref(false)
 const deleteMessage = ref('')
 const deleteMessageType = ref('success') // 'success' or 'error'
-const exportLoading = ref(false)
+// Database import/export variables
 const importLoading = ref(false)
+const exportLoading = ref(false)
+// Full database dump/import variables
+const dumpLoading = ref(false)
+const fullImportLoading = ref(false)
+const fullImportFileInput = ref(null)
 const systemMessage = ref('')
 const systemMessageType = ref('success') // 'success' or 'error'
 const fileInput = ref(null)
@@ -1534,6 +1576,147 @@ async function cleanupOrphanProspects() {
     setTimeout(() => {
       systemMessage.value = ''
     }, 5000)
+  }
+}
+
+// Full Database Dump function
+async function downloadFullDatabaseDump() {
+  if (!confirm('Download a complete dump of the entire database? This includes ALL users and data.')) {
+    return
+  }
+  
+  dumpLoading.value = true
+  systemMessage.value = ''
+  
+  try {
+    const response = await fetch('/api/database/full-dump', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Dump failed: ${response.statusText}`)
+    }
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.style.display = 'none'
+    a.href = url
+    a.download = `maplyo-full-dump-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    systemMessage.value = 'Full database dump downloaded successfully!'
+    systemMessageType.value = 'success'
+    
+  } catch (error) {
+    console.error('Error downloading full database dump:', error)
+    systemMessage.value = 'Error downloading full database dump: ' + error.message
+    systemMessageType.value = 'error'
+  } finally {
+    dumpLoading.value = false
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      systemMessage.value = ''
+    }, 5000)
+  }
+}
+
+// Full Database Import function
+async function handleFullDatabaseImport(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  if (!confirm('⚠️ DANGER: This will REPLACE ALL DATA in the database! Are you absolutely sure? This action cannot be undone.')) {
+    // Reset file input
+    event.target.value = ''
+    return
+  }
+  
+  if (!confirm('Last warning: This will delete ALL users, ALL prospects, ALL data and replace with the import file. Continue?')) {
+    // Reset file input
+    event.target.value = ''
+    return
+  }
+  
+  fullImportLoading.value = true
+  systemMessage.value = ''
+  
+  try {
+    const fileContent = await file.text()
+    const importData = JSON.parse(fileContent)
+    
+    console.log('📤 Starting full database import...')
+    
+    const response = await fetch('/api/database/full-import', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(importData)
+    })
+    
+    const result = await response.json()
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Import failed')
+    }
+    
+    console.log('✅ Full database import result:', result)
+    
+    let message = 'Full database import completed!\n'
+    message += `Tables imported: ${result.imported_tables}\n`
+    message += `Tables skipped: ${result.skipped_tables}\n`
+    message += `Total rows imported: ${Object.values(result.imported_rows).reduce((a, b) => a + b, 0)}`
+    
+    if (result.schema_migrations.length > 0) {
+      message += `\n\nSchema migrations:\n${result.schema_migrations.join('\n')}`
+    }
+    
+    if (result.errors.length > 0) {
+      message += `\n\nErrors (${result.errors.length}):\n${result.errors.slice(0, 5).join('\n')}`
+      if (result.errors.length > 5) {
+        message += `\n... and ${result.errors.length - 5} more errors`
+      }
+    }
+    
+    systemMessage.value = message
+    systemMessageType.value = result.errors.length > 0 ? 'warning' : 'success'
+    
+    // Since this replaces all data, we should refresh everything
+    await prospectsStore.fetchProspects()
+    
+    // Refresh tabs if using TabsManager
+    if (tabsManager.value && tabsManager.value.loadTabs) {
+      await tabsManager.value.loadTabs()
+    }
+    
+    // Note: User might need to re-login if their account was replaced
+    if (result.imported_tables === 0) {
+      systemMessage.value = 'Import completed but no tables were imported. Check console for details.'
+      systemMessageType.value = 'error'
+    }
+    
+  } catch (error) {
+    console.error('Error importing full database:', error)
+    systemMessage.value = 'Error importing full database: ' + error.message
+    systemMessageType.value = 'error'
+  } finally {
+    fullImportLoading.value = false
+    // Reset file input
+    event.target.value = ''
+    
+    // Clear message after 10 seconds (longer for import results)
+    setTimeout(() => {
+      systemMessage.value = ''
+    }, 10000)
   }
 }
 
