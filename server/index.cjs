@@ -2455,7 +2455,8 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
               for (let i = 0; i < importData.tabs.length; i++) {
                 const tab = importData.tabs[i];
                 const originalTabId = tab.id;
-                const newTabId = tab.id || `tab_${Date.now()}_${i}_${req.user.userId}`;
+                // Always generate a new unique ID to avoid conflicts
+                const newTabId = `tab_${Date.now()}_${i}_${req.user.userId}`;
                 
                 // Store mapping
                 tabIdMapping[originalTabId] = newTabId;
@@ -2472,7 +2473,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
 
                 await new Promise((resolve, reject) => {
                   db.run(
-                    `INSERT INTO tabs (id, user_id, name, description, is_special, display_order, created_at) 
+                    `INSERT OR REPLACE INTO tabs (id, user_id, name, description, is_special, display_order, created_at) 
                      VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
                     [mappedTab.id, req.user.userId, mappedTab.name, mappedTab.description, mappedTab.is_special, mappedTab.display_order, mappedTab.created_at],
                     function(err) {
@@ -2480,7 +2481,8 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                         console.error(`❌ Error importing tab ${mappedTab.name}:`, err);
                         results.errors.push(`Tab ${mappedTab.name}: ${err.message}`);
                         results.skipped.tabs++;
-                        reject(err);
+                        // Continue instead of stopping the entire import
+                        resolve();
                       } else {
                         results.imported.tabs++;
                         console.log(`✅ Imported tab ${results.imported.tabs}/${importData.tabs.length}: ${mappedTab.name} (${originalTabId} -> ${mappedTab.id})`);
@@ -2542,7 +2544,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
 
               await new Promise((resolve, reject) => {
                 db.run(
-                  `INSERT INTO prospects 
+                  `INSERT OR REPLACE INTO prospects 
                    (user_id, name, email, phone, company, contact, address, latitude, longitude, 
                     status, revenue, probability_coefficient, notes, tab_id, display_order, 
                     estimated_completion_date, recurrence_months, next_followup_date, created_at, updated_at) 
@@ -2562,7 +2564,8 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                       console.error(`❌ Error importing prospect ${mappedProspect.name}:`, err);
                       results.errors.push(`Prospect ${mappedProspect.name}: ${err.message}`);
                       results.skipped.prospects++;
-                      reject(err);
+                      // Continue instead of stopping the entire import
+                      resolve();
                     } else {
                       results.imported.prospects++;
                       console.log(`✅ Imported prospect ${results.imported.prospects}/${importData.prospects.length}: ${mappedProspect.name} -> tab: ${mappedProspect.tab_id}`);
@@ -2595,7 +2598,7 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
 
                 await new Promise((resolve, reject) => {
                   db.run(
-                    `INSERT INTO settings (user_id, setting_key, setting_value, created_at, updated_at) 
+                    `INSERT OR REPLACE INTO settings (user_id, setting_key, setting_value, created_at, updated_at) 
                      VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))`,
                     [req.user.userId, mappedSetting.setting_key, mappedSetting.setting_value, mappedSetting.created_at, mappedSetting.updated_at],
                     function(err) {
@@ -2603,7 +2606,8 @@ app.post('/api/database/import', authenticateToken, (req, res) => {
                         console.error(`❌ Error importing setting ${mappedSetting.setting_key}:`, err);
                         results.errors.push(`Setting ${mappedSetting.setting_key}: ${err.message}`);
                         results.skipped.settings++;
-                        reject(err);
+                        // Continue instead of stopping the entire import
+                        resolve();
                       } else {
                         results.imported.settings++;
                         console.log(`✅ Imported setting ${results.imported.settings}: ${mappedSetting.setting_key}`);
