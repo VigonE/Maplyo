@@ -2453,16 +2453,16 @@ function sortColumn(status, field) {
 function getSortIcon(status, field) {
   const currentSort = sortConfig.value[status]
   if (currentSort.field !== field) {
-    return '↑' // Même flèche que les actives, différence par l'opacité/style
+    return '▲' // Même caractère triangle que pour les actives
   }
-  return currentSort.direction === 'asc' ? '↑' : '↓' // Même hauteur, différence par le gras
+  return currentSort.direction === 'asc' ? '▲' : '▼' // Triangles identiques en hauteur
 }
 
 // Fonction pour obtenir la classe CSS de la flèche
 function getSortButtonClass(status, field, baseColorClass) {
   const currentSort = sortConfig.value[status]
   const isActive = currentSort.field === field
-  return `${baseColorClass} transition-colors ${isActive ? 'font-black opacity-100' : 'font-normal opacity-50'} ${isActive ? 'filter drop-shadow-[0_0_1px_currentColor]' : ''}`
+  return `${baseColorClass} transition-colors text-base leading-none ${isActive ? 'font-black opacity-100' : 'font-normal opacity-50'} ${isActive ? 'filter drop-shadow-[0_0_1px_currentColor]' : ''}`
 }
 
 // ===============================
