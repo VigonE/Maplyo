@@ -585,28 +585,21 @@
                 <div class="text-xs text-blue-600 mt-1">
                   ⏱️ {{ props.leadTimes.cold }}mo • 🎯 {{ props.leadTimes.coldProbability }}%
                 </div>
-                <!-- Boutons de tri -->
-                <div class="flex items-center gap-1 mt-2">
+                <!-- Boutons de tri alignés -->
+                <div class="flex items-center justify-start gap-8 text-xs mt-1">
                   <button 
                     @click.stop="sortColumn('cold', 'date')"
-                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
+                    :class="getSortButtonClass('cold', 'date', 'text-blue-600 hover:text-blue-800')"
                     :title="`Sort by date ${getSortIcon('cold', 'date')}`"
                   >
-                    📅 {{ getSortIcon('cold', 'date') }}
+                    {{ getSortIcon('cold', 'date') }}
                   </button>
                   <button 
                     @click.stop="sortColumn('cold', 'probability')"
-                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
+                    :class="getSortButtonClass('cold', 'probability', 'text-blue-600 hover:text-blue-800')"
                     :title="`Sort by probability ${getSortIcon('cold', 'probability')}`"
                   >
-                    🎯 {{ getSortIcon('cold', 'probability') }}
-                  </button>
-                  <button 
-                    @click.stop="sortColumn('cold', 'weighted')"
-                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
-                    :title="`Sort by weighted amount ${getSortIcon('cold', 'weighted')}`"
-                  >
-                    💰 {{ getSortIcon('cold', 'weighted') }}
+                    {{ getSortIcon('cold', 'probability') }}
                   </button>
                 </div>
               </div>
@@ -616,6 +609,16 @@
                 </span>
                 <div class="text-xs font-medium text-blue-700 mt-1">
                   💰 {{ formatCurrency(coldWeightedRevenue) }}
+                </div>
+                <!-- Flèche de tri pour le montant alignée sous le montant -->
+                <div class="flex justify-center mt-1">
+                  <button 
+                    @click.stop="sortColumn('cold', 'weighted')"
+                    :class="getSortButtonClass('cold', 'weighted', 'text-blue-600 hover:text-blue-800')"
+                    :title="`Sort by weighted amount ${getSortIcon('cold', 'weighted')}`"
+                  >
+                    {{ getSortIcon('cold', 'weighted') }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -693,28 +696,21 @@
                 <div class="text-xs text-yellow-600 mt-1">
                   ⏱️ {{ props.leadTimes.warm }}mo • 🎯 {{ props.leadTimes.warmProbability }}%
                 </div>
-                <!-- Boutons de tri -->
-                <div class="flex items-center gap-1 mt-2">
+                <!-- Boutons de tri alignés -->
+                <div class="flex items-center justify-start gap-8 text-xs mt-1">
                   <button 
                     @click.stop="sortColumn('warm', 'date')"
-                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
+                    :class="getSortButtonClass('warm', 'date', 'text-yellow-600 hover:text-yellow-800')"
                     :title="`Sort by date ${getSortIcon('warm', 'date')}`"
                   >
-                    📅 {{ getSortIcon('warm', 'date') }}
+                    {{ getSortIcon('warm', 'date') }}
                   </button>
                   <button 
                     @click.stop="sortColumn('warm', 'probability')"
-                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
+                    :class="getSortButtonClass('warm', 'probability', 'text-yellow-600 hover:text-yellow-800')"
                     :title="`Sort by probability ${getSortIcon('warm', 'probability')}`"
                   >
-                    🎯 {{ getSortIcon('warm', 'probability') }}
-                  </button>
-                  <button 
-                    @click.stop="sortColumn('warm', 'weighted')"
-                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
-                    :title="`Sort by weighted amount ${getSortIcon('warm', 'weighted')}`"
-                  >
-                    💰 {{ getSortIcon('warm', 'weighted') }}
+                    {{ getSortIcon('warm', 'probability') }}
                   </button>
                 </div>
               </div>
@@ -724,6 +720,16 @@
                 </span>
                 <div class="text-xs font-medium text-yellow-700 mt-1">
                   💰 {{ formatCurrency(warmWeightedRevenue) }}
+                </div>
+                <!-- Flèche de tri pour le montant alignée sous le montant -->
+                <div class="flex justify-center mt-1">
+                  <button 
+                    @click.stop="sortColumn('warm', 'weighted')"
+                    class="text-yellow-600 hover:text-yellow-800 transition-colors text-xs"
+                    :title="`Sort by weighted amount ${getSortIcon('warm', 'weighted')}`"
+                  >
+                    {{ getSortIcon('warm', 'weighted') }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -801,28 +807,21 @@
                 <div class="text-xs text-red-600 mt-1">
                   ⏱️ {{ props.leadTimes.hot }}mo • 🎯 {{ props.leadTimes.hotProbability }}%
                 </div>
-                <!-- Boutons de tri -->
-                <div class="flex items-center gap-1 mt-2">
+                <!-- Boutons de tri alignés -->
+                <div class="flex items-center justify-start gap-8 text-xs mt-1">
                   <button 
                     @click.stop="sortColumn('hot', 'date')"
-                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
+                    class="text-red-600 hover:text-red-800 transition-colors"
                     :title="`Sort by date ${getSortIcon('hot', 'date')}`"
                   >
-                    📅 {{ getSortIcon('hot', 'date') }}
+                    {{ getSortIcon('hot', 'date') }}
                   </button>
                   <button 
                     @click.stop="sortColumn('hot', 'probability')"
-                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
+                    class="text-red-600 hover:text-red-800 transition-colors"
                     :title="`Sort by probability ${getSortIcon('hot', 'probability')}`"
                   >
-                    🎯 {{ getSortIcon('hot', 'probability') }}
-                  </button>
-                  <button 
-                    @click.stop="sortColumn('hot', 'weighted')"
-                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
-                    :title="`Sort by weighted amount ${getSortIcon('hot', 'weighted')}`"
-                  >
-                    💰 {{ getSortIcon('hot', 'weighted') }}
+                    {{ getSortIcon('hot', 'probability') }}
                   </button>
                 </div>
               </div>
@@ -832,6 +831,16 @@
                 </span>
                 <div class="text-xs font-medium text-red-700 mt-1">
                   💰 {{ formatCurrency(hotWeightedRevenue) }}
+                </div>
+                <!-- Flèche de tri pour le montant alignée sous le montant -->
+                <div class="flex justify-center mt-1">
+                  <button 
+                    @click.stop="sortColumn('hot', 'weighted')"
+                    class="text-red-600 hover:text-red-800 transition-colors text-xs"
+                    :title="`Sort by weighted amount ${getSortIcon('hot', 'weighted')}`"
+                  >
+                    {{ getSortIcon('hot', 'weighted') }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -913,28 +922,21 @@
                   <div class="text-xs text-purple-600 mt-1">
                     ⏱️ {{ props.leadTimes.recurring }}mo • 🎯 {{ props.leadTimes.recurringProbability }}%
                   </div>
-                  <!-- Boutons de tri -->
-                  <div class="flex items-center gap-1 mt-2">
+                  <!-- Boutons de tri alignés -->
+                  <div class="flex items-center justify-start gap-8 text-xs mt-1">
                     <button 
                       @click.stop="sortColumn('recurring', 'date')"
-                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
+                      class="text-purple-600 hover:text-purple-800 transition-colors"
                       :title="`Sort by date ${getSortIcon('recurring', 'date')}`"
                     >
-                      📅 {{ getSortIcon('recurring', 'date') }}
+                      {{ getSortIcon('recurring', 'date') }}
                     </button>
                     <button 
                       @click.stop="sortColumn('recurring', 'probability')"
-                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
+                      class="text-purple-600 hover:text-purple-800 transition-colors"
                       :title="`Sort by probability ${getSortIcon('recurring', 'probability')}`"
                     >
-                      🎯 {{ getSortIcon('recurring', 'probability') }}
-                    </button>
-                    <button 
-                      @click.stop="sortColumn('recurring', 'weighted')"
-                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
-                      :title="`Sort by weighted amount ${getSortIcon('recurring', 'weighted')}`"
-                    >
-                      💰 {{ getSortIcon('recurring', 'weighted') }}
+                      {{ getSortIcon('recurring', 'probability') }}
                     </button>
                   </div>
                 </div>
@@ -943,10 +945,20 @@
                     {{ getProspectsByStatus('recurring').length }}
                   </span>
                   <div class="text-xs font-medium text-purple-700 mt-1">
-                    <div class="flex flex-col items-end">
-                      <div class="text-xs text-purple-600">Monthly: {{ formatCurrency(recurringMonthlyRevenue) }}</div>
-                      <div class="font-medium text-purple-800">Annual: {{ formatCurrency(recurringAnnualRevenue) }}</div>
-                    </div>
+                    💰 {{ formatCurrency(recurringWeightedRevenue) }}
+                  </div>
+                  <div class="text-xs text-purple-600 mt-1">
+                    📊 Monthly: {{ formatCurrency(recurringMonthlyRevenue) }}
+                  </div>
+                  <!-- Flèche de tri pour le montant alignée sous le montant -->
+                  <div class="flex justify-center mt-1">
+                    <button 
+                      @click.stop="sortColumn('recurring', 'weighted')"
+                      class="text-purple-600 hover:text-purple-800 transition-colors text-xs"
+                      :title="`Sort by weighted amount ${getSortIcon('recurring', 'weighted')}`"
+                    >
+                      {{ getSortIcon('recurring', 'weighted') }}
+                    </button>
                   </div>
                   <div v-if="getRecurringDueCount() > 0" class="text-xs text-red-600 font-medium mt-1">
                     🚨 {{ getRecurringDueCount() }} due for followup
@@ -2441,9 +2453,16 @@ function sortColumn(status, field) {
 function getSortIcon(status, field) {
   const currentSort = sortConfig.value[status]
   if (currentSort.field !== field) {
-    return '↕️' // Icône neutre
+    return '↕' // Flèche neutre fine
   }
-  return currentSort.direction === 'asc' ? '↑' : '↓'
+  return currentSort.direction === 'asc' ? '▲' : '▼' // Flèches pleines plus épaisses pour l'état actif
+}
+
+// Fonction pour obtenir la classe CSS de la flèche
+function getSortButtonClass(status, field, baseColorClass) {
+  const currentSort = sortConfig.value[status]
+  const isActive = currentSort.field === field
+  return `${baseColorClass} transition-colors ${isActive ? 'font-bold' : 'font-normal'}`
 }
 
 // ===============================
