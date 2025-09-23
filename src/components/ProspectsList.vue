@@ -22,7 +22,9 @@
             </svg>
             {{ viewMode === 'list' ? 'Funnel' : 'List' }}
           </button>
+          <!-- Bouton Add seulement visible en mode liste -->
           <button
+            v-if="viewMode === 'list'"
             @click="addProspectWithStatus('cold')"
             class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
           >
@@ -571,7 +573,7 @@
                   <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                   <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
                   <button
-                    @click="addProspectWithStatus('cold')"
+                    @click.stop="addProspectWithStatus('cold')"
                     class="ml-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 p-1 transition-colors"
                     title="Add cold prospect"
                   >
@@ -655,7 +657,7 @@
                   <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
                   <button
-                    @click="addProspectWithStatus('warm')"
+                    @click.stop="addProspectWithStatus('warm')"
                     class="ml-2 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 p-1 transition-colors"
                     title="Add warm prospect"
                   >
@@ -739,7 +741,7 @@
                   <div class="w-3 h-3 rounded-full bg-red-500"></div>
                   <h3 class="font-semibold text-red-800">🔥 HOT</h3>
                   <button
-                    @click="addProspectWithStatus('hot')"
+                    @click.stop="addProspectWithStatus('hot')"
                     class="ml-2 text-red-600 hover:text-red-800 hover:bg-red-200 p-1 transition-colors"
                     title="Add hot prospect"
                   >
@@ -827,7 +829,7 @@
                     <div class="w-3 h-3 rounded-full bg-purple-500"></div>
                     <h3 class="font-semibold text-purple-800">🔄 RECURRING</h3>
                     <button
-                      @click="addProspectWithStatus('recurring')"
+                      @click.stop="addProspectWithStatus('recurring')"
                       class="ml-2 text-purple-600 hover:text-purple-800 hover:bg-purple-200 p-1 transition-colors"
                       title="Add recurring prospect"
                     >

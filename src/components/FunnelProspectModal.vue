@@ -442,8 +442,19 @@
 
       <!-- Footer -->
       <div class="mt-6 flex justify-between items-center">
-        <div class="text-sm text-gray-500">
-          Weighted Revenue: <span class="font-semibold text-green-600">{{ formatCurrency(getWeightedRevenue()) }}</span>
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-500">
+            Weighted Revenue: <span class="font-semibold text-green-600">{{ formatCurrency(getWeightedRevenue()) }}</span>
+          </div>
+          <!-- Bouton de suppression - uniquement pour les prospects existants -->
+          <button 
+            v-if="prospect"
+            @click="deleteProspect"
+            class="px-4 py-2 text-red-600 border border-red-300 rounded hover:bg-red-50 hover:border-red-500"
+            title="Delete this lead"
+          >
+            🗑️ Delete Lead
+          </button>
         </div>
         <div class="flex space-x-3">
           <button 
@@ -486,7 +497,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'save', 'edit'])
+const emit = defineEmits(['close', 'save', 'edit', 'delete'])
 
 const prospectsStore = useProspectsStore()
 const authStore = useAuthStore()
@@ -781,6 +792,30 @@ async function createProspect() {
     }
   } catch (error) {
     console.error('❌ Error creating prospect:', error)
+  }
+}
+
+// Delete prospect
+async function deleteProspect() {
+  if (!props.prospect) return
+  
+  const confirmDelete = confirm(`Are you sure you want to delete "${props.prospect.name}"? This action cannot be undone.`)
+  
+  if (confirmDelete) {
+    try {
+      console.log('🗑️ Deleting prospect:', props.prospect.id)
+      const result = await prospectsStore.deleteProspect(props.prospect.id)
+      
+      if (result.success) {
+        console.log('✅ Successfully deleted prospect')
+        emit('delete', props.prospect)
+        emit('close')
+      } else {
+        console.error('❌ Failed to delete prospect:', result.error)
+      }
+    } catch (error) {
+      console.error('❌ Error deleting prospect:', error)
+    }
   }
 }
 

@@ -119,6 +119,8 @@
       :key="modalKey"
       @close="closeModal"
       @save="closeModal"
+      @edit="editProspect"
+      @delete="deleteProspect"
     />
 
     <!-- CSV Import Modal -->
