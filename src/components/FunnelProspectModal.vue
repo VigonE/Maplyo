@@ -3,6 +3,7 @@
     v-if="show"
     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
     style="z-index: 10000;"
+    @click="prospect ? closeModal : null"
   >
     <div 
       class="relative top-8 mx-auto p-6 border w-11/12 max-w-5xl shadow-lg rounded-lg bg-white" 
@@ -410,29 +411,15 @@
           <div class="bg-blue-50 rounded-lg p-4 h-full">
             <div class="flex items-center justify-between mb-4">
               <h4 class="text-lg font-semibold text-gray-800">Notes</h4>
-              <button 
-                v-if="prospect"
-                @click="toggleEdit('notes')"
-                class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                {{ editing.notes ? 'Save Notes' : 'Edit Notes' }}
-              </button>
             </div>
             
             <div class="h-96">
-              <!-- Display mode -->
-              <div 
-                v-if="!editing.notes && prospect" 
-                class="h-full p-3 bg-white rounded border overflow-y-auto"
-                v-html="form.notes || '<em class=\'text-gray-500\'>No notes yet...</em>'"
-              ></div>
-              
-              <!-- Edit mode or new prospect mode -->
+              <!-- Éditeur de notes toujours visible et éditable -->
               <RichTextEditor
-                v-if="editing.notes || !prospect"
                 v-model="form.notes"
                 placeholder="Add your notes here..."
                 class="h-80"
+                @blur="prospect ? saveField('notes') : null"
               />
             </div>
           </div>
@@ -456,20 +443,23 @@
           </button>
         </div>
         <div class="flex space-x-3">
-          <button 
-            @click="closeModal"
-            class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button 
-            v-if="!prospect"
-            @click="createProspect"
-            :disabled="!form.name.trim()"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Create Lead
-          </button>
+          <!-- Pour nouveau prospect : boutons Cancel et Create Lead -->
+          <template v-if="!prospect">
+            <button 
+              @click="closeModal"
+              class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              @click="createProspect"
+              :disabled="!form.name.trim()"
+              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Lead
+            </button>
+          </template>
+          <!-- Pour prospect existant : pas de boutons, fermeture par croix ou clic extérieur -->
         </div>
       </div>
     </div>
@@ -575,7 +565,6 @@ const editing = reactive({
   probability_coefficient: false,
   estimated_completion_date: false,
   status: false,
-  notes: false,
   recurrence_months: false,
   next_followup_date: false,
   tabId: false
@@ -748,10 +737,6 @@ function onProbabilityChange() {
 
 // Close modal
 function closeModal() {
-  // Save notes if they were being edited
-  if (editing.notes && props.prospect) {
-    saveField('notes')
-  }
   emit('close')
 }
 
@@ -817,10 +802,6 @@ async function deleteProspect() {
 
 // Open edit modal
 function openEditModal() {
-  // Save any pending changes first
-  if (editing.notes) {
-    saveField('notes')
-  }
   // Emit to parent to open the classic edit modal
   emit('edit', props.prospect)
 }
