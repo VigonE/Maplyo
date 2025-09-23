@@ -3,7 +3,6 @@
     v-if="show"
     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
     style="z-index: 10000;"
-    @click="closeModal"
   >
     <div 
       class="relative top-8 mx-auto p-6 border w-11/12 max-w-5xl shadow-lg rounded-lg bg-white" 
@@ -671,6 +670,14 @@ function toggleEdit(field) {
 
 // Save a specific field
 async function saveField(field) {
+  // Pour les nouveaux prospects (sans ID), ne pas sauvegarder automatiquement
+  // La sauvegarde se fera uniquement lors du clic sur "Create Lead"
+  if (!props.prospect || !props.prospect.id) {
+    console.log(`🔄 Skipping auto-save for new prospect field '${field}' - will save on Create Lead`)
+    editing[field] = false
+    return
+  }
+
   try {
     console.log(`🔄 Saving field '${field}' with value:`, form[field])
     
@@ -693,23 +700,8 @@ async function saveField(field) {
 
     console.log(`🔄 Full update data for ${field}:`, updateData)
     
-    // Pour les nouveaux prospects, on utilise createProspect au lieu d'updateProspect
-    let result;
-    if (props.prospect && props.prospect.id) {
-      // Mode édition
-      result = await prospectsStore.updateProspect(props.prospect.id, updateData)
-    } else {
-      // Mode création
-      console.log('Creating prospect with data:', updateData)
-      result = await prospectsStore.createProspect(updateData)
-      
-      if (result.success) {
-        // Update the form with the new prospect data
-        Object.assign(form, result.prospect)
-        emit('save', result.prospect)
-        return
-      }
-    }
+    // Mode édition pour prospect existant uniquement
+    const result = await prospectsStore.updateProspect(props.prospect.id, updateData)
     
     if (result.success) {
       // Update the original prospect object
@@ -744,10 +736,14 @@ function onProbabilityChange() {
     clearTimeout(probabilityTimeout)
   }
   
-  // Set new timeout to save after 500ms of no changes
-  probabilityTimeout = setTimeout(() => {
-    saveField('probability_coefficient')
-  }, 500)
+  // Only save for existing prospects, not for new ones
+  if (props.prospect && props.prospect.id) {
+    // Set new timeout to save after 500ms of no changes
+    probabilityTimeout = setTimeout(() => {
+      saveField('probability_coefficient')
+    }, 500)
+  }
+  // For new prospects, just update the form value (no save until Create Lead is clicked)
 }
 
 // Close modal
