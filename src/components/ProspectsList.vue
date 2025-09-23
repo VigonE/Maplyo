@@ -585,6 +585,30 @@
                 <div class="text-xs text-blue-600 mt-1">
                   ⏱️ {{ props.leadTimes.cold }}mo • 🎯 {{ props.leadTimes.coldProbability }}%
                 </div>
+                <!-- Boutons de tri -->
+                <div class="flex items-center gap-1 mt-2">
+                  <button 
+                    @click.stop="sortColumn('cold', 'date')"
+                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
+                    :title="`Sort by date ${getSortIcon('cold', 'date')}`"
+                  >
+                    📅 {{ getSortIcon('cold', 'date') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('cold', 'probability')"
+                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
+                    :title="`Sort by probability ${getSortIcon('cold', 'probability')}`"
+                  >
+                    🎯 {{ getSortIcon('cold', 'probability') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('cold', 'weighted')"
+                    class="text-xs px-1 py-0.5 bg-blue-200 hover:bg-blue-300 rounded transition-colors"
+                    :title="`Sort by weighted amount ${getSortIcon('cold', 'weighted')}`"
+                  >
+                    💰 {{ getSortIcon('cold', 'weighted') }}
+                  </button>
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-blue-600 bg-blue-200 px-2 py-1 rounded-full">
@@ -669,6 +693,30 @@
                 <div class="text-xs text-yellow-600 mt-1">
                   ⏱️ {{ props.leadTimes.warm }}mo • 🎯 {{ props.leadTimes.warmProbability }}%
                 </div>
+                <!-- Boutons de tri -->
+                <div class="flex items-center gap-1 mt-2">
+                  <button 
+                    @click.stop="sortColumn('warm', 'date')"
+                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
+                    :title="`Sort by date ${getSortIcon('warm', 'date')}`"
+                  >
+                    📅 {{ getSortIcon('warm', 'date') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('warm', 'probability')"
+                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
+                    :title="`Sort by probability ${getSortIcon('warm', 'probability')}`"
+                  >
+                    🎯 {{ getSortIcon('warm', 'probability') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('warm', 'weighted')"
+                    class="text-xs px-1 py-0.5 bg-yellow-200 hover:bg-yellow-300 rounded transition-colors"
+                    :title="`Sort by weighted amount ${getSortIcon('warm', 'weighted')}`"
+                  >
+                    💰 {{ getSortIcon('warm', 'weighted') }}
+                  </button>
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-sm text-yellow-600 bg-yellow-200 px-2 py-1 rounded-full">
@@ -752,6 +800,30 @@
                 </div>
                 <div class="text-xs text-red-600 mt-1">
                   ⏱️ {{ props.leadTimes.hot }}mo • 🎯 {{ props.leadTimes.hotProbability }}%
+                </div>
+                <!-- Boutons de tri -->
+                <div class="flex items-center gap-1 mt-2">
+                  <button 
+                    @click.stop="sortColumn('hot', 'date')"
+                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
+                    :title="`Sort by date ${getSortIcon('hot', 'date')}`"
+                  >
+                    📅 {{ getSortIcon('hot', 'date') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('hot', 'probability')"
+                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
+                    :title="`Sort by probability ${getSortIcon('hot', 'probability')}`"
+                  >
+                    🎯 {{ getSortIcon('hot', 'probability') }}
+                  </button>
+                  <button 
+                    @click.stop="sortColumn('hot', 'weighted')"
+                    class="text-xs px-1 py-0.5 bg-red-200 hover:bg-red-300 rounded transition-colors"
+                    :title="`Sort by weighted amount ${getSortIcon('hot', 'weighted')}`"
+                  >
+                    💰 {{ getSortIcon('hot', 'weighted') }}
+                  </button>
                 </div>
               </div>
               <div class="text-right">
@@ -840,6 +912,30 @@
                   </div>
                   <div class="text-xs text-purple-600 mt-1">
                     ⏱️ {{ props.leadTimes.recurring }}mo • 🎯 {{ props.leadTimes.recurringProbability }}%
+                  </div>
+                  <!-- Boutons de tri -->
+                  <div class="flex items-center gap-1 mt-2">
+                    <button 
+                      @click.stop="sortColumn('recurring', 'date')"
+                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
+                      :title="`Sort by date ${getSortIcon('recurring', 'date')}`"
+                    >
+                      📅 {{ getSortIcon('recurring', 'date') }}
+                    </button>
+                    <button 
+                      @click.stop="sortColumn('recurring', 'probability')"
+                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
+                      :title="`Sort by probability ${getSortIcon('recurring', 'probability')}`"
+                    >
+                      🎯 {{ getSortIcon('recurring', 'probability') }}
+                    </button>
+                    <button 
+                      @click.stop="sortColumn('recurring', 'weighted')"
+                      class="text-xs px-1 py-0.5 bg-purple-200 hover:bg-purple-300 rounded transition-colors"
+                      :title="`Sort by weighted amount ${getSortIcon('recurring', 'weighted')}`"
+                    >
+                      💰 {{ getSortIcon('recurring', 'weighted') }}
+                    </button>
                   </div>
                 </div>
                 <div class="text-right">
@@ -1158,6 +1254,14 @@ const tempProbability = ref({}) // { prospectId: newProbability }
 // États d'édition pour la date
 const editingDate = ref({}) // { prospectId: true/false }
 const tempDate = ref({}) // { prospectId: newDate }
+
+// Variables pour le tri des colonnes du funnel
+const sortConfig = ref({
+  cold: { field: null, direction: 'asc' },
+  warm: { field: null, direction: 'asc' },
+  hot: { field: null, direction: 'asc' },
+  recurring: { field: null, direction: 'asc' }
+})
 
 // Mode d'affichage (list ou funnel)
 const viewMode = ref('funnel') // 'funnel' par défaut
@@ -2280,6 +2384,66 @@ onUnmounted(() => {
 function addProspectWithStatus(status) {
   console.log(`🆕 Adding prospect with status: ${status}`)
   emit('add-prospect', { status: status })
+}
+
+// ===============================
+// FONCTIONS DE TRI POUR LES COLONNES DU FUNNEL
+// ===============================
+
+// Fonction pour trier une colonne
+function sortColumn(status, field) {
+  const currentSort = sortConfig.value[status]
+  
+  // Si on clique sur le même champ, inverser la direction
+  if (currentSort.field === field) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc'
+  } else {
+    // Nouveau champ, commencer par asc
+    currentSort.field = field
+    currentSort.direction = 'asc'
+  }
+  
+  // Trier les prospects selon le statut
+  const prospects = getProspectsByStatus(status)
+  prospects.sort((a, b) => {
+    let valueA, valueB
+    
+    switch (field) {
+      case 'date':
+        valueA = new Date(a.estimated_completion_date || a.next_followup_date || '2099-12-31')
+        valueB = new Date(b.estimated_completion_date || b.next_followup_date || '2099-12-31')
+        break
+      case 'probability':
+        valueA = a.probability_coefficient || 0
+        valueB = b.probability_coefficient || 0
+        break
+      case 'weighted':
+        valueA = getWeightedRevenue(a)
+        valueB = getWeightedRevenue(b)
+        break
+      default:
+        return 0
+    }
+    
+    if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1
+    if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1
+    return 0
+  })
+  
+  // Mettre à jour les ref correspondants
+  if (status === 'cold') coldProspects.value = [...prospects]
+  else if (status === 'warm') warmProspects.value = [...prospects]
+  else if (status === 'hot') hotProspects.value = [...prospects]
+  else if (status === 'recurring') recurringProspects.value = [...prospects]
+}
+
+// Fonction pour obtenir l'icône de tri
+function getSortIcon(status, field) {
+  const currentSort = sortConfig.value[status]
+  if (currentSort.field !== field) {
+    return '↕️' // Icône neutre
+  }
+  return currentSort.direction === 'asc' ? '↑' : '↓'
 }
 
 // ===============================
