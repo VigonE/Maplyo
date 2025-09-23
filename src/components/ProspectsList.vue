@@ -725,7 +725,7 @@
                 <div class="flex justify-center mt-1">
                   <button 
                     @click.stop="sortColumn('warm', 'weighted')"
-                    class="text-yellow-600 hover:text-yellow-800 transition-colors text-xs"
+                    :class="getSortButtonClass('warm', 'weighted', 'text-yellow-600 hover:text-yellow-800')"
                     :title="`Sort by weighted amount ${getSortIcon('warm', 'weighted')}`"
                   >
                     {{ getSortIcon('warm', 'weighted') }}
@@ -811,14 +811,14 @@
                 <div class="flex items-center justify-start gap-8 text-xs mt-1">
                   <button 
                     @click.stop="sortColumn('hot', 'date')"
-                    class="text-red-600 hover:text-red-800 transition-colors"
+                    :class="getSortButtonClass('hot', 'date', 'text-red-600 hover:text-red-800')"
                     :title="`Sort by date ${getSortIcon('hot', 'date')}`"
                   >
                     {{ getSortIcon('hot', 'date') }}
                   </button>
                   <button 
                     @click.stop="sortColumn('hot', 'probability')"
-                    class="text-red-600 hover:text-red-800 transition-colors"
+                    :class="getSortButtonClass('hot', 'probability', 'text-red-600 hover:text-red-800')"
                     :title="`Sort by probability ${getSortIcon('hot', 'probability')}`"
                   >
                     {{ getSortIcon('hot', 'probability') }}
@@ -836,7 +836,7 @@
                 <div class="flex justify-center mt-1">
                   <button 
                     @click.stop="sortColumn('hot', 'weighted')"
-                    class="text-red-600 hover:text-red-800 transition-colors text-xs"
+                    :class="getSortButtonClass('hot', 'weighted', 'text-red-600 hover:text-red-800')"
                     :title="`Sort by weighted amount ${getSortIcon('hot', 'weighted')}`"
                   >
                     {{ getSortIcon('hot', 'weighted') }}
@@ -926,14 +926,14 @@
                   <div class="flex items-center justify-start gap-8 text-xs mt-1">
                     <button 
                       @click.stop="sortColumn('recurring', 'date')"
-                      class="text-purple-600 hover:text-purple-800 transition-colors"
+                      :class="getSortButtonClass('recurring', 'date', 'text-purple-600 hover:text-purple-800')"
                       :title="`Sort by date ${getSortIcon('recurring', 'date')}`"
                     >
                       {{ getSortIcon('recurring', 'date') }}
                     </button>
                     <button 
                       @click.stop="sortColumn('recurring', 'probability')"
-                      class="text-purple-600 hover:text-purple-800 transition-colors"
+                      :class="getSortButtonClass('recurring', 'probability', 'text-purple-600 hover:text-purple-800')"
                       :title="`Sort by probability ${getSortIcon('recurring', 'probability')}`"
                     >
                       {{ getSortIcon('recurring', 'probability') }}
@@ -954,7 +954,7 @@
                   <div class="flex justify-center mt-1">
                     <button 
                       @click.stop="sortColumn('recurring', 'weighted')"
-                      class="text-purple-600 hover:text-purple-800 transition-colors text-xs"
+                      :class="getSortButtonClass('recurring', 'weighted', 'text-purple-600 hover:text-purple-800')"
                       :title="`Sort by weighted amount ${getSortIcon('recurring', 'weighted')}`"
                     >
                       {{ getSortIcon('recurring', 'weighted') }}
@@ -2453,16 +2453,16 @@ function sortColumn(status, field) {
 function getSortIcon(status, field) {
   const currentSort = sortConfig.value[status]
   if (currentSort.field !== field) {
-    return '↕' // Flèche neutre fine
+    return '↑' // Même flèche que les actives, différence par l'opacité/style
   }
-  return currentSort.direction === 'asc' ? '▲' : '▼' // Flèches pleines plus épaisses pour l'état actif
+  return currentSort.direction === 'asc' ? '↑' : '↓' // Même hauteur, différence par le gras
 }
 
 // Fonction pour obtenir la classe CSS de la flèche
 function getSortButtonClass(status, field, baseColorClass) {
   const currentSort = sortConfig.value[status]
   const isActive = currentSort.field === field
-  return `${baseColorClass} transition-colors ${isActive ? 'font-bold' : 'font-normal'}`
+  return `${baseColorClass} transition-colors ${isActive ? 'font-black opacity-100' : 'font-normal opacity-50'} ${isActive ? 'filter drop-shadow-[0_0_1px_currentColor]' : ''}`
 }
 
 // ===============================
