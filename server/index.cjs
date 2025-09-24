@@ -290,6 +290,7 @@ function initializeDatabase() {
       revenue REAL DEFAULT 0,
       probability_coefficient REAL DEFAULT 100,
       notes TEXT,
+      notes_last_updated DATETIME,
       tab_id TEXT DEFAULT 'default',
       display_order INTEGER DEFAULT 0,
       estimated_completion_date DATE,
@@ -341,7 +342,8 @@ function initializeDatabase() {
       { name: 'estimated_completion_date', sql: `ALTER TABLE prospects ADD COLUMN estimated_completion_date DATE` },
       { name: 'contact', sql: `ALTER TABLE prospects ADD COLUMN contact TEXT` },
       { name: 'recurrence_months', sql: `ALTER TABLE prospects ADD COLUMN recurrence_months INTEGER DEFAULT 12` },
-      { name: 'next_followup_date', sql: `ALTER TABLE prospects ADD COLUMN next_followup_date DATE` }
+      { name: 'next_followup_date', sql: `ALTER TABLE prospects ADD COLUMN next_followup_date DATE` },
+      { name: 'notes_last_updated', sql: `ALTER TABLE prospects ADD COLUMN notes_last_updated DATETIME` }
     ];
 
     migrations.forEach(migration => {
@@ -903,7 +905,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId);
 
@@ -975,12 +977,12 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, notes_last_updated, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             contact || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient || 100, notes || '', tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
+            revenue || 0, probability_coefficient || 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
@@ -1074,7 +1076,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
 app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1169,14 +1171,14 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, contact = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
-           probability_coefficient = ?, notes = ?, tab_id = ?, estimated_completion_date = ?, 
+           probability_coefficient = ?, notes = ?, notes_last_updated = ?, tab_id = ?, estimated_completion_date = ?, 
            recurrence_months = ?, next_followup_date = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', contact || '',
             address || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
-            notes || '', tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, prospectId, req.user.userId
+            notes || '', notes_last_updated, tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, prospectId, req.user.userId
           ],
           function(err) {
             if (err) {
@@ -2035,8 +2037,8 @@ async function createProspectFromCSV(prospectData, userId, options) {
   return new Promise((resolve, reject) => {
     db.run(
       `INSERT INTO prospects 
-       (user_id, name, email, phone, company, contact, address, status, revenue, notes, tab_id, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+       (user_id, name, email, phone, company, contact, address, status, revenue, notes, notes_last_updated, tab_id, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
       [
         userId,
         prospectData.name,
@@ -2048,6 +2050,7 @@ async function createProspectFromCSV(prospectData, userId, options) {
         prospectData.status,
         prospectData.revenue,
         prospectData.notes,
+        prospectData.notes ? new Date().toISOString() : null,
         prospectData.tab_id
       ],
       function(err) {

@@ -420,7 +420,13 @@
                 placeholder="Add your notes here..."
                 class="h-80"
                 @blur="prospect ? saveField('notes') : null"
+                @input="onNotesChange"
               />
+              
+              <!-- Date de dernière modification des notes -->
+              <div v-if="form.notes_last_updated" class="mt-2 text-xs text-gray-500">
+                Last updated: {{ formatDateTime(form.notes_last_updated) }}
+              </div>
             </div>
           </div>
         </div>
@@ -547,6 +553,7 @@ const form = reactive({
   revenue: 0,
   probability_coefficient: 100,
   notes: '',
+  notes_last_updated: null,
   estimated_completion_date: '',
   recurrence_months: 12,
   next_followup_date: '',
@@ -584,6 +591,7 @@ watch(() => props.prospect, (newProspect) => {
       revenue: newProspect.revenue || 0,
       probability_coefficient: newProspect.probability_coefficient || 100,
       notes: newProspect.notes || '',
+      notes_last_updated: newProspect.notes_last_updated || null,
       estimated_completion_date: newProspect.estimated_completion_date || '',
       recurrence_months: newProspect.recurrence_months || 12,
       next_followup_date: newProspect.next_followup_date || '',
@@ -602,6 +610,7 @@ watch(() => props.prospect, (newProspect) => {
       revenue: 0,
       probability_coefficient: 100,
       notes: '',
+      notes_last_updated: null,
       estimated_completion_date: '',
       recurrence_months: 12,
       next_followup_date: '',
@@ -681,6 +690,7 @@ async function saveField(field) {
       revenue: form.revenue,
       probability_coefficient: form.probability_coefficient,
       notes: form.notes,
+      notes_last_updated: form.notes_last_updated,
       estimated_completion_date: form.estimated_completion_date,
       recurrence_months: form.recurrence_months,
       next_followup_date: form.next_followup_date,
@@ -756,6 +766,7 @@ async function createProspect() {
       revenue: form.revenue,
       probability_coefficient: form.probability_coefficient,
       notes: form.notes,
+      notes_last_updated: form.notes ? new Date().toISOString() : null,
       estimated_completion_date: form.estimated_completion_date,
       recurrence_months: form.recurrence_months,
       next_followup_date: form.next_followup_date,
@@ -852,6 +863,54 @@ function getTabName(tabId) {
 
 function getWeightedRevenue() {
   return (form.revenue || 0) * (form.probability_coefficient || 100) / 100
+}
+
+// Handle notes change - update timestamp
+let lastNotesValue = ''
+function onNotesChange() {
+  // Pour éviter de mettre à jour le timestamp à chaque caractère, on le fait seulement si c'est vraiment différent
+  if (props.prospect && props.prospect.id && form.notes !== lastNotesValue) {
+    form.notes_last_updated = new Date().toISOString()
+    lastNotesValue = form.notes
+  }
+}
+
+// Format date and time for display
+function formatDateTime(dateString) {
+  if (!dateString) return ''
+  
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  // Si c'est aujourd'hui
+  if (diffDays === 0) {
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  }
+  
+  // Si c'est hier
+  if (diffDays === 1) {
+    return `Yesterday at ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+  }
+  
+  // Si c'est dans la semaine
+  if (diffDays < 7) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago at ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+  }
+  
+  // Sinon date complète
+  return date.toLocaleString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit', 
+    minute: '2-digit'
+  })
 }
 
 function getStatusColor(status) {
