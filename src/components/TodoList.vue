@@ -151,7 +151,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'
+import api from '../services/api'
 
 const props = defineProps({
   prospectId: {
@@ -185,9 +185,7 @@ async function loadTodos() {
   
   try {
     loading.value = true
-    const response = await axios.get(`http://localhost:3001/api/prospects/${props.prospectId}/todos`, {
-      headers: { Authorization: `Bearer ${authStore.token}` }
-    })
+    const response = await api.get(`/prospects/${props.prospectId}/todos`)
     todos.value = Array.isArray(response.data) ? response.data : []
     console.log('✅ Loaded todos:', response.data)
   } catch (error) {
@@ -204,11 +202,9 @@ async function addTodo() {
   if (!newTodoText.value.trim()) return
 
   try {
-    const response = await axios.post(`http://localhost:3001/api/prospects/${props.prospectId}/todos`, {
+    const response = await api.post(`/prospects/${props.prospectId}/todos`, {
       text: newTodoText.value.trim(),
       due_date: newTodoDueDate.value || null
-    }, {
-      headers: { Authorization: `Bearer ${authStore.token}` }
     })
 
     todos.value.unshift(response.data)
@@ -228,10 +224,8 @@ function clearNewTodo() {
 // Toggle todo completion
 async function toggleTodo(todo) {
   try {
-    const response = await axios.put(`http://localhost:3001/api/todos/${todo.id}`, {
+    const response = await api.put(`/todos/${todo.id}`, {
       completed: !todo.completed
-    }, {
-      headers: { Authorization: `Bearer ${authStore.token}` }
     })
 
     // Update local todo
@@ -251,9 +245,7 @@ async function deleteTodo(todo) {
   if (!confirm('Are you sure you want to delete this task?')) return
 
   try {
-    await axios.delete(`http://localhost:3001/api/todos/${todo.id}`, {
-      headers: { Authorization: `Bearer ${authStore.token}` }
-    })
+    await api.delete(`/todos/${todo.id}`)
 
     // Remove from local list
     const index = todos.value.findIndex(t => t.id === todo.id)
