@@ -1,43 +1,66 @@
 <template>
-  <div class="bg-yellow-50 rounded-lg p-4 mt-6">
-    <div class="flex items-center justify-between mb-4">
-      <h4 class="text-lg font-semibold text-gray-800 flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-        Todo List
-        <span v-if="incompleteTodoCount > 0" class="ml-2 px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+  <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-5 mt-6 border-2 border-yellow-200 shadow-lg">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center">
+        <h4 class="text-xl font-bold text-gray-800">
+          Todo List
+        </h4>
+        <span v-if="incompleteTodoCount > 0" class="ml-3 px-3 py-1 text-sm bg-orange-500 text-white rounded-full font-medium shadow-sm">
           {{ incompleteTodoCount }} pending
         </span>
-      </h4>
+      </div>
     </div>
 
-    <!-- Add new todo -->
-    <div class="mb-4">
-      <div class="flex gap-2 mb-2">
-        <input
-          v-model="newTodoText"
-          type="text"
-          placeholder="Add a new task..."
-          class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          @keyup.enter="addTodo"
-          @keyup.escape="clearNewTodo"
-        >
-        <input
-          v-model="newTodoDueDate"
-          type="date"
-          class="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          title="Due date (optional)"
-        >
-        <button
-          @click="addTodo"
-          :disabled="!newTodoText.trim()"
-          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    <!-- Add new todo - Better contained design -->
+    <div class="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-lg p-4 mb-4 border border-yellow-300 shadow-sm">
+      <div class="space-y-3">
+        <!-- Input row -->
+        <div class="flex gap-2">
+          <div class="flex-1 relative">
+            <input
+              v-model="newTodoText"
+              type="text"
+              placeholder="Add a new task..."
+              class="w-full px-3 py-2.5 border border-yellow-200 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm bg-white shadow-sm"
+              @keyup.enter="addTodo"
+              @keyup.escape="clearNewTodo"
+            >
+          </div>
+          <button
+            @click="addTodo"
+            :disabled="!newTodoText.trim()"
+            class="px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-medium shadow-sm"
+            title="Add task"
+          >
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span class="hidden sm:inline">Add</span>
+          </button>
+        </div>
+        
+        <!-- Due date row -->
+        <div class="flex items-center gap-2 bg-white bg-opacity-50 rounded-md p-2">
+          <svg class="w-4 h-4 text-yellow-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-        </button>
+          <label class="text-xs text-yellow-800 font-medium min-w-fit">Due date:</label>
+          <input
+            v-model="newTodoDueDate"
+            type="date"
+            class="flex-1 px-2 py-1.5 border border-yellow-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-yellow-500 bg-white"
+          >
+          <button
+            v-if="newTodoDueDate"
+            @click="newTodoDueDate = ''"
+            class="p-1.5 text-yellow-600 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors"
+            title="Clear due date"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -55,35 +78,38 @@
         v-else
         v-for="todo in todos"
         :key="todo.id"
-        class="flex items-center gap-3 p-3 bg-white rounded-lg border"
-        :class="{ 'opacity-60': todo.completed }"
+        class="flex items-start gap-3 p-4 bg-white rounded-xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-200 hover:border-yellow-200"
+        :class="{ 'opacity-70 bg-gray-50 border-gray-200': todo.completed }"
       >
         <!-- Checkbox -->
         <input
           type="checkbox"
           :checked="todo.completed"
           @change="toggleTodo(todo)"
-          class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          class="w-4 h-4 mt-0.5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
         >
 
         <!-- Todo content -->
         <div class="flex-1 min-w-0">
           <div
-            class="text-sm"
-            :class="{ 'line-through text-gray-500': todo.completed, 'text-gray-900': !todo.completed }"
+            class="text-sm font-medium"
+            :class="{ 
+              'line-through text-gray-500': todo.completed, 
+              'text-gray-900': !todo.completed 
+            }"
           >
             {{ todo.text }}
           </div>
           
           <!-- Due date and timestamp -->
-          <div class="flex items-center gap-4 mt-1 text-xs text-gray-500">
-            <span v-if="todo.due_date" class="flex items-center">
+          <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
+            <span v-if="todo.due_date" class="flex items-center bg-gray-100 px-2 py-1 rounded">
               <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Due {{ formatDate(todo.due_date) }}
               <span v-if="isOverdue(todo.due_date)" class="ml-1 text-red-500 font-medium">
-                (Overdue)
+                (Overdue!)
               </span>
             </span>
             <span class="flex items-center">
@@ -98,8 +124,8 @@
         <!-- Delete button -->
         <button
           @click="deleteTodo(todo)"
-          class="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          title="Delete todo"
+          class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0 mt-0.5"
+          title="Delete task"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -117,10 +143,10 @@
     </div>
 
     <!-- Quick stats -->
-    <div v-if="todos.length > 0" class="mt-4 pt-3 border-t border-gray-200">
-      <div class="text-xs text-gray-500 text-center">
+    <div v-if="todos.length > 0" class="mt-5 pt-4 border-t-2 border-yellow-200">
+      <div class="text-sm text-gray-600 text-center font-medium bg-white bg-opacity-60 rounded-lg py-2 px-4">
         {{ completedTodoCount }} of {{ todos.length }} tasks completed
-        <span v-if="incompleteTodoCount > 0" class="text-orange-600">
+        <span v-if="incompleteTodoCount > 0" class="text-orange-600 font-semibold">
           • {{ incompleteTodoCount }} remaining
         </span>
       </div>
