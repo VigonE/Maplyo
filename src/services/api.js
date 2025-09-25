@@ -1,8 +1,18 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
+// Use different base URL depending on environment
+const getBaseURL = () => {
+  // In development, explicitly use port 3001 if proxy doesn't work
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3001/api'
+  }
+  // In production, use relative path
+  return '/api'
+}
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   timeout: 10000
 })
 

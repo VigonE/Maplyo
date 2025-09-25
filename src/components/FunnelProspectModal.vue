@@ -428,6 +428,13 @@
                 Last updated: {{ formatDateTime(form.notes_last_updated) }}
               </div>
             </div>
+
+            <!-- Todo List - only show for existing prospects -->
+            <TodoList 
+              v-if="prospect && prospect.id"
+              :prospect-id="prospect.id"
+              class="mt-4"
+            />
           </div>
         </div>
       </div>
@@ -478,6 +485,7 @@ import { useProspectsStore } from '../stores/prospects'
 import { useAuthStore } from '../stores/auth'
 import axios from 'axios'
 import RichTextEditor from './RichTextEditor.vue'
+import TodoList from './TodoList.vue'
 
 const props = defineProps({
   show: Boolean,

@@ -328,11 +328,27 @@ function initializeDatabase() {
     )
   `;
 
+  const createTodosTable = `
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      prospect_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      completed INTEGER DEFAULT 0,
+      due_date DATE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (prospect_id) REFERENCES prospects(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `;
+
   db.serialize(() => {
     db.run(createUsersTable);
     db.run(createProspectsTable);
     db.run(createTabsTable);
     db.run(createSettingsTable);
+    db.run(createTodosTable);
     
     // Migrations pour ajouter les colonnes manquantes aux bases de données existantes
     const migrations = [
@@ -3002,6 +3018,178 @@ app.post('/api/database/full-import', authenticateToken, async (req, res) => {
     });
   }
 });
+
+// ============ TODO ENDPOINTS ============
+
+// Get todos for a prospect
+app.get('/api/prospects/:id/todos', authenticateToken, (req, res) => {
+  console.log(`📋 GET /api/prospects/${req.params.id}/todos - User: ${req.user.userId}`);
+  
+  const query = `
+    SELECT t.* 
+    FROM todos t 
+    INNER JOIN prospects p ON t.prospect_id = p.id 
+    WHERE t.prospect_id = ? AND p.user_id = ? 
+    ORDER BY t.completed ASC, t.created_at DESC
+  `;
+  
+  db.all(query, [req.params.id, req.user.userId], (err, todos) => {
+    if (err) {
+      console.error('Error fetching todos:', err);
+      return res.status(500).json({ error: 'Server error while fetching todos' });
+    }
+    
+    console.log(`📋 Found ${todos.length} todos for prospect ${req.params.id}`);
+    res.json(todos);
+  });
+});
+
+// Create a new todo
+app.post('/api/prospects/:id/todos', authenticateToken, (req, res) => {
+  console.log(`📋 POST /api/prospects/${req.params.id}/todos - User: ${req.user.userId}`, req.body);
+  
+  const { text, due_date } = req.body;
+  
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: 'Todo text is required' });
+  }
+
+  // Verify prospect belongs to user
+  const verifyQuery = 'SELECT id FROM prospects WHERE id = ? AND user_id = ?';
+  db.get(verifyQuery, [req.params.id, req.user.userId], (err, prospect) => {
+    if (err) {
+      console.error('Error verifying prospect:', err);
+      return res.status(500).json({ error: 'Server error while verifying prospect' });
+    }
+    
+    if (!prospect) {
+      return res.status(404).json({ error: 'Prospect not found' });
+    }
+
+    // Create todo
+    const insertQuery = `
+      INSERT INTO todos (prospect_id, user_id, text, due_date) 
+      VALUES (?, ?, ?, ?)
+    `;
+    
+    db.run(insertQuery, [req.params.id, req.user.userId, text.trim(), due_date || null], function(err) {
+      if (err) {
+        console.error('Error creating todo:', err);
+        return res.status(500).json({ error: 'Server error while creating todo' });
+      }
+      
+      // Get created todo
+      const selectQuery = 'SELECT * FROM todos WHERE id = ?';
+      db.get(selectQuery, [this.lastID], (err, newTodo) => {
+        if (err) {
+          console.error('Error fetching created todo:', err);
+          return res.status(500).json({ error: 'Server error while fetching created todo' });
+        }
+        
+        res.json(newTodo);
+      });
+    });
+  });
+});
+
+// Update todo
+app.put('/api/todos/:id', authenticateToken, (req, res) => {
+  const { text, completed, due_date } = req.body;
+  
+  // Verify todo belongs to user
+  const verifyQuery = `
+    SELECT t.* 
+    FROM todos t 
+    INNER JOIN prospects p ON t.prospect_id = p.id 
+    WHERE t.id = ? AND p.user_id = ?
+  `;
+  
+  db.get(verifyQuery, [req.params.id, req.user.userId], (err, todo) => {
+    if (err) {
+      console.error('Error verifying todo:', err);
+      return res.status(500).json({ error: 'Server error while verifying todo' });
+    }
+    
+    if (!todo) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    // Build update query dynamically
+    let updateQuery = 'UPDATE todos SET updated_at = CURRENT_TIMESTAMP';
+    let updateParams = [];
+    
+    if (text !== undefined) {
+      updateQuery += ', text = ?';
+      updateParams.push(text.trim());
+    }
+    
+    if (completed !== undefined) {
+      updateQuery += ', completed = ?';
+      updateParams.push(completed ? 1 : 0);
+    }
+    
+    if (due_date !== undefined) {
+      updateQuery += ', due_date = ?';
+      updateParams.push(due_date || null);
+    }
+    
+    updateQuery += ' WHERE id = ?';
+    updateParams.push(req.params.id);
+    
+    db.run(updateQuery, updateParams, (err) => {
+      if (err) {
+        console.error('Error updating todo:', err);
+        return res.status(500).json({ error: 'Server error while updating todo' });
+      }
+      
+      // Get updated todo
+      const selectQuery = 'SELECT * FROM todos WHERE id = ?';
+      db.get(selectQuery, [req.params.id], (err, updatedTodo) => {
+        if (err) {
+          console.error('Error fetching updated todo:', err);
+          return res.status(500).json({ error: 'Server error while fetching updated todo' });
+        }
+        
+        res.json(updatedTodo);
+      });
+    });
+  });
+});
+
+// Delete todo
+app.delete('/api/todos/:id', authenticateToken, (req, res) => {
+  // Verify todo belongs to user
+  const verifyQuery = `
+    SELECT t.* 
+    FROM todos t 
+    INNER JOIN prospects p ON t.prospect_id = p.id 
+    WHERE t.id = ? AND p.user_id = ?
+  `;
+  
+  db.get(verifyQuery, [req.params.id, req.user.userId], (err, todo) => {
+    if (err) {
+      console.error('Error verifying todo:', err);
+      return res.status(500).json({ error: 'Server error while verifying todo' });
+    }
+    
+    if (!todo) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    // Delete todo
+    const deleteQuery = 'DELETE FROM todos WHERE id = ?';
+    db.run(deleteQuery, [req.params.id], (err) => {
+      if (err) {
+        console.error('Error deleting todo:', err);
+        return res.status(500).json({ error: 'Server error while deleting todo' });
+      }
+      
+      res.json({ message: 'Todo deleted successfully' });
+    });
+  });
+});
+
+// ============ STATIC FILES AND SPA ============
 
 // Servir les fichiers statiques et gestion du SPA
 app.get('*', (req, res) => {

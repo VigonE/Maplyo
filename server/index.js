@@ -163,6 +163,24 @@ async function initDatabase() {
       )
     `)
 
+    // Create todos table for prospect tasks
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS todos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        prospect_id INT NOT NULL,
+        user_id INT NOT NULL,
+        text TEXT NOT NULL,
+        completed BOOLEAN DEFAULT FALSE,
+        due_date DATE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (prospect_id) REFERENCES prospects(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_prospect_todos (prospect_id),
+        INDEX idx_user_todos (user_id)
+      )
+    `)
+
     // Add probability_coefficient column if it doesn't exist (migration for existing databases)
     try {
       await db.execute(`
@@ -913,6 +931,158 @@ app.put('/api/prospects/reorder-category', authenticateToken, async (req, res) =
     res.status(500).json({ message: 'Erreur serveur lors du réordonnancement' })
   }
 })
+
+// ============ TODO ENDPOINTS ============
+
+// Get todos for a prospect
+app.get('/api/prospects/:id/todos', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    const [todos] = await db.execute(`
+      SELECT t.* 
+      FROM todos t 
+      INNER JOIN prospects p ON t.prospect_id = p.id 
+      WHERE t.prospect_id = ? AND p.user_id = ? 
+      ORDER BY t.completed ASC, t.created_at DESC
+    `, [req.params.id, req.user.id])
+    
+    await db.end()
+    res.json(todos)
+  } catch (error) {
+    console.error('Error fetching todos:', error)
+    res.status(500).json({ error: 'Server error while fetching todos' })
+  }
+})
+
+// Create a new todo
+app.post('/api/prospects/:id/todos', authenticateToken, async (req, res) => {
+  try {
+    const { text, due_date } = req.body
+    
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Todo text is required' })
+    }
+
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Verify prospect belongs to user
+    const [prospects] = await db.execute(
+      'SELECT id FROM prospects WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user.id]
+    )
+    
+    if (prospects.length === 0) {
+      await db.end()
+      return res.status(404).json({ error: 'Prospect not found' })
+    }
+
+    // Create todo
+    const [result] = await db.execute(`
+      INSERT INTO todos (prospect_id, user_id, text, due_date) 
+      VALUES (?, ?, ?, ?)
+    `, [req.params.id, req.user.id, text.trim(), due_date || null])
+    
+    // Get created todo
+    const [newTodo] = await db.execute(
+      'SELECT * FROM todos WHERE id = ?',
+      [result.insertId]
+    )
+    
+    await db.end()
+    res.json(newTodo[0])
+  } catch (error) {
+    console.error('Error creating todo:', error)
+    res.status(500).json({ error: 'Server error while creating todo' })
+  }
+})
+
+// Update todo
+app.put('/api/todos/:id', authenticateToken, async (req, res) => {
+  try {
+    const { text, completed, due_date } = req.body
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Verify todo belongs to user
+    const [todos] = await db.execute(`
+      SELECT t.* 
+      FROM todos t 
+      INNER JOIN prospects p ON t.prospect_id = p.id 
+      WHERE t.id = ? AND p.user_id = ?
+    `, [req.params.id, req.user.id])
+    
+    if (todos.length === 0) {
+      await db.end()
+      return res.status(404).json({ error: 'Todo not found' })
+    }
+
+    // Update todo
+    let updateQuery = 'UPDATE todos SET updated_at = CURRENT_TIMESTAMP'
+    let updateParams = []
+    
+    if (text !== undefined) {
+      updateQuery += ', text = ?'
+      updateParams.push(text.trim())
+    }
+    
+    if (completed !== undefined) {
+      updateQuery += ', completed = ?'
+      updateParams.push(completed)
+    }
+    
+    if (due_date !== undefined) {
+      updateQuery += ', due_date = ?'
+      updateParams.push(due_date || null)
+    }
+    
+    updateQuery += ' WHERE id = ?'
+    updateParams.push(req.params.id)
+    
+    await db.execute(updateQuery, updateParams)
+    
+    // Get updated todo
+    const [updatedTodo] = await db.execute(
+      'SELECT * FROM todos WHERE id = ?',
+      [req.params.id]
+    )
+    
+    await db.end()
+    res.json(updatedTodo[0])
+  } catch (error) {
+    console.error('Error updating todo:', error)
+    res.status(500).json({ error: 'Server error while updating todo' })
+  }
+})
+
+// Delete todo
+app.delete('/api/todos/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = await mysql.createConnection(dbConfig)
+    
+    // Verify todo belongs to user
+    const [todos] = await db.execute(`
+      SELECT t.* 
+      FROM todos t 
+      INNER JOIN prospects p ON t.prospect_id = p.id 
+      WHERE t.id = ? AND p.user_id = ?
+    `, [req.params.id, req.user.id])
+    
+    if (todos.length === 0) {
+      await db.end()
+      return res.status(404).json({ error: 'Todo not found' })
+    }
+
+    // Delete todo
+    await db.execute('DELETE FROM todos WHERE id = ?', [req.params.id])
+    
+    await db.end()
+    res.json({ message: 'Todo deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting todo:', error)
+    res.status(500).json({ error: 'Server error while deleting todo' })
+  }
+})
+
+// ============ ADMIN ENDPOINTS ============
 
 // Delete all data endpoint (admin only)
 app.delete('/api/database/delete-all', authenticateToken, async (req, res) => {
