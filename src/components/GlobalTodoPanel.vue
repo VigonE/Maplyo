@@ -187,12 +187,14 @@ const overdueTodos = computed(() =>
   Array.isArray(todos.value) ? todos.value.filter(todo => !todo.completed && isOverdue(todo)).length : 0
 )
 
-// Trier les todos selon les critères demandés
+// Trier les todos selon les critères demandés (exclure les tâches complétées)
 const sortedTodos = computed(() => {
   if (!Array.isArray(todos.value)) return []
-  const todosCopy = [...todos.value]
   
-  return todosCopy.sort((a, b) => {
+  // Filtrer les tâches complétées pour le panneau général
+  const incompleteTodos = todos.value.filter(todo => !todo.completed)
+  
+  return incompleteTodos.sort((a, b) => {
     // Priorité 1: Les todos avec date d'échéance
     if (a.due_date && !b.due_date) return -1
     if (!a.due_date && b.due_date) return 1
@@ -263,6 +265,8 @@ async function toggleTodo(todo) {
       if (index !== -1) {
         todos.value[index] = { ...todos.value[index], completed: !todo.completed }
       }
+      // Note: Pas besoin de recharger - le computed sortedTodos va automatiquement 
+      // filtrer la tâche complétée et elle disparaîtra en temps réel
     }
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la todo:', error)
