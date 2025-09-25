@@ -1,19 +1,22 @@
 <template>
-  <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg p-3 border border-yellow-200 shadow-sm">
-    <div class="flex items-center justify-between mb-3">
-      <div class="flex items-center">
-        <h4 class="text-sm font-semibold text-gray-800">
-          Todo List
-        </h4>
-        <span v-if="incompleteTodoCount > 0" class="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded-full font-medium">
-          {{ incompleteTodoCount }}
-        </span>
+  <div class="todolist-container">
+    <!-- Background gradient layer -->
+    <div class="bg-gradient-to-br from-yellow-50 to-amber-50 h-full">
+      <div class="p-3">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center">
+          <h4 class="text-sm font-semibold text-gray-800">
+            Todo List
+          </h4>
+          <span v-if="incompleteTodoCount > 0" class="ml-2 px-2 py-0.5 text-xs bg-orange-500 text-white rounded-full font-medium">
+            {{ incompleteTodoCount }}
+          </span>
+        </div>
       </div>
-    </div>
 
-    <!-- Add new todo - Compact design -->
-    <div class="bg-white rounded p-3 mb-3 border border-yellow-200 shadow-sm">
-      <div class="space-y-2">
+      <!-- Add new todo - Compact design -->
+      <div class="bg-white rounded-md p-3 mb-3 border border-yellow-200 shadow-sm">
+        <div class="space-y-2">
         <!-- Input row -->
         <div class="flex gap-2">
           <div class="flex-1 relative">
@@ -63,8 +66,8 @@
       </div>
     </div>
 
-    <!-- Todo list - Compact with controlled height -->
-    <div class="space-y-1 max-h-40 overflow-y-auto">
+    <!-- Todo list - Compact with controlled height and proper scrolling -->
+    <div class="space-y-1 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
       <div v-if="loading" class="text-center py-2 text-gray-500 text-sm">
         Loading...
       </div>
@@ -122,23 +125,25 @@
         </button>
       </div>
 
-      <!-- Empty state -->
-      <div v-if="todos.length === 0" class="text-center py-8 text-gray-500">
-        <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- Empty state - only show when no tasks and not loading -->
+      <div v-if="!loading && todos.length === 0" class="text-center py-4 text-gray-500 text-sm">
+        <svg class="w-8 h-8 mx-auto mb-1 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
-        <p>No tasks yet. Add one above!</p>
+        <p class="text-xs">No tasks yet</p>
       </div>
     </div>
+    </div>
 
-    <!-- Quick stats - compact -->
-    <div v-if="todos.length > 0" class="mt-2 pt-2 border-t border-yellow-200">
-      <div class="text-xs text-gray-600 text-center bg-yellow-50 rounded py-1 px-2">
+    <!-- Quick stats - always show when there are tasks, stays at bottom -->
+    <div v-if="todos.length > 0" class="bg-yellow-200 bg-opacity-60 border-t border-yellow-300 px-3 py-2 flex-shrink-0">
+      <div class="text-xs text-gray-700 text-center font-medium">
         {{ completedTodoCount }}/{{ todos.length }} done
-        <span v-if="incompleteTodoCount > 0" class="text-orange-600 font-medium ml-1">
+        <span v-if="incompleteTodoCount > 0" class="text-orange-700 font-semibold ml-1">
           ({{ incompleteTodoCount }} left)
         </span>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -333,3 +338,27 @@ watch(() => props.prospectId, (newId) => {
   }
 })
 </script>
+
+<style scoped>
+.todolist-container {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  overflow: hidden;
+  border: 1px solid rgb(254 240 138);
+  position: relative;
+}
+
+/* Force the rounded corners to be visible */
+.todolist-container::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  border-radius: 0.5rem;
+  border: 2px solid rgb(254 240 138);
+  pointer-events: none;
+  z-index: 20;
+}
+</style>
