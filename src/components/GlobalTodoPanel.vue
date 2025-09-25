@@ -160,7 +160,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useTodoSync, TODO_EVENTS } from '@/composables/useTodoSync'
 import api from '@/services/api.js'
 
 // Props
@@ -178,6 +179,10 @@ const emit = defineEmits(['view-prospect', 'edit-prospect'])
 const isCollapsed = ref(false)
 const loading = ref(false)
 const todos = ref([])
+
+// Todo Sync
+const { onTodoSync } = useTodoSync()
+let unsubscribe = null
 
 // État calculé
 const totalTodos = computed(() => Array.isArray(todos.value) ? todos.value.length : 0)
@@ -284,7 +289,57 @@ function editProspect(prospectId) {
 // Lifecycle
 onMounted(() => {
   loadTodos()
+  
+  // S'abonner aux événements de synchronisation des todos
+  unsubscribe = onTodoSync((event, data) => {
+    handleTodoSync(event, data)
+  })
 })
+
+onUnmounted(() => {
+  // Se désabonner lors du démontage du composant
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
+
+// Gérer les événements de synchronisation
+function handleTodoSync(event, data) {
+  console.log('🔄 GlobalTodoPanel received sync event:', event, data)
+  
+  switch (event) {
+    case TODO_EVENTS.ADDED:
+      // Ajouter la nouvelle todo si elle n'existe pas déjà
+      if (!todos.value.find(t => t.id === data.id)) {
+        todos.value.unshift(data)
+      }
+      break
+      
+    case TODO_EVENTS.TOGGLED:
+      // Mettre à jour le statut completed de la todo
+      const toggleIndex = todos.value.findIndex(t => t.id === data.id)
+      if (toggleIndex !== -1) {
+        todos.value[toggleIndex] = { ...todos.value[toggleIndex], ...data }
+      }
+      break
+      
+    case TODO_EVENTS.DELETED:
+      // Supprimer la todo de la liste
+      const deleteIndex = todos.value.findIndex(t => t.id === data.id)
+      if (deleteIndex !== -1) {
+        todos.value.splice(deleteIndex, 1)
+      }
+      break
+      
+    case TODO_EVENTS.UPDATED:
+      // Mettre à jour la todo complète
+      const updateIndex = todos.value.findIndex(t => t.id === data.id)
+      if (updateIndex !== -1) {
+        todos.value[updateIndex] = { ...todos.value[updateIndex], ...data }
+      }
+      break
+  }
+}
 </script>
 
 <style scoped>

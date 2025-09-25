@@ -151,6 +151,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useTodoSync, TODO_EVENTS } from '@/composables/useTodoSync'
 import api from '../services/api'
 
 const props = defineProps({
@@ -161,6 +162,9 @@ const props = defineProps({
 })
 
 const authStore = useAuthStore()
+
+// Todo Sync
+const { emitTodoSync } = useTodoSync()
 
 // Reactive data
 const todos = ref([])
@@ -210,6 +214,9 @@ async function addTodo() {
     todos.value.unshift(response.data)
     clearNewTodo()
     console.log('✅ Added todo:', response.data)
+    
+    // Émettre l'événement de synchronisation
+    emitTodoSync(TODO_EVENTS.ADDED, response.data)
   } catch (error) {
     console.error('❌ Error adding todo:', error)
   }
@@ -235,6 +242,9 @@ async function toggleTodo(todo) {
     }
     
     console.log('✅ Toggled todo completion:', response.data)
+    
+    // Émettre l'événement de synchronisation
+    emitTodoSync(TODO_EVENTS.TOGGLED, response.data)
   } catch (error) {
     console.error('❌ Error toggling todo:', error)
   }
@@ -254,6 +264,9 @@ async function deleteTodo(todo) {
     }
     
     console.log('✅ Deleted todo:', todo.id)
+    
+    // Émettre l'événement de synchronisation
+    emitTodoSync(TODO_EVENTS.DELETED, todo)
   } catch (error) {
     console.error('❌ Error deleting todo:', error)
   }
