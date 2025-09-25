@@ -406,34 +406,37 @@
           </div>
         </div>
 
-        <!-- Right Column - Notes -->
-        <div class="space-y-6">
-          <div class="bg-blue-50 rounded-lg p-4 h-full">
-            <div class="flex items-center justify-between mb-4">
+        <!-- Right Column - Notes & Todo -->
+        <div class="flex flex-col h-full space-y-4 max-h-full overflow-hidden">
+          <!-- Notes Section -->
+          <div class="flex flex-col bg-blue-50 rounded-lg p-4 min-h-0 flex-1">
+            <div class="flex items-center justify-between mb-3 flex-shrink-0">
               <h4 class="text-lg font-semibold text-gray-800">Notes</h4>
             </div>
             
-            <div class="h-96">
-              <!-- Éditeur de notes toujours visible et éditable -->
-              <RichTextEditor
-                v-model="form.notes"
-                placeholder="Add your notes here..."
-                class="h-80"
-                @blur="prospect ? saveField('notes') : null"
-                @input="onNotesChange"
-              />
+            <!-- Notes Editor with fixed height and overflow -->
+            <div class="flex flex-col min-h-0 flex-1">
+              <div class="flex-1 min-h-0">
+                <RichTextEditor
+                  v-model="form.notes"
+                  placeholder="Add your notes here..."
+                  class="h-full"
+                  @blur="prospect ? saveField('notes') : null"
+                  @input="onNotesChange"
+                />
+              </div>
               
-              <!-- Date de dernière modification des notes -->
-              <div v-if="form.notes_last_updated" class="mt-2 text-xs text-gray-500">
+              <!-- Last updated - always visible at bottom of notes -->
+              <div v-if="form.notes_last_updated" class="mt-2 text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded flex-shrink-0">
                 Last updated: {{ formatDateTime(form.notes_last_updated) }}
               </div>
             </div>
+          </div>
 
-            <!-- Todo List - only show for existing prospects -->
+          <!-- Todo List - Compact section with max height -->
+          <div v-if="prospect && prospect.id" class="flex-shrink-0 max-h-80 overflow-hidden">
             <TodoList 
-              v-if="prospect && prospect.id"
               :prospect-id="prospect.id"
-              class="mt-4"
             />
           </div>
         </div>
