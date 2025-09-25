@@ -113,9 +113,12 @@
               </p>
               
               <!-- Nom du prospect -->
-              <p class="text-xs text-blue-600 hover:text-blue-800 mt-1">
+              <button 
+                @click.stop="editProspect(todo.prospect_id)"
+                class="text-xs text-blue-600 hover:text-blue-800 mt-1 underline hover:no-underline transition-all"
+              >
                 {{ getProspectName(todo.prospect_id) }}
-              </p>
+              </button>
               
               <!-- Date d'échéance -->
               <div v-if="todo.due_date" class="mt-1">
@@ -169,7 +172,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['view-prospect'])
+const emit = defineEmits(['view-prospect', 'edit-prospect'])
 
 // État local
 const isCollapsed = ref(false)
@@ -268,6 +271,10 @@ async function toggleTodo(todo) {
 
 function viewProspect(prospectId) {
   emit('view-prospect', prospectId)
+}
+
+function editProspect(prospectId) {
+  emit('edit-prospect', prospectId)
 }
 
 // Lifecycle

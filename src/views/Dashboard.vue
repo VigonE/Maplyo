@@ -104,6 +104,7 @@
     <GlobalTodoPanel
       :prospects="prospectsStore.prospects"
       @view-prospect="viewProspectFromTodo"
+      @edit-prospect="editProspectFromTodo"
     />
 
     <!-- Map -->
@@ -1075,6 +1076,15 @@ function viewProspectFromTodo(prospectId) {
   if (prospect) {
     // Sélectionner le prospect (cela déclenche aussi le scroll)
     selectProspect(prospect)
+  }
+}
+
+function editProspectFromTodo(prospectId) {
+  // Trouver le prospect par son ID
+  const prospect = prospectsStore.prospects.find(p => p.id === prospectId)
+  if (prospect) {
+    // Ouvrir directement la modal d'édition
+    editProspect(prospect)
   }
 }
 
