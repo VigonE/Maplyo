@@ -5,8 +5,12 @@
   >
     <!-- Header avec bouton de repliage -->
     <div class="p-3 border-b border-gray-200 flex items-center bg-gray-50 flex-shrink-0">
-      <!-- Icône Todo toujours visible -->
-      <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+      <!-- Icône Todo toujours visible (cliquable) -->
+      <div 
+        class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-600 transition-colors"
+        @click="togglePanel"
+        title="Cliquez pour plier/déplier le panneau Todo"
+      >
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
