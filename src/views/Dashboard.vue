@@ -100,6 +100,12 @@
       <div class="absolute inset-y-0 left-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
     </div>
 
+    <!-- Global Todo Panel -->
+    <GlobalTodoPanel
+      :prospects="prospectsStore.prospects"
+      @view-prospect="viewProspectFromTodo"
+    />
+
     <!-- Map -->
     <div class="flex-1 min-h-0">
       <MapView
@@ -787,6 +793,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
+import GlobalTodoPanel from '@/components/GlobalTodoPanel.vue'
 import FunnelProspectModal from '@/components/FunnelProspectModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import ForecastModal from '@/components/ForecastModal.vue'
@@ -1060,6 +1067,15 @@ function selectProspect(prospect) {
   
   // Scroll vers le prospect dans la liste
   scrollToProspectInList(prospect)
+}
+
+function viewProspectFromTodo(prospectId) {
+  // Trouver le prospect par son ID
+  const prospect = prospectsStore.prospects.find(p => p.id === prospectId)
+  if (prospect) {
+    // Sélectionner le prospect (cela déclenche aussi le scroll)
+    selectProspect(prospect)
+  }
 }
 
 async function scrollToProspectInList(prospect) {

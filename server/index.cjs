@@ -3189,6 +3189,35 @@ app.delete('/api/todos/:id', authenticateToken, (req, res) => {
   });
 });
 
+// Get all todos for a user (for global todo panel)
+app.get('/api/todos/all', authenticateToken, (req, res) => {
+  console.log(`📋 GET /api/todos/all - User: ${req.user.userId}`);
+  
+  const query = `
+    SELECT t.*, p.name as prospect_name, p.company as prospect_company 
+    FROM todos t 
+    INNER JOIN prospects p ON t.prospect_id = p.id 
+    WHERE p.user_id = ? 
+    ORDER BY 
+      CASE 
+        WHEN t.due_date IS NOT NULL THEN 0 
+        ELSE 1 
+      END,
+      t.due_date ASC,
+      t.created_at DESC
+  `;
+  
+  db.all(query, [req.user.userId], (err, todos) => {
+    if (err) {
+      console.error('Error fetching all todos:', err);
+      return res.status(500).json({ error: 'Server error while fetching todos' });
+    }
+    
+    console.log(`📋 Found ${todos.length} total todos for user ${req.user.userId}`);
+    res.json(todos);
+  });
+});
+
 // ============ STATIC FILES AND SPA ============
 
 // Servir les fichiers statiques et gestion du SPA
