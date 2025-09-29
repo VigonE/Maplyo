@@ -1023,6 +1023,213 @@
             </div>
           </div>
         </div>
+
+        <!-- Section Won & Lost - Nouvelle section sous Recurring -->
+        <div class="w-full mt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Section Won -->
+            <div class="bg-green-50 border-2 border-green-200 rounded-lg">
+              <!-- En-tête Won -->
+              <div class="bg-green-100 p-3 rounded-t-lg border-b border-green-200">
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                      <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                      <h3 class="font-semibold text-green-800">✅ WON</h3>
+                      <button
+                        @click.stop="addProspectWithStatus('won')"
+                        class="ml-2 text-green-600 hover:text-green-800 hover:bg-green-200 p-1 transition-colors"
+                        title="Add won prospect"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="text-xs text-green-600 mt-1">
+                      Closed & Successful
+                    </div>
+                    <!-- Boutons de tri alignés -->
+                    <div class="flex items-center justify-start gap-8 text-xs mt-1">
+                      <button 
+                        @click.stop="sortColumn('won', 'date')"
+                        :class="getSortButtonClass('won', 'date', 'text-green-600 hover:text-green-800')"
+                        :title="`Sort by date ${getSortIcon('won', 'date')}`"
+                      >
+                        {{ getSortIcon('won', 'date') }}
+                      </button>
+                      <button 
+                        @click.stop="sortColumn('won', 'probability')"
+                        :class="getSortButtonClass('won', 'probability', 'text-green-600 hover:text-green-800')"
+                        :title="`Sort by probability ${getSortIcon('won', 'probability')}`"
+                      >
+                        {{ getSortIcon('won', 'probability') }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm text-green-600 bg-green-200 px-2 py-1 rounded-full">
+                      {{ getProspectsByStatus('won').length }}
+                    </span>
+                    <div class="text-xs font-medium text-green-700 mt-1">
+                      💰 {{ formatCurrency(wonWeightedRevenue) }}
+                    </div>
+                    <!-- Flèche de tri pour le montant alignée sous le montant -->
+                    <div class="flex justify-center mt-1">
+                      <button 
+                        @click.stop="sortColumn('won', 'weighted')"
+                        :class="getSortButtonClass('won', 'weighted', 'text-green-600 hover:text-green-800')"
+                        :title="`Sort by weighted amount ${getSortIcon('won', 'weighted')}`"
+                      >
+                        {{ getSortIcon('won', 'weighted') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Liste Won -->
+              <div class="p-3 min-h-[120px]">
+                <draggable
+                  v-model="wonProspects"
+                  group="prospects"
+                  @change="(evt) => handleFunnelDrop(evt, 'won')"
+                  item-key="id"
+                  class="space-y-3"
+                  :data-status="'won'"
+                >
+                  <template #item="{ element: prospect }">
+                    <div 
+                      class="bg-white rounded-lg shadow-sm border border-green-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                      @click="openProspectModal(prospect)"
+                    >
+                      <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                      </div>
+                      <div v-if="prospect.estimated_completion_date" class="text-xs text-green-600 mt-1">
+                        📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                      </div>
+                    </div>
+                  </template>
+                </draggable>
+                
+                <!-- Message si aucun prospect won -->
+                <div v-if="getProspectsByStatus('won').length === 0" class="text-center py-8">
+                  <svg class="mx-auto h-8 w-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="mt-2 text-sm text-green-600">No won prospects yet</p>
+                  <p class="text-xs text-green-500">Drag prospects here when deals are closed successfully</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section Lost -->
+            <div class="bg-red-50 border-2 border-red-200 rounded-lg">
+              <!-- En-tête Lost -->
+              <div class="bg-red-100 p-3 rounded-t-lg border-b border-red-200">
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <h3 class="font-semibold text-red-800">❌ LOST</h3>
+                      <button
+                        @click.stop="addProspectWithStatus('lost')"
+                        class="ml-2 text-red-600 hover:text-red-800 hover:bg-red-200 p-1 transition-colors"
+                        title="Add lost prospect"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="text-xs text-red-600 mt-1">
+                      Closed & Unsuccessful
+                    </div>
+                    <!-- Boutons de tri alignés -->
+                    <div class="flex items-center justify-start gap-8 text-xs mt-1">
+                      <button 
+                        @click.stop="sortColumn('lost', 'date')"
+                        :class="getSortButtonClass('lost', 'date', 'text-red-600 hover:text-red-800')"
+                        :title="`Sort by date ${getSortIcon('lost', 'date')}`"
+                      >
+                        {{ getSortIcon('lost', 'date') }}
+                      </button>
+                      <button 
+                        @click.stop="sortColumn('lost', 'probability')"
+                        :class="getSortButtonClass('lost', 'probability', 'text-red-600 hover:text-red-800')"
+                        :title="`Sort by probability ${getSortIcon('lost', 'probability')}`"
+                      >
+                        {{ getSortIcon('lost', 'probability') }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-sm text-red-600 bg-red-200 px-2 py-1 rounded-full">
+                      {{ getProspectsByStatus('lost').length }}
+                    </span>
+                    <div class="text-xs font-medium text-red-700 mt-1">
+                      💰 {{ formatCurrency(lostWeightedRevenue) }}
+                    </div>
+                    <!-- Flèche de tri pour le montant alignée sous le montant -->
+                    <div class="flex justify-center mt-1">
+                      <button 
+                        @click.stop="sortColumn('lost', 'weighted')"
+                        :class="getSortButtonClass('lost', 'weighted', 'text-red-600 hover:text-red-800')"
+                        :title="`Sort by weighted amount ${getSortIcon('lost', 'weighted')}`"
+                      >
+                        {{ getSortIcon('lost', 'weighted') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Liste Lost -->
+              <div class="p-3 min-h-[120px]">
+                <draggable
+                  v-model="lostProspects"
+                  group="prospects"
+                  @change="(evt) => handleFunnelDrop(evt, 'lost')"
+                  item-key="id"
+                  class="space-y-3"
+                  :data-status="'lost'"
+                >
+                  <template #item="{ element: prospect }">
+                    <div 
+                      class="bg-white rounded-lg shadow-sm border border-red-200 p-3 cursor-move hover:shadow-md transition-shadow"
+                      @click="openProspectModal(prospect)"
+                    >
+                      <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-red-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
+                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                      </div>
+                      <div v-if="prospect.estimated_completion_date" class="text-xs text-red-600 mt-1">
+                        📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
+                      </div>
+                    </div>
+                  </template>
+                </draggable>
+                
+                <!-- Message si aucun prospect lost -->
+                <div v-if="getProspectsByStatus('lost').length === 0" class="text-center py-8">
+                  <svg class="mx-auto h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p class="mt-2 text-sm text-red-600">No lost prospects yet</p>
+                  <p class="text-xs text-red-500">Drag prospects here when deals are closed unsuccessfully</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1233,6 +1440,18 @@ const hotWeightedRevenue = computed(() => {
   }, 0)
 })
 
+const wonWeightedRevenue = computed(() => {
+  return wonProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
+
+const lostWeightedRevenue = computed(() => {
+  return lostProspects.value.reduce((total, prospect) => {
+    return total + getWeightedRevenue(prospect)
+  }, 0)
+})
+
 // Fonction pour obtenir le nom de l'onglet d'origine d'un prospect
 const getProspectTabName = (prospect) => {
   if (!props.isAllLeadsView) return null
@@ -1272,7 +1491,9 @@ const sortConfig = ref({
   cold: { field: null, direction: 'asc' },
   warm: { field: null, direction: 'asc' },
   hot: { field: null, direction: 'asc' },
-  recurring: { field: null, direction: 'asc' }
+  recurring: { field: null, direction: 'asc' },
+  won: { field: null, direction: 'asc' },
+  lost: { field: null, direction: 'asc' }
 })
 
 // Mode d'affichage (list ou funnel)
@@ -1297,6 +1518,8 @@ const hotProspects = ref([])
 const warmProspects = ref([])
 const coldProspects = ref([])
 const recurringProspects = ref([])
+const wonProspects = ref([])
+const lostProspects = ref([])
 
 // Computed property pour le revenu pondéré des prospects récurrents
 const recurringWeightedRevenue = computed(() => {
@@ -1332,13 +1555,17 @@ function initializeFunnelProspects() {
   warmProspects.value = filteredProspects.filter(p => p.status === 'warm')
   coldProspects.value = filteredProspects.filter(p => p.status === 'cold')
   recurringProspects.value = filteredProspects.filter(p => p.status === 'recurring')
+  wonProspects.value = filteredProspects.filter(p => p.status === 'won')
+  lostProspects.value = filteredProspects.filter(p => p.status === 'lost')
   
   console.log(`🔄 Funnel initialized for tab ${props.tabId} with filters:`, {
     total: filteredProspects.length,
     hot: hotProspects.value.length,
     warm: warmProspects.value.length,
     cold: coldProspects.value.length,
-    recurring: recurringProspects.value.length
+    recurring: recurringProspects.value.length,
+    won: wonProspects.value.length,
+    lost: lostProspects.value.length
   })
 }
 
