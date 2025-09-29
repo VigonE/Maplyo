@@ -299,7 +299,7 @@ async function initDatabase() {
 
     return db
   } catch (error) {
-    console.error('Erreur lors de l\'initialisation de la base de données:', error)
+    console.error('Error during database initialization:', error)
     process.exit(1)
   }
 }
@@ -314,7 +314,7 @@ app.post('/api/auth/register', async (req, res) => {
     const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [email])
     if (existing.length > 0) {
       await db.end()
-      return res.status(400).json({ message: 'Cet email est déjà utilisé' })
+      return res.status(400).json({ message: 'This email is already in use' })
     }
 
     // Hash password
@@ -332,8 +332,8 @@ app.post('/api/auth/register', async (req, res) => {
     await db.end()
     res.json({ token, user: { id: result.insertId, name, email } })
   } catch (error) {
-    console.error('Erreur lors de l\'inscription:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error during registration:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -364,8 +364,8 @@ app.post('/api/auth/login', async (req, res) => {
     await db.end()
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } })
   } catch (error) {
-    console.error('Erreur lors de la connexion:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error during login:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -381,8 +381,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
     res.json(users[0])
   } catch (error) {
-    console.error('Erreur lors de la récupération du profil:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error retrieving profile:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -417,7 +417,7 @@ app.get('/api/settings/closing-lead-times', authenticateToken, async (req, res) 
     console.error('Error loading closing lead times:', error)
     res.status(500).json({ 
       success: false, 
-      error: 'Erreur lors du chargement des paramètres' 
+      error: 'Error loading settings' 
     })
   }
 })
@@ -458,7 +458,7 @@ app.post('/api/settings/closing-lead-times', authenticateToken, async (req, res)
     console.error('Error saving closing lead times:', error)
     res.status(500).json({ 
       success: false, 
-      error: 'Erreur lors de la sauvegarde des paramètres' 
+      error: 'Error saving settings' 
     })
   }
 })
@@ -547,8 +547,8 @@ app.get('/api/prospects', authenticateToken, async (req, res) => {
     await db.end()
     res.json(prospects)
   } catch (error) {
-    console.error('Erreur lors de la récupération des prospects:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error retrieving prospects:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -567,8 +567,8 @@ app.get('/api/prospects/recurring/due', authenticateToken, async (req, res) => {
     await db.end()
     res.json(prospects)
   } catch (error) {
-    console.error('Erreur lors de la récupération des prospects recurring dus:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error retrieving due recurring prospects:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -606,8 +606,8 @@ app.put('/api/prospects/:id/followup', authenticateToken, async (req, res) => {
 
     res.json(updated[0])
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du suivi recurring:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error updating recurring follow-up:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -682,8 +682,8 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 
     res.status(201).json(prospects[0])
   } catch (error) {
-    console.error('Erreur lors de la création du prospect:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    console.error('Error creating prospect:', error)
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -731,7 +731,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           longitude = results[0].longitude
         }
       } catch (geocodeError) {
-        console.warn('Erreur de géocodage:', geocodeError.message)
+        console.warn('Geocoding error:', geocodeError.message)
       }
     }
 
@@ -782,7 +782,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
     res.json(updated[0])
   } catch (error) {
     console.error('Erreur lors de la mise à jour du prospect:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -805,7 +805,7 @@ app.delete('/api/prospects/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Prospect supprimé avec succès' })
   } catch (error) {
     console.error('Erreur lors de la suppression du prospect:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    res.status(500).json({ message: 'Server error' })
   }
 })
 
@@ -826,7 +826,7 @@ app.put('/api/prospects/reorder', authenticateToken, async (req, res) => {
     res.json({ message: 'Ordre mis à jour avec succès' })
   } catch (error) {
     console.error('Erreur lors du réordonnancement:', error)
-    res.status(500).json({ message: 'Erreur serveur' })
+    res.status(500).json({ message: 'Server error' })
   }
 })
 

@@ -182,7 +182,7 @@ const testRealReorder = async () => {
   }
 }
 
-// Exposer les fonctions de test
+// Expose test functions
 window.testReorder = {
   testReorderCategory,
   testGetProspects,

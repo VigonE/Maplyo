@@ -19,7 +19,7 @@ export const DailyTooltipExtension = Extension.create({
 
               return {
                 'data-daily-date': attributes['data-daily-date'],
-                title: `Écrit le ${attributes['data-daily-date']}`,
+                title: `Written on ${attributes['data-daily-date']}`,
                 style: 'cursor: help;'
               }
             },
@@ -47,7 +47,7 @@ export const DailyTooltipExtension = Extension.create({
                                    target.textContent &&
                                    target.textContent.trim()
               
-              console.log('🔍 EXTENSION - Mouse over sur:', {
+              console.log('🔍 EXTENSION - Mouse over on:', {
                 tagName: target.tagName,
                 isColoredSpan,
                 style: target.getAttribute('style'),
@@ -55,15 +55,15 @@ export const DailyTooltipExtension = Extension.create({
               })
               
               if (isColoredSpan) {
-                console.log('🎯 TOOLTIP EXTENSION - Span coloré détecté!')
+                console.log('🎯 TOOLTIP EXTENSION - Colored span detected!')
                 
-                // Supprimer tooltip existant
+                // Remove existing tooltip
                 const existing = document.querySelector('.daily-tooltip-extension')
                 if (existing) existing.remove()
                 
-                // Créer nouveau tooltip avec date du jour
+                // Create new tooltip with today's date
                 const today = new Date()
-                const dateStr = today.toLocaleDateString('fr-FR', {
+                const dateStr = today.toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
@@ -72,7 +72,7 @@ export const DailyTooltipExtension = Extension.create({
                 
                 const tooltip = document.createElement('div')
                 tooltip.className = 'daily-tooltip-extension'
-                tooltip.textContent = `Écrit le ${dateStr}`
+                tooltip.textContent = dateStr
                 tooltip.style.cssText = `
                   position: fixed;
                   background: #1a202c;
@@ -92,8 +92,8 @@ export const DailyTooltipExtension = Extension.create({
                 `
                 document.body.appendChild(tooltip)
                 
-                console.log('✅ Tooltip créé:', tooltip.textContent)
-                return false // Empêcher la propagation
+                                console.log('✅ Tooltip created:', dateStr)
+                return false // Prevent propagation
               }
             },
             
@@ -105,11 +105,11 @@ export const DailyTooltipExtension = Extension.create({
                                    target.style.color.includes('rgb(')
               
               if (isColoredSpan) {
-                console.log('🎯 TOOLTIP EXTENSION - Mouse out détecté!')
+                console.log('🎯 TOOLTIP EXTENSION - Mouse out detected!')
                 const tooltip = document.querySelector('.daily-tooltip-extension')
                 if (tooltip) {
                   tooltip.remove()
-                  console.log('✅ Tooltip supprimé')
+                  console.log('✅ Tooltip removed')
                 }
                 return false
               }

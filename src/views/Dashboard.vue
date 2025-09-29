@@ -1911,22 +1911,22 @@ async function handleFileImport(event) {
           importedCount++
         } else {
           errorCount++
-          console.error('Erreur lors de l\'import:', result.error)
+          console.error('Error during import:', result.error)
         }
       } catch (error) {
         errorCount++
-        console.error('Erreur lors de l\'import:', error)
+        console.error('Error during import:', error)
       }
     }
 
-    alert(`Import terminé!\n${importedCount} prospects importés\n${errorCount} erreurs`)
+    alert(`Import completed!\n${importedCount} prospects imported\n${errorCount} errors`)
     
     // Réinitialiser l'input file
     event.target.value = ''
     
   } catch (error) {
-    console.error('Erreur lors de la lecture du fichier:', error)
-    alert('Erreur lors de la lecture du fichier CSV')
+    console.error('Error reading file:', error)
+    alert('Error reading CSV file')
   }
 }
 

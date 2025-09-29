@@ -40,7 +40,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     return result
   }
 
-  // Computed pour obtenir les prospects avec revenus pondérés (avec cache)
+  // Computed to get prospects with weighted revenues (with cache)
   const prospectsWithWeightedRevenue = computed(() => {
     const cacheKey = `prospects-${prospects.value.length}-${lastFetchTime.value}`
     
@@ -70,7 +70,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     filteredProspectsCache.clear()
   }
 
-  // Fonction pour mettre à jour un prospect localement sans rechargement
+  // Function to update a prospect locally without reload
   const updateProspectLocal = (id, updatedData) => {
     const index = prospects.value.findIndex(p => p.id === id)
     if (index !== -1) {
@@ -106,7 +106,7 @@ export const useProspectsStore = defineStore('prospects', () => {
       console.log(`✅ Processed ${updates.length} updates in batch`)
     } catch (error) {
       console.error('❌ Error processing batch updates:', error)
-      // Recharger en cas d'erreur pour assurer la cohérence
+      // Reload on error to ensure consistency
       await fetchProspects()
     } finally {
       isProcessingUpdates.value = false
@@ -117,7 +117,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     // Éviter les requêtes multiples simultanées
     if (loading.value && !force) return
     
-    // Cache simple: éviter de recharger trop souvent
+    // Simple cache: avoid reloading too often
     const now = Date.now()
     if (!force && (now - lastFetchTime.value) < 1000) { // Minimum 1s entre les requêtes
       return
@@ -140,7 +140,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     try {
       const response = await api.post('/prospects', prospectData)
       
-      // Ajouter le nouveau prospect localement au lieu de recharger
+      // Add new prospect locally instead of reloading
       prospects.value = [...prospects.value, response.data]
       clearCaches()
       
@@ -191,13 +191,13 @@ export const useProspectsStore = defineStore('prospects', () => {
     } catch (error) {
       console.error('❌ Error updating prospect:', error)
       console.error('Response data:', error.response?.data)
-      // En cas d'erreur, recharger pour assurer la cohérence
+      // On error, reload to ensure consistency
       await fetchProspects(true)
       return { success: false, error: error.response?.data?.error || 'Update error' }
     }
   }
 
-  // Assigner un prospect à un onglet
+  // Assign a prospect to a tab
   async function assignProspectToTab(prospectId, tabId) {
     try {
       const prospect = prospects.value.find(p => p.id === prospectId)
@@ -212,7 +212,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     }
   }
 
-  // Obtenir les prospects d'un onglet spécifique
+  // Get prospects from a specific tab
   function getProspectsByTab(tabId) {
     if (tabId === 'default') {
       return prospects.value
@@ -224,7 +224,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     try {
       await api.delete(`/prospects/${id}`)
       
-      // Supprimer localement au lieu de recharger
+      // Delete locally instead of reloading
       prospects.value = prospects.value.filter(p => p.id !== id)
       clearCaches()
       
@@ -284,7 +284,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     } catch (error) {
       console.error('❌ Error reordering prospects:', error);
       console.error('Response data:', error.response?.data);
-      // En cas d'erreur, recharger pour restaurer l'ordre correct
+      // On error, reload to restore correct order
       await fetchProspects(true)
       return { success: false, error: error.response?.data?.error || 'Reordering error' }
     }

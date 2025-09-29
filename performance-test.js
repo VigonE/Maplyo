@@ -196,23 +196,23 @@ const runPerformanceTests = async () => {
   const largestTest = results[testSizes[testSizes.length - 1]]
   
   if (largestTest.list.totalTime > 100) {
-    console.log('⚠️  Considérer la virtualisation pour > 2000 prospects')
+    console.log('⚠️  Consider virtualization for > 2000 prospects')
   } else {
     console.log('✅ Performances acceptables jusqu\'à 5000 prospects')
   }
   
   if (largestTest.drag.time > 50) {
-    console.log('⚠️  Drag & drop pourrait bénéficier de throttling')
+    console.log('⚠️  Drag & drop could benefit from throttling')
   } else {
     console.log('✅ Drag & drop performant')
   }
   
-  console.log('🎉 Tests terminés!')
+  console.log('🎉 Tests completed!')
   
   return results
 }
 
-// Utilisation:
+// Usage:
 // runPerformanceTests()
 
 window.testMaployoPerformance = {
@@ -223,7 +223,7 @@ window.testMaployoPerformance = {
   testDragDropPerformance
 }
 
-console.log('📋 Tests de performance chargés. Utilisez:')
-console.log('• testMaployoPerformance.runAll() - Exécuter tous les tests')
-console.log('• testMaployoPerformance.testListRendering(1000) - Test de rendu')
-console.log('• testMaployoPerformance.testCachePerformance() - Test de cache')
+console.log('📋 Performance tests loaded. Use:')
+console.log('• testMaployoPerformance.runAll() - Run all tests')
+console.log('• testMaployoPerformance.testListRendering(1000) - Rendering test')
+console.log('• testMaployoPerformance.testCachePerformance() - Cache test')

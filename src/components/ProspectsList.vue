@@ -104,7 +104,7 @@
     <div class="flex-1 overflow-y-auto">
       <div v-if="loading" class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-2 text-gray-500">Chargement...</p>
+        <p class="mt-2 text-gray-500">Loading...</p>
       </div>
       
       <div v-else-if="visibleProspectsAfterFilter.length === 0" class="text-center py-8">
@@ -251,7 +251,7 @@
                           
                           <!-- Date prévisionnelle -->
                           <div class="flex items-center justify-between border-t pt-1">
-                            <span class="text-xs text-gray-500">Date prévisionnelle:</span>
+                            <span class="text-xs text-gray-500">Estimated date:</span>
                             <div class="flex items-center gap-1">
                               <span class="text-sm font-medium text-purple-600">
                                 📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -2005,7 +2005,7 @@ function formatFollowupDate(dateString) {
   })
   
   if (diffDays < 0) {
-    return `${formatted} (${Math.abs(diffDays)}j en retard)`
+    return `${formatted} (${Math.abs(diffDays)}d overdue)`
   } else if (diffDays === 0) {
     return `${formatted} (Aujourd'hui)`
   } else if (diffDays === 1) {

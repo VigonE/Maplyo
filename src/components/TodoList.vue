@@ -215,7 +215,7 @@ async function addTodo() {
     clearNewTodo()
     console.log('✅ Added todo:', response.data)
     
-    // Émettre l'événement de synchronisation
+    // Emit synchronization event
     emitTodoSync(TODO_EVENTS.ADDED, response.data)
   } catch (error) {
     console.error('❌ Error adding todo:', error)
@@ -243,7 +243,7 @@ async function toggleTodo(todo) {
     
     console.log('✅ Toggled todo completion:', response.data)
     
-    // Émettre l'événement de synchronisation
+    // Emit synchronization event
     emitTodoSync(TODO_EVENTS.TOGGLED, response.data)
   } catch (error) {
     console.error('❌ Error toggling todo:', error)
@@ -265,7 +265,7 @@ async function deleteTodo(todo) {
     
     console.log('✅ Deleted todo:', todo.id)
     
-    // Émettre l'événement de synchronisation
+    // Emit synchronization event
     emitTodoSync(TODO_EVENTS.DELETED, todo)
   } catch (error) {
     console.error('❌ Error deleting todo:', error)

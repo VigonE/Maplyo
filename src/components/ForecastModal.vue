@@ -367,7 +367,7 @@
 
           <!-- Recurring Prospects Next Occurrences -->
           <div v-if="getRecurringProspects().length > 0" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h4 class="text-lg font-semibold text-purple-800 mb-4">🔄 Prochaines échéances récurrentes</h4>
+            <h4 class="text-lg font-semibold text-purple-800 mb-4">🔄 Next recurring deadlines</h4>
             <div class="space-y-2 max-h-48 overflow-y-auto">
               <div 
                 v-for="occurrence in getNextRecurringOccurrences()" 

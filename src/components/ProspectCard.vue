@@ -86,7 +86,7 @@
           
           <!-- Date prévisionnelle - TEST OUTSIDE CONDITION -->
           <div class="flex items-center justify-between border-t pt-1" style="background-color: #ffff00; color: #000000;">
-            <span class="text-xs text-gray-500">Date prévisionnelle:</span>
+            <span class="text-xs text-gray-500">Estimated date:</span>
             <div class="flex items-center gap-1">
               <span class="text-sm font-medium text-purple-600">
                 📅 TEST DATE VISIBLE
@@ -104,7 +104,7 @@
           </div>
           
           <!-- Revenue Editing Mode -->
-          <div v-else-if="editingRevenue" class="space-y-2">
+          <div v-if="editingRevenue" class="space-y-2">
             <div class="flex items-center gap-2 w-full">
               <span class="text-sm">💰</span>
               <input

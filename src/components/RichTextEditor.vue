@@ -7,7 +7,7 @@
         @click="editor.chain().focus().toggleBold().run()"
         :class="{ 'bg-blue-100': editor?.isActive('bold') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Gras (Ctrl+B)"
+        title="Bold (Ctrl+B)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,7 +20,7 @@
         @click="editor.chain().focus().toggleItalic().run()"
         :class="{ 'bg-blue-100': editor?.isActive('italic') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Italique (Ctrl+I)"
+        title="Italic (Ctrl+I)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@
         @click="editor.chain().focus().toggleUnderline().run()"
         :class="{ 'bg-blue-100': editor?.isActive('underline') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Souligné (Ctrl+U)"
+        title="Underline (Ctrl+U)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,7 +44,7 @@
         @click="editor.chain().focus().toggleStrike().run()"
         :class="{ 'bg-blue-100': editor?.isActive('strike') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Barré"
+        title="Strikethrough"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
         @click="editor.chain().focus().toggleBulletList().run()"
         :class="{ 'bg-blue-100': editor?.isActive('bulletList') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Liste à puces"
+        title="Bullet list"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@
         @click="editor.chain().focus().toggleOrderedList().run()"
         :class="{ 'bg-blue-100': editor?.isActive('orderedList') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Liste numérotée"
+        title="Numbered list"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,7 +88,7 @@
         @click="editor.chain().focus().toggleTaskList().run()"
         :class="{ 'bg-blue-100': editor?.isActive('taskList') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Liste de tâches"
+        title="Task list"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
         @click="editor.chain().focus().setTextAlign('left').run()"
         :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'left' }) }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Aligner à gauche"
+        title="Align left"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +115,7 @@
         @click="editor.chain().focus().setTextAlign('center').run()"
         :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'center' }) }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Centrer"
+        title="Center"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@
         @click="editor.chain().focus().setTextAlign('right').run()"
         :class="{ 'bg-blue-100': editor?.isActive({ textAlign: 'right' }) }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Aligner à droite"
+        title="Align right"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,18 +137,18 @@
       
       <div class="w-px h-4 bg-gray-300 mx-1"></div>
       
-      <!-- Couleurs -->
+      <!-- Colors -->
       <select
         @change="changeTextColor($event)"
         class="p-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
-        title="Couleur du texte"
+        title="Text color"
       >
-        <option value="">Couleur</option>
-        <option value="#000000">Noir</option>
-        <option value="#dc2626">Rouge</option>
-        <option value="#059669">Vert</option>
-        <option value="#2563eb">Bleu</option>
-        <option value="#7c3aed">Violet</option>
+        <option value="">Color</option>
+        <option value="#000000">Black</option>
+        <option value="#dc2626">Red</option>
+        <option value="#059669">Green</option>
+        <option value="#2563eb">Blue</option>
+        <option value="#7c3aed">Purple</option>
         <option value="#ea580c">Orange</option>
       </select>
       
@@ -159,7 +159,7 @@
         @click="setLink"
         :class="{ 'bg-blue-100': editor?.isActive('link') }"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Lien (Ctrl+K)"
+        title="Link (Ctrl+K)"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +171,7 @@
       <button
         @click="editor.chain().focus().clearNodes().unsetAllMarks().run()"
         class="p-1 rounded hover:bg-gray-200 transition-colors"
-        title="Supprimer le formatage"
+        title="Remove formatting"
         type="button"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,26 +225,26 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'blur', 'keydown', 'input'])
 
-// Palette de 15 couleurs pour les jours
+// Palette of 15 colors for days
 const dayColors = [
   '#e11d48', // Rose
-  '#0ea5e9', // Bleu ciel  
-  '#22c55e', // Vert
+  '#0ea5e9', // Sky blue  
+  '#22c55e', // Green
   '#f59e0b', // Orange
-  '#8b5cf6', // Violet
+  '#8b5cf6', // Purple
   '#06b6d4', // Cyan
-  '#ef4444', // Rouge
+  '#ef4444', // Red
   '#10b981', // Emeraude
-  '#f97316', // Orange foncé
+  '#f97316', // Dark orange
   '#6366f1', // Indigo
   '#84cc16', // Lime
   '#ec4899', // Rose vif
   '#14b8a6', // Teal
-  '#f43f5e', // Rose rouge
-  '#3b82f6'  // Bleu
+  '#f43f5e', // Red pink
+  '#3b82f6'  // Blue
 ]
 
-// Obtenir la couleur pour aujourd'hui
+// Get color for today
 const getTodayColor = () => {
   if (!props.applyDailyColors) return '#000000'
   
@@ -314,7 +314,7 @@ const editor = useEditor({
     emit('update:modelValue', editor.getHTML())
     emit('input')
     
-    // Si applyDailyColors est activé, post-traiter le DOM pour ajouter les tooltips
+    // If applyDailyColors is enabled, post-process DOM to add tooltips
     // Mais seulement après un délai pour éviter de bloquer la frappe
     if (props.applyDailyColors) {
       // Débounce plus long pour éviter d'interférer avec la frappe
@@ -327,7 +327,7 @@ const editor = useEditor({
     }
   },
   onSelectionUpdate: ({ editor }) => {
-    // Appliquer automatiquement la couleur du jour quand on fait une sélection/frappe
+    // Automatically apply day color when making selection/typing
     if (props.applyDailyColors) {
       const todayColor = getTodayColor()
       // Appliquer la couleur seulement si l'utilisateur n'a pas de couleur active
@@ -388,7 +388,7 @@ function focus() {
   }
 }
 
-// Ajouter les tooltips de date au DOM
+// Add date tooltips to DOM
 function addDateTooltips() {
   // Cette fonction n'est plus nécessaire car l'extension TipTap gère les tooltips
   console.log('🔧 Tooltips gérés par l\'extension TipTap DailyTooltipExtension')
@@ -535,7 +535,7 @@ defineExpose({
   text-decoration: underline;
 }
 
-/* Styles pour les listes de tâches */
+/* Styles for task lists */
 :deep(.tiptap-task-list) {
   list-style: none !important;
   padding: 0;

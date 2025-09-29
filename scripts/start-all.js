@@ -5,16 +5,16 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🚀 Démarrage de Maplyo - Full Stack Application');
+console.log('🚀 Starting Maplyo - Full Stack Application');
 console.log('═══════════════════════════════════════════════');
 
-// Fonction pour arrêter tous les processus Node.js
+// Function to stop all Node.js processes
 function stopAllProcesses() {
     return new Promise((resolve) => {
-        console.log('🧹 Nettoyage des processus existants...');
+        console.log('🧹 Cleaning existing processes...');
         exec('Stop-Process -Name node -Force -ErrorAction SilentlyContinue', { shell: 'powershell' }, () => {
             setTimeout(() => {
-                console.log('✅ Processus nettoyés');
+                console.log('✅ Processes cleaned');
                 resolve();
             }, 2000);
         });
@@ -72,33 +72,33 @@ async function startApplication() {
         const frontend = startFrontend();
         
         console.log('');
-        console.log('🎉 Application Maplyo démarrée !');
+        console.log('🎉 Maplyo Application started!');
         console.log('───────────────────────────────────');
         console.log('📍 Frontend: http://localhost:3000');
         console.log('🔧 Backend:  http://localhost:3001');
         console.log('');
         console.log('Press Ctrl+C to stop both servers');
         
-        // Gestion de l'arrêt propre
+        // Clean shutdown handling
         process.on('SIGINT', () => {
-            console.log('\n🛑 Arrêt des serveurs...');
+            console.log('\n🛑 Stopping servers...');
             backend.kill('SIGTERM');
             frontend.kill('SIGTERM');
             process.exit(0);
         });
         
         process.on('SIGTERM', () => {
-            console.log('\n🛑 Arrêt des serveurs...');
+            console.log('\n🛑 Stopping servers...');
             backend.kill('SIGTERM');
             frontend.kill('SIGTERM');
             process.exit(0);
         });
         
     } catch (error) {
-        console.error('❌ Erreur lors du démarrage:', error);
+        console.error('❌ Startup error:', error);
         process.exit(1);
     }
 }
 
-// Démarrer l'application
+// Start the application
 startApplication();

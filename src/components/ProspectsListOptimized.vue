@@ -68,7 +68,7 @@
     <div class="flex-1 overflow-y-auto">
       <div v-if="loading" class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-2 text-gray-500">Chargement...</p>
+        <p class="mt-2 text-gray-500">Loading...</p>
       </div>
       
       <div v-else-if="visibleProspectsAfterFilter.length === 0" class="text-center py-8">

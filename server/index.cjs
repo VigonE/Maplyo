@@ -27,7 +27,7 @@ const io = new Server(server, {
 // Stocker les connexions socket par utilisateur
 const userSockets = new Map();
 
-// Configuration du géocodeur avec fallback et gestion d'erreurs robuste
+// Geocoder configuration with fallback and robust error handling
 const geocoder = NodeGeocoder({
   provider: 'openstreetmap',
   httpAdapter: 'https',
@@ -253,14 +253,14 @@ console.log('📁 Database path:', dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('❌ Erreur de connexion à SQLite:', err.message);
+    console.error('❌ SQLite connection error:', err.message);
   } else {
     console.log('✅ Connected to SQLite database');
     initializeDatabase();
   }
 });
 
-// Initialisation des tables
+// Table initialization
 function initializeDatabase() {
   console.log('🔧 Initializing database tables...');
   const createUsersTable = `
@@ -1881,7 +1881,7 @@ app.get('/api/system/diagnostic', authenticateToken, async (req, res) => {
   }
 });
 
-// Route de géocodage avec gestion d'erreurs robuste
+// Geocoding route with robust error handling
 app.post('/api/geocode', authenticateToken, async (req, res) => {
   try {
     const { address } = req.body;

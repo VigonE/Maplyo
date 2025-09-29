@@ -9,7 +9,7 @@
       <div 
         class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-600 transition-colors"
         @click="togglePanel"
-        title="Cliquez pour plier/déplier le panneau Todo"
+        title="Click to collapse/expand the Todo panel"
       >
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -21,11 +21,11 @@
         v-show="!isCollapsed"
         class="ml-3 flex-1 transition-all duration-300"
       >
-        <h2 class="text-lg font-semibold text-gray-800">Todo Générale</h2>
+        <h2 class="text-lg font-semibold text-gray-800">General Todo</h2>
         <p class="text-sm text-gray-500">
-          {{ totalTodos }} tâches
+          {{ totalTodos }} tasks
           <span v-if="overdueTodos > 0" class="text-red-600 font-medium ml-1">
-            • {{ overdueTodos }} en retard
+            • {{ overdueTodos }} overdue
           </span>
         </p>
       </div>
@@ -35,7 +35,7 @@
         @click="togglePanel"
         class="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
         :class="isCollapsed ? 'ml-0' : 'ml-2'"
-        :title="isCollapsed ? 'Déplier le panneau Todo' : 'Replier le panneau Todo'"
+        :title="isCollapsed ? 'Expand Todo panel' : 'Collapse Todo panel'"
       >
         <svg 
           class="h-4 w-4 transform transition-transform duration-200" 
@@ -55,8 +55,8 @@
       class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex-shrink-0"
     >
       <div class="flex justify-between text-xs">
-        <span class="text-green-600 font-medium">{{ completedTodos }} terminées</span>
-        <span class="text-orange-600 font-medium">{{ incompleteTodos }} à faire</span>
+        <span class="text-green-600 font-medium">{{ completedTodos }} completed</span>
+        <span class="text-orange-600 font-medium">{{ incompleteTodos }} to do</span>
       </div>
     </div>
 
@@ -67,14 +67,14 @@
     >
       <div v-if="loading" class="p-4 text-center text-gray-500">
         <div class="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-        <p class="mt-2">Chargement des todos...</p>
+        <p class="mt-2">Loading todos...</p>
       </div>
       
       <div v-else-if="sortedTodos.length === 0" class="p-6 text-center text-gray-500">
         <svg class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        <p class="text-gray-400">Aucune tâche trouvée</p>
+        <p class="text-gray-400">No tasks found</p>
       </div>
       
       <div v-else class="divide-y divide-gray-100">
@@ -99,9 +99,9 @@
               </div>
             </button>
 
-            <!-- Contenu todo -->
+            <!-- Todo content -->
             <div class="flex-1 min-w-0">
-              <!-- Texte de la tâche -->
+              <!-- Task text -->
               <p 
                 class="text-sm font-medium break-words transition-colors"
                 :class="[
@@ -112,7 +112,7 @@
                 {{ todo.text }}
               </p>
               
-              <!-- Nom du prospect -->
+              <!-- Prospect name -->
               <button 
                 @click.stop="editProspect(todo.prospect_id)"
                 class="text-xs text-blue-600 hover:text-blue-800 mt-1 underline hover:no-underline transition-all"
@@ -137,10 +137,10 @@
                 </span>
               </div>
               
-              <!-- Date de création (pour les tâches sans échéance) -->
+              <!-- Creation date (for tasks without due date) -->
               <div v-else class="mt-1">
                 <span class="text-xs text-gray-400">
-                  Créé le {{ formatDate(todo.created_at) }}
+                  Created on {{ formatDate(todo.created_at) }}
                 </span>
               </div>
             </div>
@@ -149,7 +149,7 @@
       </div>
     </div>
 
-    <!-- Badge de notification quand replié -->
+    <!-- Notification badge when collapsed -->
     <div 
       v-if="isCollapsed && incompleteTodos > 0"
       class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold"
@@ -192,11 +192,11 @@ const overdueTodos = computed(() =>
   Array.isArray(todos.value) ? todos.value.filter(todo => !todo.completed && isOverdue(todo)).length : 0
 )
 
-// Trier les todos selon les critères demandés (exclure les tâches complétées)
+// Sort todos according to requested criteria (exclude completed tasks)
 const sortedTodos = computed(() => {
   if (!Array.isArray(todos.value)) return []
   
-  // Filtrer les tâches complétées pour le panneau général
+  // Filter completed tasks for general panel
   const incompleteTodos = todos.value.filter(todo => !todo.completed)
   
   return incompleteTodos.sort((a, b) => {
@@ -221,7 +221,7 @@ function togglePanel() {
 
 function getProspectName(prospectId) {
   const prospect = props.prospects.find(p => p.id === prospectId)
-  return prospect ? prospect.name : 'Prospect inconnu'
+  return prospect ? prospect.name : 'Unknown prospect'
 }
 
 function isOverdue(todo) {
@@ -249,7 +249,7 @@ async function loadTodos() {
     const response = await api.get('/todos/all')
     todos.value = response.data
   } catch (error) {
-    console.error('Erreur lors du chargement des todos:', error)
+    console.error('Error loading todos:', error)
     todos.value = []
   } finally {
     loading.value = false
@@ -270,11 +270,11 @@ async function toggleTodo(todo) {
       if (index !== -1) {
         todos.value[index] = { ...todos.value[index], completed: !todo.completed }
       }
-      // Note: Pas besoin de recharger - le computed sortedTodos va automatiquement 
-      // filtrer la tâche complétée et elle disparaîtra en temps réel
+      // Note: No need to reload - the computed sortedTodos will automatically 
+      // filter the completed task and it will disappear in real time
     }
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de la todo:', error)
+    console.error('Error updating todo:', error)
   }
 }
 
@@ -309,7 +309,7 @@ function handleTodoSync(event, data) {
   
   switch (event) {
     case TODO_EVENTS.ADDED:
-      // Ajouter la nouvelle todo si elle n'existe pas déjà
+      // Add new todo if it doesn't already exist
       if (!todos.value.find(t => t.id === data.id)) {
         todos.value.unshift(data)
       }
@@ -324,7 +324,7 @@ function handleTodoSync(event, data) {
       break
       
     case TODO_EVENTS.DELETED:
-      // Supprimer la todo de la liste
+      // Delete todo from list
       const deleteIndex = todos.value.findIndex(t => t.id === data.id)
       if (deleteIndex !== -1) {
         todos.value.splice(deleteIndex, 1)
