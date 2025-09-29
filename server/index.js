@@ -625,6 +625,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
       status, 
       tabId, 
       notes,
+      notes_daily_metadata,
       estimated_completion_date,
       recurrence_months
     } = req.body
@@ -701,6 +702,7 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
       status, 
       tabId, 
       notes,
+      notes_daily_metadata,
       estimated_completion_date,
       recurrence_months
     } = req.body

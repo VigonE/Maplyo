@@ -421,6 +421,7 @@
                   v-model="form.notes"
                   placeholder="Add your notes here..."
                   class="h-full"
+                  :apply-daily-colors="true"
                   @blur="prospect ? saveField('notes') : null"
                   @input="onNotesChange"
                 />
@@ -876,6 +877,7 @@ function getWeightedRevenue() {
   return (form.revenue || 0) * (form.probability_coefficient || 100) / 100
 }
 
+// Handle notes change - update timestamp
 // Handle notes change - update timestamp
 let lastNotesValue = ''
 function onNotesChange() {

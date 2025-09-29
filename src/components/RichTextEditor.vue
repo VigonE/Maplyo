@@ -198,10 +198,11 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import { DailyTooltipExtension } from './DailyTooltipExtension.js'
 import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import Strike from '@tiptap/extension-strike'
-import { watch, onBeforeUnmount } from 'vue'
+import { watch, onBeforeUnmount, onMounted, nextTick } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -215,10 +216,53 @@ const props = defineProps({
   editorClass: {
     type: String,
     default: ''
+  },
+  applyDailyColors: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'blur', 'keydown'])
+const emit = defineEmits(['update:modelValue', 'blur', 'keydown', 'input'])
+
+// Palette de 15 couleurs pour les jours
+const dayColors = [
+  '#e11d48', // Rose
+  '#0ea5e9', // Bleu ciel  
+  '#22c55e', // Vert
+  '#f59e0b', // Orange
+  '#8b5cf6', // Violet
+  '#06b6d4', // Cyan
+  '#ef4444', // Rouge
+  '#10b981', // Emeraude
+  '#f97316', // Orange foncé
+  '#6366f1', // Indigo
+  '#84cc16', // Lime
+  '#ec4899', // Rose vif
+  '#14b8a6', // Teal
+  '#f43f5e', // Rose rouge
+  '#3b82f6'  // Bleu
+]
+
+// Obtenir la couleur pour aujourd'hui
+const getTodayColor = () => {
+  if (!props.applyDailyColors) return '#000000'
+  
+  const today = new Date()
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))
+  return dayColors[dayOfYear % dayColors.length]
+}
+
+// Formater la date pour le tooltip
+const getTodayDateForTooltip = () => {
+  const today = new Date()
+  return today.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
 
 const editor = useEditor({
   content: props.modelValue,
@@ -235,6 +279,7 @@ const editor = useEditor({
       types: ['textStyle'],
     }),
     TextStyle,
+    DailyTooltipExtension,
     TaskList.configure({
       HTMLAttributes: {
         class: 'tiptap-task-list',
@@ -260,9 +305,39 @@ const editor = useEditor({
       placeholder: props.placeholder,
       class: 'tiptap-editor prose prose-sm max-w-none focus:outline-none',
     },
+    handleKeyDown: (view, event) => {
+      emit('keydown', event)
+      return false
+    },
   },
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
+    emit('input')
+    
+    // Si applyDailyColors est activé, post-traiter le DOM pour ajouter les tooltips
+    // Mais seulement après un délai pour éviter de bloquer la frappe
+    if (props.applyDailyColors) {
+      // Débounce plus long pour éviter d'interférer avec la frappe
+      clearTimeout(addDateTooltips.debounceTimer)
+      addDateTooltips.debounceTimer = setTimeout(() => {
+        nextTick(() => {
+          addDateTooltips()
+        })
+      }, 500) // 500ms au lieu de 100ms
+    }
+  },
+  onSelectionUpdate: ({ editor }) => {
+    // Appliquer automatiquement la couleur du jour quand on fait une sélection/frappe
+    if (props.applyDailyColors) {
+      const todayColor = getTodayColor()
+      // Appliquer la couleur seulement si l'utilisateur n'a pas de couleur active
+      const currentColor = editor.getAttributes('textStyle').color
+      if (!currentColor) {
+        setTimeout(() => {
+          applyTodayColorToSelection()
+        }, 50)
+      }
+    }
   },
   onBlur: () => {
     emit('blur')
@@ -311,6 +386,26 @@ function focus() {
   if (editor.value) {
     editor.value.commands.focus()
   }
+}
+
+// Ajouter les tooltips de date au DOM
+function addDateTooltips() {
+  // Cette fonction n'est plus nécessaire car l'extension TipTap gère les tooltips
+  console.log('🔧 Tooltips gérés par l\'extension TipTap DailyTooltipExtension')
+}
+
+// Appliquer la couleur du jour au texte sélectionné  
+function applyTodayColorToSelection() {
+  if (!editor.value || !props.applyDailyColors) return
+  
+  const todayColor = getTodayColor()
+  
+  console.log('🔧 Application couleur du jour:', todayColor)
+  
+  // Appliquer simplement la couleur - l'extension se charge des tooltips
+  editor.value.chain().focus().setColor(todayColor).run()
+  
+  console.log('✅ Couleur appliquée - tooltips gérés par l\'extension')
 }
 
 // Raccourcis clavier personnalisés
@@ -601,6 +696,16 @@ defineExpose({
 :deep(.tiptap-editor pre code) {
   background: none;
   padding: 0;
+}
+
+/* Tooltips pour les dates - UNIQUEMENT tooltips natifs */
+:deep(.tiptap-editor .daily-note) {
+  cursor: help !important;
+}
+
+:deep(.tiptap-editor .daily-note:hover) {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-radius: 3px !important;
 }
 
 /* Responsive design pour la barre d'outils */
