@@ -200,17 +200,21 @@ const sortedTodos = computed(() => {
   const incompleteTodos = todos.value.filter(todo => !todo.completed)
   
   return incompleteTodos.sort((a, b) => {
-    // Priorité 1: Les todos avec date d'échéance
-    if (a.due_date && !b.due_date) return -1
-    if (!a.due_date && b.due_date) return 1
-    
-    // Si les deux ont une date d'échéance, trier par date (plus récent en premier)
-    if (a.due_date && b.due_date) {
-      return new Date(b.due_date) - new Date(a.due_date)
-    }
+    // Priorité 1: Les todos sans date d'échéance en premier
+    if (!a.due_date && b.due_date) return -1
+    if (a.due_date && !b.due_date) return 1
     
     // Si aucun n'a de date d'échéance, trier par date de création (plus récent en premier)
-    return new Date(b.created_at) - new Date(a.created_at)
+    if (!a.due_date && !b.due_date) {
+      return new Date(b.created_at) - new Date(a.created_at)
+    }
+    
+    // Si les deux ont une date d'échéance, trier par date (plus proche en premier)
+    if (a.due_date && b.due_date) {
+      return new Date(a.due_date) - new Date(b.due_date)
+    }
+    
+    return 0
   })
 })
 
