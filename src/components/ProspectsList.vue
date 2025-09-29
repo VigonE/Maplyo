@@ -50,8 +50,9 @@
           </div>
           <div v-if="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
             <button
-              @click="searchQuery = ''"
+              @click="clearSearchAndFilters"
               class="text-gray-400 hover:text-gray-600"
+              title="Clear search and reset filters"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -86,14 +87,16 @@
           <input
             v-model.number="revenueFilter"
             type="range"
-            :min="minRevenue"
+            :min="0"
             :max="maxRevenue"
             :step="1"
+            @input="userHasTouchedSlider = true"
+            @change="userHasTouchedSlider = true"
             class="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer revenue-slider"
             :style="{ background: sliderBackground }"
           />
           <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{{ formatCurrency(minRevenue) }}</span>
+            <span>{{ formatCurrency(0) }}</span>
             <span>{{ formatCurrency(maxRevenue) }}</span>
           </div>
         </div>
@@ -1386,6 +1389,7 @@ const prospectsStore = useProspectsStore()
 const localProspects = shallowRef([]) // Utiliser shallowRef pour de meilleures performances
 const isDragOverCategory = ref(null)
 const revenueFilter = ref(0) // Sera mis à jour avec minRevenue quand disponible
+const userHasTouchedSlider = ref(false) // Track si l'utilisateur a manuellement modifié le slider
 const forceRerender = ref(0) // Trigger pour forcer le re-render
 const searchQuery = ref('') // Champ de recherche
 const searchInput = ref(null) // Référence au champ de recherche
@@ -1404,6 +1408,11 @@ const updateSearch = debounce((value) => {
 // Watcher pour la recherche avec debounce
 watch(searchQuery, (newValue) => {
   updateSearch(newValue)
+})
+
+// Watcher pour détecter quand l'utilisateur modifie manuellement le slider
+watch(revenueFilter, () => {
+  userHasTouchedSlider.value = true
 })
 
 // Fonction pour calculer le revenu pondéré
@@ -1624,6 +1633,13 @@ const quillOptionsModal = {
 // Ordre des statuts dans le funnel (du plus chaud au plus froid)
 const statusOrder = ['hot', 'warm', 'cold', 'recurring', 'won', 'lost']
 
+// Fonction pour vider la recherche et réinitialiser les filtres
+const clearSearchAndFilters = () => {
+  searchQuery.value = ''
+  revenueFilter.value = 0
+  userHasTouchedSlider.value = false
+}
+
 // Fonction de recherche
 const searchInProspect = (prospect, query) => {
   if (!query) return true
@@ -1776,17 +1792,13 @@ watch(visibleProspectsAfterFilter, (filteredProspects) => {
   }
 }, { immediate: true })
 
-// Initialiser le filtre de revenu avec la valeur minimale
-watch(minRevenue, (newMinRevenue) => {
-  if (revenueFilter.value === 0 && newMinRevenue > 0) {
-    revenueFilter.value = newMinRevenue
-  }
-}, { immediate: true })
+// Le filtre de revenu reste à la valeur définie par l'utilisateur
+// (on ne met plus automatiquement à minRevenue)
 
 // Background du slider avec gradient coloré
 const sliderBackground = computed(() => {
-  const range = maxRevenue.value - minRevenue.value
-  const position = range > 0 ? ((revenueFilter.value - minRevenue.value) / range) * 100 : 0
+  const range = maxRevenue.value - 0 // De 0 au maximum
+  const position = range > 0 ? (revenueFilter.value / range) * 100 : 0
   return `linear-gradient(to right, 
     #ef4444 0%, 
     #f59e0b ${position/2}%, 
@@ -1805,6 +1817,8 @@ watch(filteredProspects, (newProspects) => {
 // Watch les changements de tabId pour recalculer
 watch(() => props.tabId, () => {
   localProspects.value = [...filteredProspects.value]
+  // Réinitialiser le flag quand on change d'onglet
+  userHasTouchedSlider.value = false
 })
 
 // Obtenir les prospects par statut (après filtrage par revenu)
