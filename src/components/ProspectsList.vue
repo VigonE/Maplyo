@@ -40,7 +40,7 @@
             ref="searchInput"
             v-model="searchQuery"
             type="text"
-            placeholder="Search leads by name, company, email..."
+            placeholder="Search leads by name, city, email..."
             class="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -639,7 +639,7 @@
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
                   <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
@@ -750,7 +750,7 @@
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
                   <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
@@ -862,7 +862,7 @@
                 >
                   <!-- Mini carte prospect pour funnel -->
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                  <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                  <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
                   <div v-if="prospect.next_followup_date || (prospect.estimated_completion_date && isFollowupDue(prospect))" class="text-xs mb-1" :class="isFollowupDue(prospect) ? 'text-red-600 font-medium' : 'text-purple-600'">
@@ -985,7 +985,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between mb-2">
                         <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                         <span class="text-xs text-purple-600">{{ prospect.recurrence_months || 12 }}mo cycle</span>
@@ -1105,7 +1105,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                         <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
@@ -1205,7 +1205,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
-                      <div class="text-xs text-gray-500 mb-2">{{ prospect.company || 'No company' }}</div>
+                      <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-red-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
                         <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
@@ -1632,7 +1632,7 @@ const searchInProspect = (prospect, query) => {
   const searchFields = [
     prospect.name || '',
     prospect.email || '',
-    prospect.company || '',
+    extractCityFromAddress(prospect.address) || '',
     prospect.contact || '',
     prospect.address || '',
     prospect.phone || '',
@@ -2581,6 +2581,40 @@ async function handleFunnelDrop(event, newStatus) {
 }
 
 // Formater les devises
+// Extraire la ville de l'adresse
+function extractCityFromAddress(address) {
+  if (!address) return null
+  
+  // Essayer d'extraire la ville de l'adresse
+  // Format typique: "Rue, Code postal Ville, Pays"
+  const parts = address.split(',')
+  
+  if (parts.length >= 2) {
+    // Prendre la partie qui contient généralement le code postal et la ville
+    let cityPart = parts[parts.length - 2].trim()
+    
+    // Supprimer le code postal (séquence de chiffres au début)
+    cityPart = cityPart.replace(/^\d+\s*/, '').trim()
+    
+    if (cityPart) {
+      return cityPart
+    }
+  }
+  
+  // Si pas de virgules, essayer de récupérer le dernier mot significatif
+  const words = address.trim().split(/\s+/)
+  if (words.length >= 2) {
+    // Prendre les 1-2 derniers mots qui ne sont pas des codes postaux
+    const lastWords = words.slice(-2)
+    const nonPostalWords = lastWords.filter(word => !/^\d+$/.test(word))
+    if (nonPostalWords.length > 0) {
+      return nonPostalWords.join(' ')
+    }
+  }
+  
+  return address.slice(0, 30) + (address.length > 30 ? '...' : '')
+}
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
