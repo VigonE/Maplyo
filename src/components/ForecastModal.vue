@@ -533,10 +533,10 @@ const getAdjustedProbabilities = () => {
   
   const adjustment = 1 + (probabilityAdjustment.value / 100)
   const result = {
-    hot: Math.min(100, Math.max(1, (props.leadTimes.hotProbability || 80) * adjustment)) / 100,
-    warm: Math.min(100, Math.max(1, (props.leadTimes.warmProbability || 45) * adjustment)) / 100,
+    hot: Math.min(100, Math.max(0, (props.leadTimes.hotProbability !== undefined ? props.leadTimes.hotProbability : 80) * adjustment)) / 100,
+    warm: Math.min(100, Math.max(0, (props.leadTimes.warmProbability !== undefined ? props.leadTimes.warmProbability : 45) * adjustment)) / 100,
     cold: Math.min(100, Math.max(0, (props.leadTimes.coldProbability !== undefined ? props.leadTimes.coldProbability : 0) * adjustment)) / 100,
-    recurring: Math.min(100, Math.max(1, (props.leadTimes.recurringProbability || 30) * adjustment)) / 100
+    recurring: Math.min(100, Math.max(0, (props.leadTimes.recurringProbability !== undefined ? props.leadTimes.recurringProbability : 30) * adjustment)) / 100
   }
   
   console.log('🔍 DEBUG - Adjusted probabilities:', result)
