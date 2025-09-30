@@ -388,7 +388,7 @@
                           <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-500">Probability:</span>
                             <span class="text-sm font-medium text-blue-600">
-                              {{ prospect.probability_coefficient || 100 }}%
+                              {{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%
                             </span>
                           </div>
                           
@@ -667,7 +667,7 @@
                   
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
-                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%</span>
                   </div>
                   <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
                     📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -778,7 +778,7 @@
                   
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
-                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%</span>
                   </div>
                   <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
                     📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -890,7 +890,7 @@
                   
                   <div class="flex items-center justify-between">
                     <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
-                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                    <span class="text-xs text-gray-400">{{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%</span>
                   </div>
                   <div v-if="prospect.estimated_completion_date" class="text-xs text-purple-600 mt-1">
                     📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -1111,7 +1111,7 @@
                       <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
-                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%</span>
                       </div>
                       <div v-if="prospect.estimated_completion_date" class="text-xs text-green-600 mt-1">
                         📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -1211,7 +1211,7 @@
                       <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-red-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
-                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient || 100 }}%</span>
+                        <span class="text-xs text-gray-400">{{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%</span>
                       </div>
                       <div v-if="prospect.estimated_completion_date" class="text-xs text-red-600 mt-1">
                         📅 {{ formatEstimatedDate(prospect.estimated_completion_date) }}
@@ -2095,7 +2095,7 @@ function handleRevenueKeydown(event, prospect) {
 // Fonctions pour l'édition de la probabilité directement sur la carte
 function startEditingProbability(prospect) {
   editingProbability.value[prospect.id] = true
-  tempProbability.value[prospect.id] = prospect.probability_coefficient || 100
+  tempProbability.value[prospect.id] = prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100
   
   // Auto-focus sur le champ input
   nextTick(() => {
@@ -2842,7 +2842,7 @@ async function markFollowupComplete(prospect) {
       address: prospect.address || '',
       status: prospect.status,
       revenue: prospect.revenue || 0,
-      probability_coefficient: prospect.probability_coefficient || 100,
+      probability_coefficient: prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100,
       notes: prospect.notes || '',
       estimated_completion_date: newEstimatedDate || '',
       recurrence_months: prospect.recurrence_months || null,

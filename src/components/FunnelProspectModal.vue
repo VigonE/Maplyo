@@ -278,7 +278,7 @@
                     step="5"
                     class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                     @input="onProbabilityChange"
-                    :style="{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${form.probability_coefficient || 100}%, #E5E7EB ${form.probability_coefficient || 100}%, #E5E7EB 100%)` }"
+                                        :style="{ background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${form.probability_coefficient !== undefined ? form.probability_coefficient : 100}%, #E5E7EB ${form.probability_coefficient !== undefined ? form.probability_coefficient : 100}%, #E5E7EB 100%)` }"
                   >
                   <div class="flex justify-between text-xs text-gray-500 mt-1">
                     <span>0%</span>
@@ -601,7 +601,7 @@ watch(() => props.prospect, (newProspect) => {
       address: newProspect.address || '',
       status: newProspect.status || 'cold',
       revenue: newProspect.revenue || 0,
-      probability_coefficient: newProspect.probability_coefficient || 100,
+      probability_coefficient: newProspect.probability_coefficient !== undefined ? newProspect.probability_coefficient : 100,
       notes: newProspect.notes || '',
       notes_last_updated: newProspect.notes_last_updated || null,
       estimated_completion_date: newProspect.estimated_completion_date || '',

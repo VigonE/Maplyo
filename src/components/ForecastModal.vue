@@ -527,10 +527,6 @@ const getAdjustedLeadTimes = () => {
 
 // Calculer les probabilités ajustées
 const getAdjustedProbabilities = () => {
-  console.log('🔍 DEBUG - props.leadTimes:', props.leadTimes)
-  console.log('🔍 DEBUG - coldProbability value:', props.leadTimes.coldProbability)
-  console.log('🔍 DEBUG - coldProbability type:', typeof props.leadTimes.coldProbability)
-  
   const adjustment = 1 + (probabilityAdjustment.value / 100)
   const result = {
     hot: Math.min(100, Math.max(0, (props.leadTimes.hotProbability !== undefined ? props.leadTimes.hotProbability : 80) * adjustment)) / 100,
@@ -539,7 +535,6 @@ const getAdjustedProbabilities = () => {
     recurring: Math.min(100, Math.max(0, (props.leadTimes.recurringProbability !== undefined ? props.leadTimes.recurringProbability : 30) * adjustment)) / 100
   }
   
-  console.log('🔍 DEBUG - Adjusted probabilities:', result)
   return result
 }
 
@@ -693,17 +688,6 @@ const generateForecast = () => {
       // Use individual probability coefficient if available, otherwise use category probability
       const prospectProbability = (prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100) / 100 // Convert percentage to decimal
       const finalProbability = categoryProbability * prospectProbability // Combine both probabilities
-      
-      // Debug log for cold prospects
-      if (category === 'cold') {
-        console.log(`❄️ COLD PROSPECT DEBUG - ${prospect.name}:`)
-        console.log('  - Category probability:', categoryProbability)
-        console.log('  - Prospect probability coefficient:', prospect.probability_coefficient)
-        console.log('  - Prospect probability (decimal):', prospectProbability)
-        console.log('  - Final probability:', finalProbability)
-        console.log('  - Revenue:', revenue)
-        console.log('  - Expected revenue:', revenue * finalProbability)
-      }
       
       // Calculate target month using estimated_completion_date if available
       let targetMonth = 0
@@ -866,9 +850,6 @@ const calculateMetrics = (forecastData) => {
 const getCategoryProbability = (category) => {
   const adjustedProbabilities = getAdjustedProbabilities()
   const probability = adjustedProbabilities[category] !== undefined ? adjustedProbabilities[category] : 0.3
-  
-  console.log(`🎯 getCategoryProbability for ${category}:`, probability)
-  console.log('🎯 adjustedProbabilities:', adjustedProbabilities)
   
   return probability
 }

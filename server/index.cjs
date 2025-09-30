@@ -1011,7 +1011,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             contact || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient || 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
+            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
