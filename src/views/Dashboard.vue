@@ -403,10 +403,12 @@
                     <label class="text-xs text-gray-600">Probability</label>
                     <div class="flex items-center gap-2">
                       <input
-                        v-model.number="closingLeadTimes.coldProbability"
+                        v-model="closingLeadTimes.coldProbability"
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
+                        step="1"
+                        @input="ensureNumberValue('coldProbability', $event)"
                         class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <span class="text-sm text-gray-500">%</span>
@@ -436,10 +438,12 @@
                     <label class="text-xs text-gray-600">Probability</label>
                     <div class="flex items-center gap-2">
                       <input
-                        v-model.number="closingLeadTimes.warmProbability"
+                        v-model="closingLeadTimes.warmProbability"
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
+                        step="1"
+                        @input="ensureNumberValue('warmProbability', $event)"
                         class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <span class="text-sm text-gray-500">%</span>
@@ -469,10 +473,12 @@
                     <label class="text-xs text-gray-600">Probability</label>
                     <div class="flex items-center gap-2">
                       <input
-                        v-model.number="closingLeadTimes.hotProbability"
+                        v-model="closingLeadTimes.hotProbability"
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
+                        step="1"
+                        @input="ensureNumberValue('hotProbability', $event)"
                         class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <span class="text-sm text-gray-500">%</span>
@@ -502,10 +508,12 @@
                     <label class="text-xs text-gray-600">Probability</label>
                     <div class="flex items-center gap-2">
                       <input
-                        v-model.number="closingLeadTimes.recurringProbability"
+                        v-model="closingLeadTimes.recurringProbability"
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
+                        step="1"
+                        @input="ensureNumberValue('recurringProbability', $event)"
                         class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <span class="text-sm text-gray-500">%</span>
@@ -843,7 +851,7 @@ const closingLeadTimes = ref({
   hot: 3,    // mois
   recurring: 12, // mois
   // Probabilités de conversion par catégorie (en pourcentage)
-  coldProbability: 15,
+  coldProbability: 0,  // Changé de 15 à 0 pour correspondre aux nouvelles attentes
   warmProbability: 45,
   hotProbability: 80,
   recurringProbability: 30
@@ -1488,16 +1496,18 @@ async function loadClosingLeadTimes() {
     if (response.ok) {
       const data = await response.json()
       if (data.success && data.settings) {
+        console.log('📥 Loaded settings from server:', data.settings);
         closingLeadTimes.value = {
-          cold: data.settings.cold || 12,
-          warm: data.settings.warm || 6,
-          hot: data.settings.hot || 3,
-          recurring: data.settings.recurring || 12,
-          coldProbability: data.settings.coldProbability || 15,
-          warmProbability: data.settings.warmProbability || 45,
-          hotProbability: data.settings.hotProbability || 80,
-          recurringProbability: data.settings.recurringProbability || 30
+          cold: data.settings.cold !== undefined ? data.settings.cold : 12,
+          warm: data.settings.warm !== undefined ? data.settings.warm : 6,
+          hot: data.settings.hot !== undefined ? data.settings.hot : 3,
+          recurring: data.settings.recurring !== undefined ? data.settings.recurring : 12,
+          coldProbability: data.settings.coldProbability !== undefined ? data.settings.coldProbability : 0,
+          warmProbability: data.settings.warmProbability !== undefined ? data.settings.warmProbability : 45,
+          hotProbability: data.settings.hotProbability !== undefined ? data.settings.hotProbability : 80,
+          recurringProbability: data.settings.recurringProbability !== undefined ? data.settings.recurringProbability : 30
         }
+        console.log('✅ Final closingLeadTimes after loading:', closingLeadTimes.value);
       }
     }
   } catch (error) {
@@ -1511,14 +1521,14 @@ async function saveClosingLeadTimes() {
   
   try {
     const payload = {
-      cold: closingLeadTimes.value.cold,
-      warm: closingLeadTimes.value.warm,
-      hot: closingLeadTimes.value.hot,
-      recurring: closingLeadTimes.value.recurring,
-      coldProbability: closingLeadTimes.value.coldProbability,
-      warmProbability: closingLeadTimes.value.warmProbability,
-      hotProbability: closingLeadTimes.value.hotProbability,
-      recurringProbability: closingLeadTimes.value.recurringProbability
+      cold: Number(closingLeadTimes.value.cold),
+      warm: Number(closingLeadTimes.value.warm),
+      hot: Number(closingLeadTimes.value.hot),
+      recurring: Number(closingLeadTimes.value.recurring),
+      coldProbability: Number(closingLeadTimes.value.coldProbability || 0),
+      warmProbability: Number(closingLeadTimes.value.warmProbability || 0),
+      hotProbability: Number(closingLeadTimes.value.hotProbability || 0),
+      recurringProbability: Number(closingLeadTimes.value.recurringProbability || 0)
     }
     
     console.log('📤 Sending lead times payload:', payload)
@@ -1549,6 +1559,14 @@ async function saveClosingLeadTimes() {
   } finally {
     leadTimeLoading.value = false
   }
+}
+
+// Fonction pour s'assurer que les valeurs sont des nombres
+function ensureNumberValue(field, event) {
+  const value = event.target.value
+  const numValue = value === '' ? 0 : Number(value)
+  console.log(`🔢 Setting ${field} to:`, numValue, 'from input:', value)
+  closingLeadTimes.value[field] = isNaN(numValue) ? 0 : numValue
 }
 
 // Cleanup orphan prospects function

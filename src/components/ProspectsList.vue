@@ -231,7 +231,7 @@
                             <span class="text-xs text-gray-500">Probability:</span>
                             <div class="flex items-center gap-1">
                               <span class="text-sm font-medium text-blue-600">
-                                {{ prospect.probability_coefficient || 100 }}%
+                                {{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%
                               </span>
                               <button
                                 @click.stop="startEditingProbability(prospect)"
@@ -311,7 +311,7 @@
                           <div class="flex items-center justify-between">
                             <span class="text-xs text-gray-500">Probability:</span>
                             <span class="text-sm font-medium text-blue-600">
-                              {{ prospect.probability_coefficient || 100 }}%
+                              {{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%
                             </span>
                           </div>
                           
@@ -1375,7 +1375,7 @@ const props = defineProps({
       warm: 6,
       hot: 3,
       recurring: 12,
-      coldProbability: 15,
+      coldProbability: 0,  // Changé de 15 à 0
       warmProbability: 45,
       hotProbability: 80,
       recurringProbability: 30
@@ -1418,8 +1418,36 @@ watch(revenueFilter, () => {
 // Fonction pour calculer le revenu pondéré
 const getWeightedRevenue = (prospect) => {
   if (!prospect.revenue) return 0
-  const probability = prospect.probability_coefficient || 100
-  return (prospect.revenue * probability) / 100
+  
+  let probability = 100 // Valeur par défaut
+  
+  // Si le prospect a une probabilité individuelle, l'utiliser
+  if (prospect.probability_coefficient !== undefined) {
+    probability = prospect.probability_coefficient
+  }
+  // Sinon, utiliser la probabilité de catégorie selon le status
+  else {
+    switch (prospect.status) {
+      case 'cold':
+        probability = props.leadTimes.coldProbability !== undefined ? props.leadTimes.coldProbability : 100
+        break
+      case 'warm':
+        probability = props.leadTimes.warmProbability !== undefined ? props.leadTimes.warmProbability : 100
+        break
+      case 'hot':
+        probability = props.leadTimes.hotProbability !== undefined ? props.leadTimes.hotProbability : 100
+        break
+      case 'recurring':
+        probability = props.leadTimes.recurringProbability !== undefined ? props.leadTimes.recurringProbability : 100
+        break
+      default:
+        probability = 100
+    }
+  }
+  
+  const result = (prospect.revenue * probability) / 100
+  
+  return result
 }
 
 // Fonction pour calculer le montant pondéré total par statut

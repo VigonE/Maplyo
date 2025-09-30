@@ -15,8 +15,8 @@ export const useProspectsStore = defineStore('prospects', () => {
   const filteredProspectsCache = new Map()
 
   // Computed pour calculer le revenu pondéré par la probabilité avec cache
-  const getWeightedRevenue = (prospect) => {
-    const cacheKey = `${prospect.id}-${prospect.revenue}-${prospect.probability_coefficient}`
+  const getWeightedRevenue = (prospect, categoryProbabilities = null) => {
+    const cacheKey = `${prospect.id}-${prospect.revenue}-${prospect.probability_coefficient}-${JSON.stringify(categoryProbabilities)}`
     
     if (weightedRevenueCache.has(cacheKey)) {
       return weightedRevenueCache.get(cacheKey)
@@ -27,8 +27,34 @@ export const useProspectsStore = defineStore('prospects', () => {
       return 0
     }
     
-    const probability = prospect.probability_coefficient || 100
+    let probability = 100 // Valeur par défaut
+    
+    // Si le prospect a une probabilité individuelle, l'utiliser
+    if (prospect.probability_coefficient !== undefined) {
+      probability = prospect.probability_coefficient
+    }
+    // Sinon, utiliser la probabilité de catégorie si fournie
+    else if (categoryProbabilities && prospect.status) {
+      switch (prospect.status) {
+        case 'cold':
+          probability = categoryProbabilities.coldProbability !== undefined ? categoryProbabilities.coldProbability : 100
+          break
+        case 'warm':
+          probability = categoryProbabilities.warmProbability !== undefined ? categoryProbabilities.warmProbability : 100
+          break
+        case 'hot':
+          probability = categoryProbabilities.hotProbability !== undefined ? categoryProbabilities.hotProbability : 100
+          break
+        case 'recurring':
+          probability = categoryProbabilities.recurringProbability !== undefined ? categoryProbabilities.recurringProbability : 100
+          break
+        default:
+          probability = 100
+      }
+    }
+    
     const result = (prospect.revenue * probability) / 100
+    
     weightedRevenueCache.set(cacheKey, result)
     
     // Limiter la taille du cache

@@ -267,7 +267,7 @@
               <div class="space-y-2">
                 <label class="text-sm font-medium text-gray-600 flex items-center justify-between">
                   <span>Probability:</span>
-                  <span class="text-lg font-bold text-blue-600">{{ form.probability_coefficient || 100 }}%</span>
+                  <span class="text-lg font-bold text-blue-600">{{ form.probability_coefficient !== undefined ? form.probability_coefficient : 100 }}%</span>
                 </label>
                 <div class="relative">
                   <input 
@@ -874,7 +874,7 @@ function getTabName(tabId) {
 }
 
 function getWeightedRevenue() {
-  return (form.revenue || 0) * (form.probability_coefficient || 100) / 100
+  return (form.revenue || 0) * (form.probability_coefficient !== undefined ? form.probability_coefficient : 100) / 100
 }
 
 // Handle notes change - update timestamp

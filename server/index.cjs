@@ -768,7 +768,10 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
         return res.status(500).json({ success: false, error: 'Database error' });
       }
       
+      console.log('🔍 Raw row from database:', row);
+      
       if (!row) {
+        console.log('⚠️ No settings found in database, returning defaults');
         // Return default values if no settings found
         return res.json({
           success: true,
@@ -777,7 +780,7 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
             warm: 6,
             hot: 3,
             recurring: 12,
-            coldProbability: 15,
+            coldProbability: 0,
             warmProbability: 45,
             hotProbability: 80,
             recurringProbability: 30
@@ -786,14 +789,16 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
       }
       
       try {
+        console.log('🔍 Attempting to parse JSON:', row.setting_value);
         const settings = JSON.parse(row.setting_value);
-        console.log('📊 Loaded settings from DB:', settings);
+        console.log('📊 Successfully parsed settings from DB:', settings);
         res.json({
           success: true,
           settings: settings
         });
       } catch (parseError) {
         console.error('Error parsing settings JSON:', parseError);
+        console.error('Raw setting_value that failed to parse:', row.setting_value);
         // Return default values if JSON is invalid
         res.json({
           success: true,
@@ -802,7 +807,7 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
             warm: 6,
             hot: 3,
             recurring: 12,
-            coldProbability: 15,
+            coldProbability: 0,
             warmProbability: 45,
             hotProbability: 80,
             recurringProbability: 30
@@ -838,12 +843,20 @@ app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
   }
   
   // Validate probabilities (optional, use defaults if not provided)
+  console.log('🧪 Debug probability values:');
+  console.log('  coldProbability:', coldProbability, 'type:', typeof coldProbability);
+  console.log('  warmProbability:', warmProbability, 'type:', typeof warmProbability);
+  console.log('  hotProbability:', hotProbability, 'type:', typeof hotProbability);
+  console.log('  recurringProbability:', recurringProbability, 'type:', typeof recurringProbability);
+  
   const probabilities = {
-    coldProbability: (coldProbability >= 1 && coldProbability <= 100) ? coldProbability : 15,
-    warmProbability: (warmProbability >= 1 && warmProbability <= 100) ? warmProbability : 45,
-    hotProbability: (hotProbability >= 1 && hotProbability <= 100) ? hotProbability : 80,
-    recurringProbability: (recurringProbability >= 1 && recurringProbability <= 100) ? recurringProbability : 30
+    coldProbability: (coldProbability !== undefined && coldProbability >= 0 && coldProbability <= 100) ? coldProbability : 0,
+    warmProbability: (warmProbability !== undefined && warmProbability >= 0 && warmProbability <= 100) ? warmProbability : 45,
+    hotProbability: (hotProbability !== undefined && hotProbability >= 0 && hotProbability <= 100) ? hotProbability : 80,
+    recurringProbability: (recurringProbability !== undefined && recurringProbability >= 0 && recurringProbability <= 100) ? recurringProbability : 30
   };
+  
+  console.log('🎯 Final probabilities:', probabilities);
   
   const settingValue = { 
     cold, 

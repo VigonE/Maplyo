@@ -62,7 +62,7 @@
               <span class="text-xs text-gray-500">Probability:</span>
               <div class="flex items-center gap-1">
                 <span class="text-sm font-medium text-blue-600">
-                  {{ prospect.probability_coefficient || 100 }}%
+                  {{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}%
                 </span>
                 <button
                   @click.stop="startEditingProbability()"
@@ -139,8 +139,8 @@
               </button>
             </div>
             <div class="text-xs text-gray-500">
-              Probability: {{ prospect.probability_coefficient || 100 }}% • 
-              Weighted: {{ formatCurrency((tempRevenue || 0) * (prospect.probability_coefficient || 100) / 100) }}
+              Probability: {{ prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100 }}% • 
+              Weighted: {{ formatCurrency((tempRevenue || 0) * (prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100) / 100) }}
             </div>
           </div>
           
@@ -426,7 +426,7 @@ const handleRevenueKeydown = (event) => {
 // Édition de la probabilité
 const startEditingProbability = () => {
   editingProbability.value = true
-  tempProbability.value = props.prospect.probability_coefficient || 100
+  tempProbability.value = props.prospect.probability_coefficient !== undefined ? props.prospect.probability_coefficient : 100
   nextTick(() => {
     if (probabilityInput.value) {
       probabilityInput.value.focus()
