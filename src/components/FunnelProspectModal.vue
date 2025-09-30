@@ -422,6 +422,7 @@
                   placeholder="Add your notes here..."
                   class="h-full"
                   :apply-daily-colors="true"
+                  :notes-last-updated="form.notes_last_updated"
                   @blur="prospect ? saveField('notes') : null"
                   @input="onNotesChange"
                 />

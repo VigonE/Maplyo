@@ -186,6 +186,7 @@
       :class="editorClass"
       class="editor border border-gray-300 border-t-0 rounded-b-md p-3 min-h-[100px] max-h-[300px] overflow-y-auto"
       style="resize: vertical;"
+      :data-notes-last-updated="props.notesLastUpdated"
     />
   </div>
 </template>
@@ -220,6 +221,10 @@ const props = defineProps({
   applyDailyColors: {
     type: Boolean,
     default: false
+  },
+  notesLastUpdated: {
+    type: String,
+    default: null
   }
 })
 
@@ -246,11 +251,14 @@ const dayColors = [
 
 // Get color for today
 const getTodayColor = () => {
-  if (!props.applyDailyColors) return '#000000'
+  if (!props.applyDailyColors) return { color: '#000000', date: null }
   
   const today = new Date()
   const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))
-  return dayColors[dayOfYear % dayColors.length]
+  const color = dayColors[dayOfYear % dayColors.length]
+  const dateString = today.toISOString().split('T')[0] // Format YYYY-MM-DD
+  
+  return { color, date: dateString }
 }
 
 // Formater la date pour le tooltip
@@ -329,7 +337,7 @@ const editor = useEditor({
   onSelectionUpdate: ({ editor }) => {
     // Automatically apply day color when making selection/typing
     if (props.applyDailyColors) {
-      const todayColor = getTodayColor()
+      const todayData = getTodayColor()
       // Appliquer la couleur seulement si l'utilisateur n'a pas de couleur active
       const currentColor = editor.getAttributes('textStyle').color
       if (!currentColor) {
@@ -398,14 +406,30 @@ function addDateTooltips() {
 function applyTodayColorToSelection() {
   if (!editor.value || !props.applyDailyColors) return
   
-  const todayColor = getTodayColor()
+  const todayData = getTodayColor()
   
-  console.log('🔧 Application couleur du jour:', todayColor)
+  console.log('🔧 Application couleur du jour:', todayData)
   
-  // Appliquer simplement la couleur - l'extension se charge des tooltips
-  editor.value.chain().focus().setColor(todayColor).run()
+  // Appliquer la couleur et l'attribut de date
+  editor.value.chain().focus().setColor(todayData.color).run()
   
-  console.log('✅ Couleur appliquée - tooltips gérés par l\'extension')
+  // Pour ajouter l'attribut data-daily-date, nous devons le faire directement sur le DOM
+  // après que TipTap ait appliqué la couleur
+  setTimeout(() => {
+    const editorElement = editor.value.view.dom
+    const selection = editor.value.state.selection
+    
+    // Parcourir tous les spans colorés dans la sélection et ajouter l'attribut date
+    const spans = editorElement.querySelectorAll('span[style*="color"]')
+    spans.forEach(span => {
+      if (span.style.color && !span.getAttribute('data-daily-date')) {
+        span.setAttribute('data-daily-date', todayData.date)
+        console.log('📅 Attribut date ajouté à un span:', todayData.date)
+      }
+    })
+  }, 10)
+  
+  console.log('✅ Couleur et date appliquées - tooltips gérés par l\'extension')
 }
 
 // Raccourcis clavier personnalisés

@@ -7,7 +7,7 @@ export const DailyTooltipExtension = Extension.create({
   addGlobalAttributes() {
     return [
       {
-        types: ['textStyle', 'span'],
+        types: ['textStyle'],
         attributes: {
           'data-daily-date': {
             default: null,
@@ -19,7 +19,6 @@ export const DailyTooltipExtension = Extension.create({
 
               return {
                 'data-daily-date': attributes['data-daily-date'],
-                title: `Written on ${attributes['data-daily-date']}`,
                 style: 'cursor: help;'
               }
             },
@@ -51,6 +50,7 @@ export const DailyTooltipExtension = Extension.create({
                 tagName: target.tagName,
                 isColoredSpan,
                 style: target.getAttribute('style'),
+                dataDate: target.getAttribute('data-daily-date'),
                 text: target.textContent?.substring(0, 20)
               })
               
@@ -61,18 +61,47 @@ export const DailyTooltipExtension = Extension.create({
                 const existing = document.querySelector('.daily-tooltip-extension')
                 if (existing) existing.remove()
                 
-                // Create new tooltip with today's date
-                const today = new Date()
-                const dateStr = today.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })
+                // Récupérer la date stockée ou utiliser un fallback intelligent
+                const storedDate = target.getAttribute('data-daily-date')
+                let dateToShow = new Date()
+                let tooltipText = ''
+                
+                if (storedDate) {
+                  // Si une date est stockée, l'utiliser
+                  dateToShow = new Date(storedDate)
+                  tooltipText = dateToShow.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })
+                  console.log('📅 Date récupérée depuis l\'attribut:', storedDate)
+                } else {
+                  // Fallback : chercher l'attribut data-notes-last-updated sur l'éditeur
+                  console.log('📅 Aucune date stockée, tentative de fallback...')
+                  
+                  const editorContainer = target.closest('[data-notes-last-updated]')
+                  const notesLastUpdated = editorContainer?.getAttribute('data-notes-last-updated')
+                  
+                  if (notesLastUpdated && notesLastUpdated !== 'null') {
+                    dateToShow = new Date(notesLastUpdated)
+                    tooltipText = dateToShow.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric', 
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                    console.log('📅 Date trouvée via fallback notes_last_updated:', notesLastUpdated)
+                  } else {
+                    // Si pas de fallback trouvé, indiquer que c'est un ancien texte
+                    tooltipText = 'Colored text (edit date unavailable)'
+                    console.log('📅 Aucune date trouvée - texte ancien')
+                  }
+                }
                 
                 const tooltip = document.createElement('div')
                 tooltip.className = 'daily-tooltip-extension'
-                tooltip.textContent = dateStr
+                tooltip.textContent = tooltipText
                 tooltip.style.cssText = `
                   position: fixed;
                   background: #1a202c;
@@ -85,14 +114,14 @@ export const DailyTooltipExtension = Extension.create({
                   pointer-events: none;
                   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
                   border: 1px solid #4a5568;
-                  max-width: 200px;
+                  max-width: 250px;
                   white-space: nowrap;
                   top: ${event.clientY - 40}px;
                   left: ${event.clientX + 10}px;
                 `
                 document.body.appendChild(tooltip)
                 
-                                console.log('✅ Tooltip created:', dateStr)
+                console.log('✅ Tooltip created:', tooltipText)
                 return false // Prevent propagation
               }
             },
