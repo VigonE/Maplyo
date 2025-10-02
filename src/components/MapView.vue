@@ -90,13 +90,13 @@
           <button
             @click="toggleStatusFilter('cold')"
             :class="{
-              'bg-gray-600 text-white shadow-lg scale-105': statusFilters.cold,
+              'bg-blue-600 text-white shadow-lg scale-105': statusFilters.cold,
               'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.cold
             }"
             class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
           >
             <div class="flex items-center gap-3">
-              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #6b7280;"></span>
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #3b82f6;"></span>
               <span>Cold</span>
             </div>
             <div class="ml-auto">
@@ -155,6 +155,42 @@
             </div>
             <div class="ml-auto">
               {{ statusFilters.recurring ? '✓' : '' }}
+            </div>
+          </button>
+          
+          <!-- Won -->
+          <button
+            @click="toggleStatusFilter('won')"
+            :class="{
+              'bg-green-500 text-white shadow-lg scale-105': statusFilters.won,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.won
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #10b981;"></span>
+              <span>Won</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.won ? '✓' : '' }}
+            </div>
+          </button>
+          
+          <!-- Lost -->
+          <button
+            @click="toggleStatusFilter('lost')"
+            :class="{
+              'bg-gray-600 text-white shadow-lg scale-105': statusFilters.lost,
+              'bg-gray-50 text-gray-700 hover:bg-gray-100': !statusFilters.lost
+            }"
+            class="w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 text-sm"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-4 h-4 rounded-full shadow-sm" style="background-color: #374151;"></span>
+              <span>Lost</span>
+            </div>
+            <div class="ml-auto">
+              {{ statusFilters.lost ? '✓' : '' }}
             </div>
           </button>
         </div>
@@ -274,6 +310,8 @@ function toggleAllStatuses() {
   statusFilters.value.warm = newValue
   statusFilters.value.hot = newValue
   statusFilters.value.recurring = newValue
+  statusFilters.value.won = newValue
+  statusFilters.value.lost = newValue
   updateDisplay()
 }
 
@@ -691,7 +729,7 @@ function getStatusLabel(status) {
 
 function getStatusColor(status) {
   const colors = {
-    'cold': '#6b7280',    // gray
+    'cold': '#3b82f6',    // blue (matching funnel)
     'warm': '#f59e0b',    // yellow
     'hot': '#ef4444',     // red
     'recurring': '#8b5cf6', // purple
