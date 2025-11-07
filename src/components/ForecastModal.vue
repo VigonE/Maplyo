@@ -549,6 +549,12 @@ const categoryAnalysis = computed(() => {
   
   props.prospects.forEach(prospect => {
     const status = prospect.status || 'cold'
+    
+    // Skip won/lost prospects in analysis
+    if (status === 'won' || status === 'lost') {
+      return
+    }
+    
     const category = getProspectCategory(status)
     
     if (analysis[category]) {
@@ -597,6 +603,11 @@ const generateForecast = () => {
     const revenue = prospect.revenue || 0
     const status = prospect.status || 'cold'
     const category = getProspectCategory(status)
+    
+    // Skip prospects that are already won or lost - they shouldn't be in the forecast
+    if (status === 'won' || status === 'lost') {
+      return
+    }
     
     if (revenue <= 0) {
       return
@@ -726,8 +737,11 @@ const generateForecast = () => {
 }
 
 const calculateMetrics = (forecastData) => {
-  const totalPipeline = props.prospects.reduce((sum, p) => sum + (p.revenue || 0), 0)
-  const weightedPipeline = props.prospects.reduce((sum, p) => {
+  // Filter out won/lost prospects from pipeline calculations
+  const activeProspects = props.prospects.filter(p => p.status !== 'won' && p.status !== 'lost')
+  
+  const totalPipeline = activeProspects.reduce((sum, p) => sum + (p.revenue || 0), 0)
+  const weightedPipeline = activeProspects.reduce((sum, p) => {
     const status = p.status || 'cold'
     const category = getProspectCategory(status)
     const weight = (p.revenue || 0) * getCategoryProbability(category)
@@ -874,12 +888,13 @@ const getMonthsDiff = (date1, date2) => {
 const identifyRiskFactors = () => {
   const risks = []
   
-  // Check for concentration risk
-  const totalCount = props.prospects.length
+  // Check for concentration risk - exclude won/lost prospects
+  const activeProspects = props.prospects.filter(p => p.status !== 'won' && p.status !== 'lost')
+  const totalCount = activeProspects.length
   if (totalCount === 0) return risks
   
-  const hotCount = props.prospects.filter(p => getProspectCategory(p.status || 'cold') === 'hot').length
-  const coldCount = props.prospects.filter(p => getProspectCategory(p.status || 'cold') === 'cold').length
+  const hotCount = activeProspects.filter(p => getProspectCategory(p.status || 'cold') === 'hot').length
+  const coldCount = activeProspects.filter(p => getProspectCategory(p.status || 'cold') === 'cold').length
   
   if (coldCount / totalCount > 0.7) {
     risks.push({
@@ -897,9 +912,9 @@ const identifyRiskFactors = () => {
     })
   }
   
-  // Check for aging prospects
+  // Check for aging prospects - only check active prospects
   const today = new Date()
-  const oldProspects = props.prospects.filter(p => {
+  const oldProspects = activeProspects.filter(p => {
     const created = new Date(p.created_at || today)
     return getMonthsDiff(created, today) > 6
   })
@@ -1029,14 +1044,15 @@ const calculateConfidenceScore = () => {
   // Portfolio-level adjustments
   let portfolioFactor = 1.0
   
-  // Diversification factor
+  // Diversification factor - exclude won/lost prospects
+  const activeProspects = props.prospects.filter(p => p.status !== 'won' && p.status !== 'lost')
   const statusDistribution = {
-    hot: props.prospects.filter(p => p.status === 'hot').length,
-    warm: props.prospects.filter(p => p.status === 'warm').length,
-    cold: props.prospects.filter(p => p.status === 'cold').length
+    hot: activeProspects.filter(p => p.status === 'hot').length,
+    warm: activeProspects.filter(p => p.status === 'warm').length,
+    cold: activeProspects.filter(p => p.status === 'cold').length
   }
   
-  const total = props.prospects.length
+  const total = activeProspects.length
   const hotRatio = statusDistribution.hot / total
   const warmRatio = statusDistribution.warm / total
   
