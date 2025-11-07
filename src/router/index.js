@@ -27,15 +27,27 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   
+  // For protected routes, check authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    console.log('Route requires auth but user not authenticated, redirecting to login')
     return '/login'
   }
   
+  // If going to login but already authenticated, redirect to dashboard
   if (to.path === '/login' && authStore.isAuthenticated) {
-    return '/dashboard'
+    // Validate token before allowing access to dashboard
+    const isValidToken = await authStore.validateToken()
+    if (isValidToken) {
+      return '/dashboard'
+    }
+  }
+  
+  // Load user profile if authenticated but no user data
+  if (authStore.isAuthenticated && !authStore.user) {
+    await authStore.loadUserProfile()
   }
 })
 

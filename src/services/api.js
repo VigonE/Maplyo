@@ -32,10 +32,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const authStore = useAuthStore()
-      authStore.logout()
-      window.location.href = '/login'
+    // Only logout on 401 if it's not a login attempt
+    if (error.response?.status === 401 && !error.config.url.includes('/login')) {
+      console.warn('401 Unauthorized - logging out user')
+      // Use setTimeout to avoid potential store access issues during initialization
+      setTimeout(() => {
+        const authStore = useAuthStore()
+        authStore.logout()
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+      }, 100)
     }
     return Promise.reject(error)
   }
