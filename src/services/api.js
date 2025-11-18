@@ -31,19 +31,42 @@ api.interceptors.request.use(
 // Response interceptor pour gérer les erreurs d'auth
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Only logout on 401 if it's not a login attempt
-    if (error.response?.status === 401 && !error.config.url.includes('/login')) {
-      console.warn('401 Unauthorized - logging out user')
-      // Use setTimeout to avoid potential store access issues during initialization
-      setTimeout(() => {
-        const authStore = useAuthStore()
-        authStore.logout()
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
-        }
-      }, 100)
+  async (error) => {
+    const originalRequest = error.config
+    
+    // Handle different types of 401 errors
+    if (error.response?.status === 401) {
+      // Skip auto-logout for login attempts
+      if (originalRequest.url.includes('/login')) {
+        return Promise.reject(error)
+      }
+      
+      // Check if it's a token expiration vs invalid token
+      const errorMessage = error.response?.data?.message || ''
+      const isTokenExpired = errorMessage.includes('expired') || errorMessage.includes('Token expired')
+      const isInvalidToken = errorMessage.includes('invalid') || errorMessage.includes('Invalid token')
+      
+      // Only logout for clearly invalid tokens, not network issues
+      if (isTokenExpired || isInvalidToken) {
+        console.warn('Token expired/invalid - logging out user:', errorMessage)
+        setTimeout(() => {
+          const authStore = useAuthStore()
+          authStore.logout()
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
+        }, 100)
+      } else {
+        // For other 401s, just log and let the app handle it
+        console.warn('401 error but not logging out (might be temporary):', errorMessage)
+      }
     }
+    
+    // Handle network errors without logging out
+    if (!error.response && error.code === 'ECONNABORTED') {
+      console.warn('Request timeout - not logging out')
+    }
+    
     return Promise.reject(error)
   }
 )

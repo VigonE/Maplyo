@@ -39,15 +39,22 @@ router.beforeEach(async (to) => {
   // If going to login but already authenticated, redirect to dashboard
   if (to.path === '/login' && authStore.isAuthenticated) {
     // Validate token before allowing access to dashboard
-    const isValidToken = await authStore.validateToken()
-    if (isValidToken) {
+    if (authStore.validateToken()) {
       return '/dashboard'
+    } else {
+      // Token is expired, allow going to login
+      authStore.logout()
     }
   }
   
-  // Load user profile if authenticated but no user data
-  if (authStore.isAuthenticated && !authStore.user) {
-    await authStore.loadUserProfile()
+  // Load user profile if authenticated but no user data (only if token is valid)
+  if (authStore.isAuthenticated && !authStore.user && authStore.validateToken()) {
+    try {
+      await authStore.loadUserProfile()
+    } catch (error) {
+      console.warn('Failed to load user profile in router:', error)
+      // Don't logout here, just continue
+    }
   }
 })
 

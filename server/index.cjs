@@ -513,13 +513,31 @@ function authenticateToken(req, res, next) {
 
   if (token == null) {
     console.warn('❌ No token provided for:', req.path);
-    return res.status(401).json({ error: 'Access token required' });
+    return res.status(401).json({ 
+      error: 'Access token required',
+      message: 'No authentication token provided'
+    });
   }
 
   jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
     if (err) {
       console.warn('❌ Token verification failed for:', req.path, 'Error:', err.message);
-      return res.status(403).json({ error: 'Invalid or expired token' });
+      
+      // Provide more specific error messages
+      let errorMessage = 'Invalid token';
+      if (err.name === 'TokenExpiredError') {
+        errorMessage = 'Token expired';
+      } else if (err.name === 'JsonWebTokenError') {
+        errorMessage = 'Invalid token format';
+      } else if (err.name === 'NotBeforeError') {
+        errorMessage = 'Token not active yet';
+      }
+      
+      return res.status(401).json({ 
+        error: 'Authentication failed',
+        message: errorMessage,
+        tokenError: true
+      });
     }
     req.user = user;
     next();

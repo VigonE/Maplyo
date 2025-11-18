@@ -46,34 +46,54 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  // Function to check if token is valid
-  async function validateToken() {
+  // Function to validate token locally (check expiration)
+  function validateToken() {
     if (!token.value) return false
     
     try {
-      await api.get('/profile')
-      return true
-    } catch (error) {
-      console.warn('Token validation failed:', error.message)
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        logout()
+      // Decode JWT payload (simple base64 decode)
+      const payload = JSON.parse(atob(token.value.split('.')[1]))
+      const currentTime = Date.now() / 1000
+      
+      // Check if token is expired
+      if (payload.exp && payload.exp < currentTime) {
+        console.warn('Token expired locally')
         return false
       }
-      // For network errors, assume token is still valid
+      
       return true
+    } catch (error) {
+      console.error('Error validating token:', error)
+      return false
     }
   }
 
-  // Function to load user profile
+  // Function to load user profile only when needed
   async function loadUserProfile() {
-    if (!token.value || user.value) return
+    if (!token.value || !validateToken()) {
+      return false
+    }
+    
+    // Don't reload if we already have user data
+    if (user.value) return true
     
     try {
       const response = await api.get('/profile')
       user.value = response.data
       localStorage.setItem('user', JSON.stringify(response.data))
+      return true
     } catch (error) {
       console.warn('Failed to load user profile:', error.message)
+      // Only logout on clear auth failures, not network issues
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        const errorMessage = error.response?.data?.message || ''
+        if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+          logout()
+          return false
+        }
+      }
+      // For network errors, assume token is still valid
+      return true
       // Only logout if it's clearly a token issue (not network error)
       if (error.response?.status === 401 || error.response?.status === 403) {
         logout()
