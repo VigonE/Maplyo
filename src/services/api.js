@@ -28,7 +28,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor pour gérer les erreurs d'auth
+// Response interceptor pour gérer les erreurs d'auth - MOINS AGRESSIF
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -36,19 +36,28 @@ api.interceptors.response.use(
     
     // Handle different types of 401 errors
     if (error.response?.status === 401) {
-      // Skip auto-logout for login attempts
-      if (originalRequest.url.includes('/login')) {
+      // Skip auto-logout for login/register attempts
+      if (originalRequest.url.includes('/login') || originalRequest.url.includes('/register')) {
         return Promise.reject(error)
       }
       
-      // Check if it's a token expiration vs invalid token
-      const errorMessage = error.response?.data?.message || ''
-      const isTokenExpired = errorMessage.includes('expired') || errorMessage.includes('Token expired')
-      const isInvalidToken = errorMessage.includes('invalid') || errorMessage.includes('Invalid token')
+      // Check if it's a definitive token rejection from server
+      const errorMessage = (error.response?.data?.message || error.response?.data?.error || '').toLowerCase()
       
-      // Only logout for clearly invalid tokens, not network issues
-      if (isTokenExpired || isInvalidToken) {
-        console.warn('Token expired/invalid - logging out user:', errorMessage)
+      // Liste stricte des messages qui indiquent un token définitivement invalide
+      const definitivelyInvalid = [
+        'jwt expired',
+        'jwt malformed', 
+        'invalid token',
+        'token expired',
+        'no token provided',
+        'invalid signature'
+      ]
+      
+      const shouldLogout = definitivelyInvalid.some(msg => errorMessage.includes(msg))
+      
+      if (shouldLogout) {
+        console.warn('Token definitively invalid - logging out:', errorMessage)
         setTimeout(() => {
           const authStore = useAuthStore()
           authStore.logout()
@@ -57,14 +66,14 @@ api.interceptors.response.use(
           }
         }, 100)
       } else {
-        // For other 401s, just log and let the app handle it
-        console.warn('401 error but not logging out (might be temporary):', errorMessage)
+        // Pour les autres 401, ne pas déconnecter (peut être temporaire)
+        console.warn('401 received but keeping session (might be temporary):', errorMessage || 'no message')
       }
     }
     
     // Handle network errors without logging out
-    if (!error.response && error.code === 'ECONNABORTED') {
-      console.warn('Request timeout - not logging out')
+    if (!error.response) {
+      console.warn('Network error - keeping session active')
     }
     
     return Promise.reject(error)

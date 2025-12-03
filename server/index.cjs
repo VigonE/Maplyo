@@ -587,7 +587,7 @@ app.post('/api/register', async (req, res) => {
               return res.status(500).json({ error: 'Database error' });
             }
 
-            // Créer le token JWT
+            // Créer le token JWT (persistant 1 an)
             const token = jwt.sign(
               { 
                 userId: this.lastID, 
@@ -595,7 +595,7 @@ app.post('/api/register', async (req, res) => {
                 name: name 
               },
               process.env.JWT_SECRET || 'your-secret-key',
-              { expiresIn: '24h' }
+              { expiresIn: '365d' }
             );
 
             // Créer les onglets par défaut pour le nouvel utilisateur
@@ -659,7 +659,7 @@ app.post('/api/login', async (req, res) => {
           });
         }
 
-        // Créer le token JWT
+        // Créer le token JWT (persistant 1 an)
         const token = jwt.sign(
           { 
             userId: user.id, 
@@ -667,7 +667,7 @@ app.post('/api/login', async (req, res) => {
             name: user.name 
           },
           process.env.JWT_SECRET || 'your-secret-key',
-          { expiresIn: '24h' }
+          { expiresIn: '365d' }
         );
 
         console.log('✅ Login successful for:', email);
