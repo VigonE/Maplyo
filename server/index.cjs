@@ -1000,7 +1000,39 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
       }
 
       console.log(`📊 Found ${prospects.length} prospects`);
-      res.json(prospects);
+      
+      // Fetch status history for each prospect
+      const prospectsWithHistory = [];
+      let completed = 0;
+      
+      if (prospects.length === 0) {
+        return res.json([]);
+      }
+      
+      prospects.forEach(prospect => {
+        db.all(
+          `SELECT new_status as status, changed_at 
+           FROM status_history 
+           WHERE prospect_id = ? 
+           ORDER BY changed_at ASC`,
+          [prospect.id],
+          (histErr, history) => {
+            if (histErr) {
+              console.error('Error fetching status history:', histErr);
+              prospect.status_history = [];
+            } else {
+              prospect.status_history = history;
+            }
+            
+            prospectsWithHistory.push(prospect);
+            completed++;
+            
+            if (completed === prospects.length) {
+              res.json(prospectsWithHistory);
+            }
+          }
+        );
+      });
     }
   );
 });
@@ -1272,6 +1304,9 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
           estimatedDate = estimated_completion_date;
         }
 
+        // Enregistrer le changement de statut dans l'historique si le statut a changé
+        const statusChanged = status && status !== prospect.status;
+        
         db.run(
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, contact = ?, 
@@ -1289,6 +1324,23 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
             if (err) {
               console.error('Error updating prospect:', err);
               return res.status(500).json({ error: 'Database error' });
+            }
+
+            // Si le statut a changé, enregistrer dans l'historique
+            if (statusChanged) {
+              db.run(
+                `INSERT INTO status_history (prospect_id, old_status, new_status, changed_by)
+                 VALUES (?, ?, ?, ?)`,
+                [prospectId, prospect.status, status, req.user.userId],
+                (histErr) => {
+                  if (histErr) {
+                    console.error('Error recording status history:', histErr);
+                    // Ne pas bloquer la mise à jour si l'historique échoue
+                  } else {
+                    console.log('✅ Status change recorded:', prospect.status, '->', status);
+                  }
+                }
+              );
             }
 
             // Récupérer le prospect mis à jour
@@ -1312,6 +1364,25 @@ app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
     console.error('Error updating prospect:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Récupérer l'historique des statuts pour tous les prospects de l'utilisateur
+app.get('/api/status-history', authenticateToken, (req, res) => {
+  db.all(
+    `SELECT sh.* 
+     FROM status_history sh
+     INNER JOIN prospects p ON sh.prospect_id = p.id
+     WHERE p.user_id = ?
+     ORDER BY sh.changed_at ASC`,
+    [req.user.userId],
+    (err, history) => {
+      if (err) {
+        console.error('Error fetching status history:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.json(history);
+    }
+  );
 });
 
 // Supprimer un prospect

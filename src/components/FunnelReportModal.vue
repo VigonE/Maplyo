@@ -183,6 +183,60 @@
                   </div>
                   <span>Hot Leads</span>
                 </button>
+                
+                <button
+                  @click="toggleCategory('won')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.won 
+                      ? 'bg-green-100 text-green-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.won ? 'bg-green-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span>Won</span>
+                </button>
+                
+                <button
+                  @click="toggleCategory('lost')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.lost 
+                      ? 'bg-red-100 text-red-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.lost ? 'bg-red-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <span>Lost</span>
+                </button>
+                
+                <button
+                  @click="toggleCategory('recurring')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.recurring 
+                      ? 'bg-purple-100 text-purple-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.recurring ? 'bg-purple-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <span>Recurring</span>
+                </button>
               </div>
             </div>
             
@@ -224,6 +278,33 @@
                   class="transition-opacity duration-300"
                 />
                 
+                <!-- Won Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.won"
+                  :d="getCategoryAreaPath('won')"
+                  fill="url(#gradientWon)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Lost Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.lost"
+                  :d="getCategoryAreaPath('lost')"
+                  fill="url(#gradientLost)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Recurring Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.recurring"
+                  :d="getCategoryAreaPath('recurring')"
+                  fill="url(#gradientRecurring)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
                 <!-- Cold Leads Line (if visible) -->
                 <path 
                   v-if="visibleCategories.cold"
@@ -261,6 +342,45 @@
                   stroke-linejoin="round"
                   class="transition-all duration-300"
                   style="filter: drop-shadow(0 2px 4px rgba(249, 115, 22, 0.3));"
+                />
+                
+                <!-- Won Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.won"
+                  :d="getCategoryLinePath('won')"
+                  stroke="#22c55e"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(34, 197, 94, 0.3));"
+                />
+                
+                <!-- Lost Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.lost"
+                  :d="getCategoryLinePath('lost')"
+                  stroke="#ef4444"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3));"
+                />
+                
+                <!-- Recurring Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.recurring"
+                  :d="getCategoryLinePath('recurring')"
+                  stroke="#a855f7"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(168, 85, 247, 0.3));"
                 />
                 
                 <!-- Data points for Cold Leads -->
@@ -314,6 +434,57 @@
                   />
                 </g>
                 
+                <!-- Data points for Won -->
+                <g v-if="visibleCategories.won">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-won-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.won / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#22c55e"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'won')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Lost -->
+                <g v-if="visibleCategories.lost">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-lost-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.lost / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#ef4444"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'lost')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Recurring -->
+                <g v-if="visibleCategories.recurring">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-recurring-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.recurring / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#a855f7"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'recurring')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
                 <!-- Gradient definitions -->
                 <defs>
                   <linearGradient id="gradientCold" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -327,6 +498,18 @@
                   <linearGradient id="gradientHot" x1="0%" y1="0%" x2="0%" y2="100%">
                     <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
                     <stop offset="100%" style="stop-color:#f97316;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientWon" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientLost" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientRecurring" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -895,7 +1078,10 @@ const visibleMetrics = ref({
 const visibleCategories = ref({
   cold: true,
   warm: true,
-  hot: true
+  hot: true,
+  won: true,
+  lost: true,
+  recurring: true
 })
 
 // Tooltip state
@@ -961,7 +1147,10 @@ function showCategoryTooltip(event, point, category) {
   const categoryLabels = {
     cold: 'Cold Leads',
     warm: 'Warm Leads',
-    hot: 'Hot Leads'
+    hot: 'Hot Leads',
+    won: 'Closed Won',
+    lost: 'Closed Lost',
+    recurring: 'Recurring'
   }
   
   tooltip.value.value = `${point[category]} ${categoryLabels[category]}`
@@ -1059,7 +1248,8 @@ async function generateReport() {
     const conversionTimeline = generateConversionTimeline(filteredProspects, startDate, endDate, timeline.length)
     
     // Generate category timeline (cold, warm, hot)
-    const categoryTimeline = generateCategoryTimeline(filteredProspects, startDate, endDate, timeline.length)
+    // IMPORTANT: Use ALL prospects, not just filtered ones, to show complete status distribution
+    const categoryTimeline = generateCategoryTimeline(props.prospects, startDate, endDate, timeline.length)
 
     // Top revenue prospects
     const topRevenue = [...filteredProspects]
@@ -1103,7 +1293,7 @@ async function generateReport() {
       maxNewCount: Math.max(...timeline.map(t => t.newCount), 1),
       maxRevenue: Math.max(...timeline.map(t => t.revenue), 1),
       maxCategoryCount: Math.max(
-        ...categoryTimeline.map(t => Math.max(t.cold, t.warm, t.hot)),
+        ...categoryTimeline.map(t => Math.max(t.cold, t.warm, t.hot, t.won, t.lost, t.recurring)),
         1
       ),
       topRevenue,
@@ -1188,29 +1378,72 @@ function generateCategoryTimeline(prospects, startDate, endDate, intervals) {
   const intervalDuration = daysDiff / intervals
   const categoryTimeline = []
 
+  // Get status history for all prospects
+  const statusHistory = {}
+  
+  prospects.forEach(p => {
+    if (p.status_history && Array.isArray(p.status_history) && p.status_history.length > 0) {
+      statusHistory[p.id] = p.status_history.map(h => ({
+        status: h.status,
+        changed_at: new Date(h.changed_at)
+      })).sort((a, b) => a.changed_at - b.changed_at)
+    } else {
+      // If no history, use current status with created_at date
+      statusHistory[p.id] = [{
+        status: p.status,
+        changed_at: new Date(p.created_at || Date.now())
+      }]
+    }
+  })
+
   for (let i = 0; i < intervals; i++) {
     const intervalStart = new Date(startDate.getTime() + i * intervalDuration * 24 * 60 * 60 * 1000)
     const intervalEnd = new Date(startDate.getTime() + (i + 1) * intervalDuration * 24 * 60 * 60 * 1000)
     
-    // Count ALL prospects that exist up to this point in time and are in each category
-    // (regardless of when they were created, we count their current status)
-    const prospectsAtThisTime = prospects.filter(p => {
-      const pDate = new Date(p.created_at || p.updated_at || Date.now())
-      // Include prospects created before or during this interval
-      return pDate <= intervalEnd
-    })
+    // For each prospect, find what status it had at intervalEnd
+    const statusCounts = { cold: 0, warm: 0, hot: 0, won: 0, lost: 0, recurring: 0 }
+    let totalCount = 0
 
-    // Count prospects by their CURRENT category status
-    const coldCount = prospectsAtThisTime.filter(p => p.status === 'cold').length
-    const warmCount = prospectsAtThisTime.filter(p => p.status === 'warm').length
-    const hotCount = prospectsAtThisTime.filter(p => p.status === 'hot').length
+    prospects.forEach(p => {
+      const pCreated = new Date(p.created_at || Date.now())
+      
+      // Count ALL prospects that existed at this time (not just those created in the selected period)
+      if (pCreated <= intervalEnd) {
+        totalCount++
+        
+        // Find the status at intervalEnd by looking at history
+        const history = statusHistory[p.id] || []
+        let statusAtTime = p.status // Default to current status
+        
+        // Find the most recent status change before or at intervalEnd
+        for (let j = history.length - 1; j >= 0; j--) {
+          if (history[j].changed_at <= intervalEnd) {
+            statusAtTime = history[j].status
+            break
+          }
+        }
+        
+        // Count by status
+        if (statusCounts.hasOwnProperty(statusAtTime)) {
+          statusCounts[statusAtTime]++
+        }
+      }
+    })
+    
+    // Log only the last interval (today's values)
+    if (i === intervals - 1) {
+      console.log(`📊 [${formatPeriodLabel(intervalEnd, daysDiff)}] Total: ${totalCount}, Cold: ${statusCounts.cold}, Warm: ${statusCounts.warm}, Hot: ${statusCounts.hot}, Won: ${statusCounts.won}, Lost: ${statusCounts.lost}, Recurring: ${statusCounts.recurring}`)
+    }
 
     categoryTimeline.push({
       label: formatPeriodLabel(intervalStart, daysDiff),
-      cold: coldCount,
-      warm: warmCount,
-      hot: hotCount,
-      total: prospectsAtThisTime.length
+      cold: statusCounts.cold,
+      warm: statusCounts.warm,
+      hot: statusCounts.hot,
+      won: statusCounts.won,
+      lost: statusCounts.lost,
+      recurring: statusCounts.recurring,
+      total: totalCount
     })
   }
 
