@@ -63,18 +63,6 @@
             </div>
             
             <button
-              v-if="authStore.isAdmin"
-              @click="goToAdmin"
-              class="text-blue-500 hover:text-blue-700 mr-4"
-              title="Administration"
-            >
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-            
-            <button
               @click="handleLogout"
               class="text-gray-500 hover:text-gray-700"
               title="Logout"
@@ -332,6 +320,88 @@
               <div class="mt-3 p-2 bg-gray-50 border border-gray-200 rounded-md">
                 <p class="text-xs text-gray-600">
                   <span class="font-medium">💡 Theme Info:</span> Visual styling only - all functionality remains the same
+                </p>
+              </div>
+            </div>
+
+            <!-- User Management (Super User Only) -->
+            <div v-if="authStore.isSuperUser" class="border rounded-lg p-4 bg-gradient-to-r from-purple-50 to-blue-50">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-md font-medium text-gray-800">👑 User Management</h4>
+                <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">Super User</span>
+              </div>
+              
+              <!-- Loading state -->
+              <div v-if="usersLoading" class="text-center py-4">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent"></div>
+                <p class="mt-2 text-sm text-gray-600">Chargement...</p>
+              </div>
+
+              <!-- Error state -->
+              <div v-else-if="usersError" class="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                <p class="text-sm text-red-700">{{ usersError }}</p>
+                <button @click="loadAllUsers" class="mt-2 text-sm text-red-600 hover:text-red-800 underline">
+                  Réessayer
+                </button>
+              </div>
+
+              <!-- Users list -->
+              <div v-else class="space-y-3">
+                <div v-for="user in allUsers" :key="user.id" 
+                     class="bg-white rounded-lg p-3 border border-gray-200 hover:border-purple-300 transition-colors">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-gray-900">{{ user.name }}</span>
+                        <span v-if="user.email === 'admin@maplyo.com'" 
+                              class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                          Protégé
+                        </span>
+                      </div>
+                      <p class="text-sm text-gray-600">{{ user.email }}</p>
+                      <p v-if="user.company" class="text-xs text-gray-500">{{ user.company }}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <select
+                        v-model="user.role"
+                        @change="updateUserRole(user)"
+                        :disabled="user.email === 'admin@maplyo.com' || updatingUserId === user.id"
+                        class="text-sm border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 py-1"
+                        :class="{
+                          'bg-gray-100 cursor-not-allowed': user.email === 'admin@maplyo.com',
+                          'opacity-50': updatingUserId === user.id
+                        }"
+                      >
+                        <option value="user">👤 User</option>
+                        <option value="admin">⭐ Admin</option>
+                        <option value="super_user">👑 Super User</option>
+                      </select>
+                      <button
+                        v-if="user.email !== 'admin@maplyo.com'"
+                        @click="confirmDeleteUser(user)"
+                        :disabled="deletingUserId === user.id"
+                        class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 disabled:opacity-50"
+                        title="Supprimer"
+                      >
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="allUsers.length === 0" class="text-center py-4 text-gray-500 text-sm">
+                  Aucun utilisateur trouvé
+                </div>
+              </div>
+
+              <!-- Role info -->
+              <div class="mt-3 p-2 bg-purple-50 border border-purple-200 rounded-md">
+                <p class="text-xs text-purple-800">
+                  <strong>Super User :</strong> Gestion complète • 
+                  <strong>Admin :</strong> Accès étendu • 
+                  <strong>User :</strong> Accès standard
                 </p>
               </div>
             </div>
@@ -818,7 +888,7 @@ import GlobalTodoPanel from '@/components/GlobalTodoPanel.vue'
 import FunnelProspectModal from '@/components/FunnelProspectModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import ForecastModal from '@/components/ForecastModal.vue'
-import api, { profileAPI } from '@/services/api'
+import api, { profileAPI, usersAPI } from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -855,6 +925,14 @@ const currentTheme = ref('default') // 'default' or 'retro'
 const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
+
+// User Management (Super User)
+const allUsers = ref([])
+const usersLoading = ref(false)
+const usersError = ref(null)
+const updatingUserId = ref(null)
+const deletingUserId = ref(null)
+const userToDelete = ref(null)
 
 // Closing Lead Time Settings
 const closingLeadTimes = ref({
@@ -1226,6 +1304,69 @@ async function openSystemSettings() {
   
   // Load closing lead times
   await loadClosingLeadTimes()
+  
+  // Load all users if super user
+  if (authStore.isSuperUser) {
+    await loadAllUsers()
+  }
+}
+
+// User Management functions (Super User only)
+async function loadAllUsers() {
+  usersLoading.value = true
+  usersError.value = null
+  
+  try {
+    const response = await usersAPI.getAll()
+    allUsers.value = response.data
+  } catch (err) {
+    console.error('Error loading users:', err)
+    usersError.value = err.response?.data?.error || 'Erreur lors du chargement des utilisateurs'
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+async function updateUserRole(user) {
+  updatingUserId.value = user.id
+  
+  try {
+    await usersAPI.updateRole(user.id, user.role)
+    console.log(`✅ Role updated for user ${user.id} to ${user.role}`)
+  } catch (err) {
+    console.error('Error updating user role:', err)
+    usersError.value = err.response?.data?.error || 'Erreur lors de la mise à jour du rôle'
+    // Reload users to reset the role value
+    await loadAllUsers()
+  } finally {
+    updatingUserId.value = null
+  }
+}
+
+function confirmDeleteUser(user) {
+  if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.name} (${user.email}) ?\n\nCette action est irréversible et supprimera toutes les données associées.`)) {
+    deleteUserAccount(user)
+  }
+}
+
+async function deleteUserAccount(user) {
+  deletingUserId.value = user.id
+  
+  try {
+    await usersAPI.delete(user.id)
+    console.log(`✅ User ${user.id} deleted`)
+    // Remove user from list
+    allUsers.value = allUsers.value.filter(u => u.id !== user.id)
+    systemMessage.value = `Utilisateur ${user.name} supprimé avec succès`
+    systemMessageType.value = 'success'
+  } catch (err) {
+    console.error('Error deleting user:', err)
+    usersError.value = err.response?.data?.error || 'Erreur lors de la suppression de l\'utilisateur'
+    systemMessage.value = usersError.value
+    systemMessageType.value = 'error'
+  } finally {
+    deletingUserId.value = null
+  }
 }
 
 function closeSystemSettings() {
