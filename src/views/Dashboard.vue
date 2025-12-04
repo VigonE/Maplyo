@@ -257,9 +257,12 @@
               </div>
             </div>
 
-            <!-- Theme Settings -->
-            <div class="border rounded-lg p-4">
-              <h4 class="text-md font-medium text-gray-800 mb-3">🎨 Theme Settings</h4>
+            <!-- Theme Settings (Super User Only) -->
+            <div v-if="authStore.isSuperUser" class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-md font-medium text-gray-800">🎨 Theme Settings</h4>
+                <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">Super User</span>
+              </div>
               
               <div class="space-y-3">
                 <div class="flex items-center space-x-3">
@@ -406,9 +409,12 @@
               </div>
             </div>
 
-            <!-- Database Operations -->
-            <div class="border rounded-lg p-4">
-              <h4 class="text-md font-medium text-gray-800 mb-3">Database Operations</h4>
+            <!-- Database Operations (Super User Only) -->
+            <div v-if="authStore.isSuperUser" class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-md font-medium text-gray-800">Database Operations</h4>
+                <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">Super User</span>
+              </div>
               
               <!-- Export Database -->
               <div class="space-y-2">
@@ -617,9 +623,12 @@
               </div>
             </div>
 
-            <!-- Danger Zone -->
-            <div class="border border-red-200 rounded-lg p-4 bg-red-50">
-              <h4 class="text-md font-medium text-red-800 mb-3">🚨 Danger Zone</h4>
+            <!-- Danger Zone (Super User Only) -->
+            <div v-if="authStore.isSuperUser" class="border border-red-200 rounded-lg p-4 bg-red-50">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-md font-medium text-red-800">🚨 Danger Zone</h4>
+                <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">Super User</span>
+              </div>
               
               <div class="space-y-2">
                 <button
