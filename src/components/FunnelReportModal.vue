@@ -149,9 +149,398 @@
             </div>
           </div>
 
-          <!-- Timeline Chart -->
+          <!-- Main Evolution Chart -->
           <div class="bg-white border border-gray-200 rounded-lg p-6">
-            <h4 class="text-lg font-semibold text-gray-900 mb-4">Activity Timeline</h4>
+            <div class="flex justify-between items-start mb-6">
+              <div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">📈 Funnel Evolution</h4>
+                <p class="text-sm text-gray-500">Click on metrics to show/hide curves</p>
+              </div>
+              
+              <!-- Metric Toggles -->
+              <div class="flex flex-col gap-2">
+                <button
+                  @click="toggleMetric('newProspects')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleMetrics.newProspects 
+                      ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleMetrics.newProspects ? 'bg-blue-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <span>New Prospects</span>
+                </button>
+                
+                <button
+                  @click="toggleMetric('revenue')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleMetrics.revenue 
+                      ? 'bg-green-100 text-green-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleMetrics.revenue ? 'bg-green-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span>Revenue</span>
+                </button>
+                
+                <button
+                  @click="toggleMetric('conversion')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleMetrics.conversion 
+                      ? 'bg-orange-100 text-orange-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleMetrics.conversion ? 'bg-orange-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <span>Conversion %</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="relative" style="height: 400px;">
+              <svg class="w-full h-full" viewBox="0 0 1000 350" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line v-for="i in 7" :key="'grid-main-' + i" 
+                  :x1="0" :y1="i * 50" :x2="1000" :y2="i * 50" 
+                  stroke="#f3f4f6" stroke-width="1" />
+                
+                <line v-for="i in 10" :key="'grid-vert-' + i" 
+                  :x1="i * 100" :y1="0" :x2="i * 100" :y2="350" 
+                  stroke="#f9fafb" stroke-width="1" />
+                
+                <!-- New Prospects Area (if visible) -->
+                <path 
+                  v-if="visibleMetrics.newProspects"
+                  :d="getMainChartAreaPath('newCount')"
+                  fill="url(#gradientNewProspects)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Revenue Area (if visible) -->
+                <path 
+                  v-if="visibleMetrics.revenue"
+                  :d="getMainChartAreaPath('revenue')"
+                  fill="url(#gradientRevenueMain)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- New Prospects Line (if visible) -->
+                <path 
+                  v-if="visibleMetrics.newProspects"
+                  :d="getMainChartLinePath('newCount')"
+                  stroke="#3b82f6"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));"
+                />
+                
+                <!-- Revenue Line (if visible) -->
+                <path 
+                  v-if="visibleMetrics.revenue"
+                  :d="getMainChartLinePath('revenue')"
+                  stroke="#10b981"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));"
+                />
+                
+                <!-- Conversion Line (if visible) -->
+                <path 
+                  v-if="visibleMetrics.conversion"
+                  :d="getConversionMainLinePath()"
+                  stroke="#f59e0b"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-dasharray="8,4"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3));"
+                />
+                
+                <!-- Data points for New Prospects -->
+                <g v-if="visibleMetrics.newProspects">
+                  <circle 
+                    v-for="(point, index) in reportData.timeline" 
+                    :key="'point-new-' + index"
+                    :cx="(index / (reportData.timeline.length - 1)) * 1000"
+                    :cy="350 - ((point.newCount / reportData.maxNewCount) * 310 + 20)"
+                    r="4"
+                    fill="#3b82f6"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showTooltip($event, point, 'newCount')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Revenue -->
+                <g v-if="visibleMetrics.revenue">
+                  <circle 
+                    v-for="(point, index) in reportData.timeline" 
+                    :key="'point-rev-' + index"
+                    :cx="(index / (reportData.timeline.length - 1)) * 1000"
+                    :cy="350 - ((point.revenue / reportData.maxRevenue) * 310 + 20)"
+                    r="4"
+                    fill="#10b981"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showTooltip($event, point, 'revenue')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Conversion -->
+                <g v-if="visibleMetrics.conversion">
+                  <circle 
+                    v-for="(point, index) in reportData.conversionTimeline" 
+                    :key="'point-conv-' + index"
+                    :cx="(index / (reportData.conversionTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.rate / 100) * 310 + 20)"
+                    r="4"
+                    fill="#f59e0b"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showTooltip($event, point, 'conversion')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Gradient definitions -->
+                <defs>
+                  <linearGradient id="gradientNewProspects" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientRevenueMain" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#10b981;stop-opacity:0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              
+              <!-- Tooltip -->
+              <div
+                v-if="tooltip.visible"
+                :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }"
+                class="absolute pointer-events-none bg-gray-900 text-white px-3 py-2 rounded-lg text-sm shadow-lg z-10"
+              >
+                <div class="font-semibold">{{ tooltip.label }}</div>
+                <div>{{ tooltip.value }}</div>
+              </div>
+              
+              <!-- X-axis labels -->
+              <div class="flex justify-between mt-3 text-xs text-gray-500 px-2">
+                <span>{{ reportData.timeline[0]?.label }}</span>
+                <span>{{ reportData.timeline[Math.floor(reportData.timeline.length / 3)]?.label }}</span>
+                <span>{{ reportData.timeline[Math.floor(reportData.timeline.length * 2 / 3)]?.label }}</span>
+                <span>{{ reportData.timeline[reportData.timeline.length - 1]?.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-metric Evolution Chart (Hidden - using main chart instead) -->
+          <div v-if="false" class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="text-lg font-semibold text-gray-900">📊 Multi-Metric Evolution</h4>
+              <div class="flex gap-4 text-sm">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                  <span class="text-gray-600">Prospects</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span class="text-gray-600">Revenue</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span class="text-gray-600">Conversion %</span>
+                </div>
+              </div>
+            </div>
+            <div class="relative h-80">
+              <svg class="w-full h-full" viewBox="0 0 800 300" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line v-for="i in 6" :key="'grid-multi-' + i" 
+                  :x1="0" :y1="i * 50" :x2="800" :y2="i * 50" 
+                  stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,4" />
+                
+                <!-- Revenue area (normalized) -->
+                <path 
+                  :d="getMultiMetricAreaPath('revenue')"
+                  fill="url(#gradientRevenueMulti)"
+                  opacity="0.2"
+                />
+                
+                <!-- Prospects line -->
+                <path 
+                  :d="getMultiMetricLinePath('count')"
+                  stroke="#8b5cf6"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                
+                <!-- Revenue line -->
+                <path 
+                  :d="getMultiMetricLinePath('revenue')"
+                  stroke="#10b981"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                
+                <!-- Conversion line -->
+                <path 
+                  :d="getConversionMultiLinePath()"
+                  stroke="#f59e0b"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-dasharray="6,3"
+                />
+                
+                <!-- Data points for prospects -->
+                <circle 
+                  v-for="(point, index) in reportData.timeline" 
+                  :key="'point-multi-prospects-' + index"
+                  :cx="(index / (reportData.timeline.length - 1)) * 800"
+                  :cy="300 - ((point.count / reportData.maxCount) * 260 + 20)"
+                  r="5"
+                  fill="#8b5cf6"
+                  stroke="white"
+                  stroke-width="2"
+                  class="hover:r-7 transition-all cursor-pointer"
+                >
+                  <title>{{ point.label }}: {{ point.count }} prospects</title>
+                </circle>
+                
+                <!-- Data points for revenue -->
+                <circle 
+                  v-for="(point, index) in reportData.timeline" 
+                  :key="'point-multi-revenue-' + index"
+                  :cx="(index / (reportData.timeline.length - 1)) * 800"
+                  :cy="300 - ((point.revenue / reportData.maxRevenue) * 260 + 20)"
+                  r="5"
+                  fill="#10b981"
+                  stroke="white"
+                  stroke-width="2"
+                  class="hover:r-7 transition-all cursor-pointer"
+                >
+                  <title>{{ point.label }}: {{ formatCurrency(point.revenue) }}</title>
+                </circle>
+                
+                <!-- Gradient definition -->
+                <defs>
+                  <linearGradient id="gradientRevenueMulti" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#10b981;stop-opacity:0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              
+              <!-- X-axis labels -->
+              <div class="flex justify-between mt-2 text-xs text-gray-500">
+                <span>{{ reportData.timeline[0]?.label }}</span>
+                <span>{{ reportData.timeline[Math.floor(reportData.timeline.length / 2)]?.label }}</span>
+                <span>{{ reportData.timeline[reportData.timeline.length - 1]?.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conversion Rate Evolution Chart (Hidden - using main chart instead) -->
+          <div v-if="false" class="bg-white border border-gray-200 rounded-lg p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">🎯 Conversion Rate Evolution</h4>
+            <div class="relative h-64">
+              <svg class="w-full h-full" viewBox="0 0 800 200" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line v-for="i in 5" :key="'grid-conv-' + i" 
+                  :x1="0" :y1="i * 40" :x2="800" :y2="i * 40" 
+                  stroke="#e5e7eb" stroke-width="1" />
+                
+                <!-- Area under curve -->
+                <path 
+                  :d="getConversionAreaPath()"
+                  fill="url(#gradientConversion)"
+                  opacity="0.3"
+                />
+                
+                <!-- Line -->
+                <path 
+                  :d="getConversionLinePath()"
+                  stroke="#f59e0b"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                
+                <!-- Data points -->
+                <circle 
+                  v-for="(point, index) in reportData.conversionTimeline" 
+                  :key="'point-conv-' + index"
+                  :cx="(index / (reportData.conversionTimeline.length - 1)) * 800"
+                  :cy="200 - (point.rate * 1.8)"
+                  r="5"
+                  fill="#f59e0b"
+                  class="hover:r-7 transition-all cursor-pointer"
+                >
+                  <title>{{ point.label }}: {{ point.rate.toFixed(1) }}% conversion</title>
+                </circle>
+                
+                <!-- Gradient definition -->
+                <defs>
+                  <linearGradient id="gradientConversion" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              
+              <!-- X-axis labels -->
+              <div class="flex justify-between mt-2 text-xs text-gray-500">
+                <span>{{ reportData.conversionTimeline[0]?.label }}</span>
+                <span>{{ reportData.conversionTimeline[Math.floor(reportData.conversionTimeline.length / 2)]?.label }}</span>
+                <span>{{ reportData.conversionTimeline[reportData.conversionTimeline.length - 1]?.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Timeline (Bars) -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">📊 Activity Timeline</h4>
             <div class="space-y-3">
               <div v-for="(period, index) in reportData.timeline" :key="index" class="flex items-center gap-4">
                 <div class="w-24 text-sm text-gray-600">{{ period.label }}</div>
@@ -264,6 +653,22 @@ const customStartDate = ref('')
 const customEndDate = ref('')
 const reportData = ref(null)
 
+// Visible metrics for the main chart
+const visibleMetrics = ref({
+  newProspects: true,
+  revenue: true,
+  conversion: true
+})
+
+// Tooltip state
+const tooltip = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  label: '',
+  value: ''
+})
+
 const statusLabels = {
   'cold': 'Cold Lead',
   'warm': 'Warm Lead',
@@ -272,6 +677,34 @@ const statusLabels = {
   'negotiation': 'Negotiation',
   'closed-won': 'Closed Won',
   'closed-lost': 'Closed Lost'
+}
+
+function toggleMetric(metric) {
+  visibleMetrics.value[metric] = !visibleMetrics.value[metric]
+}
+
+function showTooltip(event, point, type) {
+  const rect = event.target.getBoundingClientRect()
+  const container = event.target.closest('.relative')
+  const containerRect = container.getBoundingClientRect()
+  
+  tooltip.value.x = rect.left - containerRect.left + rect.width / 2
+  tooltip.value.y = rect.top - containerRect.top - 40
+  tooltip.value.label = point.label
+  
+  if (type === 'newCount') {
+    tooltip.value.value = `+${point.newCount} new prospects`
+  } else if (type === 'revenue') {
+    tooltip.value.value = formatCurrency(point.revenue)
+  } else if (type === 'conversion') {
+    tooltip.value.value = `${point.rate.toFixed(1)}% conversion`
+  }
+  
+  tooltip.value.visible = true
+}
+
+function hideTooltip() {
+  tooltip.value.visible = false
 }
 
 watch(() => props.isVisible, (newVal) => {
@@ -360,6 +793,9 @@ async function generateReport() {
 
     // Generate timeline
     const timeline = generateTimeline(filteredProspects, startDate, endDate)
+    
+    // Generate conversion timeline
+    const conversionTimeline = generateConversionTimeline(filteredProspects, startDate, endDate, timeline.length)
 
     // Top revenue prospects
     const topRevenue = [...filteredProspects]
@@ -397,7 +833,10 @@ async function generateReport() {
       },
       stages,
       timeline,
+      conversionTimeline,
       maxCount: Math.max(...timeline.map(t => t.count), 1),
+      maxNewCount: Math.max(...timeline.map(t => t.newCount), 1),
+      maxRevenue: Math.max(...timeline.map(t => t.revenue), 1),
       topRevenue,
       recentActivity
     }
@@ -419,6 +858,38 @@ function generateTimeline(prospects, startDate, endDate) {
 
   const intervalDuration = daysDiff / intervals
   const timeline = []
+  let cumulativeCount = 0
+
+  for (let i = 0; i < intervals; i++) {
+    const intervalStart = new Date(startDate.getTime() + i * intervalDuration * 24 * 60 * 60 * 1000)
+    const intervalEnd = new Date(startDate.getTime() + (i + 1) * intervalDuration * 24 * 60 * 60 * 1000)
+    
+    // Prospects created in this interval
+    const intervalProspects = prospects.filter(p => {
+      const pDate = new Date(p.created_at || p.updated_at || Date.now())
+      return pDate >= intervalStart && pDate < intervalEnd
+    })
+    
+    // New prospects added in this period
+    const newCount = intervalProspects.length
+    cumulativeCount += newCount
+
+    timeline.push({
+      label: formatPeriodLabel(intervalStart, daysDiff),
+      count: intervalProspects.length, // Prospects in this period
+      newCount: newCount, // New prospects added
+      totalCount: cumulativeCount, // Cumulative total
+      revenue: intervalProspects.reduce((sum, p) => sum + (parseFloat(p.revenue) || 0), 0)
+    })
+  }
+
+  return timeline
+}
+
+function generateConversionTimeline(prospects, startDate, endDate, intervals) {
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+  const intervalDuration = daysDiff / intervals
+  const conversionTimeline = []
 
   for (let i = 0; i < intervals; i++) {
     const intervalStart = new Date(startDate.getTime() + i * intervalDuration * 24 * 60 * 60 * 1000)
@@ -429,14 +900,18 @@ function generateTimeline(prospects, startDate, endDate) {
       return pDate >= intervalStart && pDate < intervalEnd
     })
 
-    timeline.push({
+    const wonProspects = intervalProspects.filter(p => p.status === 'closed-won').length
+    const rate = intervalProspects.length > 0 ? (wonProspects / intervalProspects.length) * 100 : 0
+
+    conversionTimeline.push({
       label: formatPeriodLabel(intervalStart, daysDiff),
-      count: intervalProspects.length,
-      revenue: intervalProspects.reduce((sum, p) => sum + (parseFloat(p.revenue) || 0), 0)
+      rate: rate,
+      won: wonProspects,
+      total: intervalProspects.length
     })
   }
 
-  return timeline
+  return conversionTimeline
 }
 
 function formatPeriodLabel(date, daysDiff) {
@@ -460,6 +935,152 @@ function getStageColor(status) {
     'closed-lost': 'bg-red-500'
   }
   return colors[status] || 'bg-gray-500'
+}
+
+function getLinePath(timeline, metric) {
+  if (!timeline || timeline.length === 0) return ''
+  
+  const maxValue = metric === 'count' 
+    ? reportData.value.maxCount 
+    : reportData.value.maxRevenue
+  
+  const points = timeline.map((point, index) => {
+    const x = (index / (timeline.length - 1)) * 400
+    const y = 200 - (point[metric] / maxValue * 180)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+function getAreaPath(timeline, metric) {
+  if (!timeline || timeline.length === 0) return ''
+  
+  const maxValue = metric === 'count' 
+    ? reportData.value.maxCount 
+    : reportData.value.maxRevenue
+  
+  const points = timeline.map((point, index) => {
+    const x = (index / (timeline.length - 1)) * 400
+    const y = 200 - (point[metric] / maxValue * 180)
+    return `${x},${y}`
+  })
+  
+  return `M 0,200 L ${points.join(' L ')} L 400,200 Z`
+}
+
+function getConversionLinePath() {
+  if (!reportData.value?.conversionTimeline || reportData.value.conversionTimeline.length === 0) return ''
+  
+  const points = reportData.value.conversionTimeline.map((point, index) => {
+    const x = (index / (reportData.value.conversionTimeline.length - 1)) * 800
+    const y = 200 - (point.rate * 1.8)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+function getConversionAreaPath() {
+  if (!reportData.value?.conversionTimeline || reportData.value.conversionTimeline.length === 0) return ''
+  
+  const points = reportData.value.conversionTimeline.map((point, index) => {
+    const x = (index / (reportData.value.conversionTimeline.length - 1)) * 800
+    const y = 200 - (point.rate * 1.8)
+    return `${x},${y}`
+  })
+  
+  return `M 0,200 L ${points.join(' L ')} L 800,200 Z`
+}
+
+function getMultiMetricLinePath(metric) {
+  if (!reportData.value?.timeline || reportData.value.timeline.length === 0) return ''
+  
+  const maxValue = metric === 'count' 
+    ? reportData.value.maxCount 
+    : reportData.value.maxRevenue
+  
+  const points = reportData.value.timeline.map((point, index) => {
+    const x = (index / (reportData.value.timeline.length - 1)) * 800
+    const y = 300 - ((point[metric] / maxValue) * 260 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+function getMultiMetricAreaPath(metric) {
+  if (!reportData.value?.timeline || reportData.value.timeline.length === 0) return ''
+  
+  const maxValue = metric === 'count' 
+    ? reportData.value.maxCount 
+    : reportData.value.maxRevenue
+  
+  const points = reportData.value.timeline.map((point, index) => {
+    const x = (index / (reportData.value.timeline.length - 1)) * 800
+    const y = 300 - ((point[metric] / maxValue) * 260 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M 0,300 L ${points.join(' L ')} L 800,300 Z`
+}
+
+function getConversionMultiLinePath() {
+  if (!reportData.value?.conversionTimeline || reportData.value.conversionTimeline.length === 0) return ''
+  
+  const points = reportData.value.conversionTimeline.map((point, index) => {
+    const x = (index / (reportData.value.conversionTimeline.length - 1)) * 800
+    // Scale conversion rate (0-100%) to fit the chart (with 20px padding)
+    const y = 300 - ((point.rate / 100) * 260 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+// Main chart functions (for the big unified chart)
+function getMainChartLinePath(metric) {
+  if (!reportData.value?.timeline || reportData.value.timeline.length === 0) return ''
+  
+  const maxValue = metric === 'newCount' 
+    ? reportData.value.maxNewCount 
+    : reportData.value.maxRevenue
+  
+  const points = reportData.value.timeline.map((point, index) => {
+    const x = (index / (reportData.value.timeline.length - 1)) * 1000
+    const y = 350 - ((point[metric] / maxValue) * 310 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+function getMainChartAreaPath(metric) {
+  if (!reportData.value?.timeline || reportData.value.timeline.length === 0) return ''
+  
+  const maxValue = metric === 'newCount' 
+    ? reportData.value.maxNewCount 
+    : reportData.value.maxRevenue
+  
+  const points = reportData.value.timeline.map((point, index) => {
+    const x = (index / (reportData.value.timeline.length - 1)) * 1000
+    const y = 350 - ((point[metric] / maxValue) * 310 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M 0,350 L ${points.join(' L ')} L 1000,350 Z`
+}
+
+function getConversionMainLinePath() {
+  if (!reportData.value?.conversionTimeline || reportData.value.conversionTimeline.length === 0) return ''
+  
+  const points = reportData.value.conversionTimeline.map((point, index) => {
+    const x = (index / (reportData.value.conversionTimeline.length - 1)) * 1000
+    const y = 350 - ((point.rate / 100) * 310 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
 }
 
 function getActivityColor(type) {
