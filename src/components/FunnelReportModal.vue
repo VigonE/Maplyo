@@ -120,6 +120,237 @@
             </div>
           </div>
 
+          <!-- Lead Categories Evolution Chart -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex justify-between items-start mb-6">
+              <div>
+                <h4 class="text-xl font-bold text-gray-900 mb-2">🌡️ Lead Categories Distribution</h4>
+                <p class="text-sm text-gray-500">Total number of leads in each category (absolute values)</p>
+              </div>
+              
+              <!-- Category Toggles -->
+              <div class="flex flex-col gap-2">
+                <button
+                  @click="toggleCategory('cold')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.cold 
+                      ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.cold ? 'bg-blue-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span>Cold Leads</span>
+                </button>
+                
+                <button
+                  @click="toggleCategory('warm')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.warm 
+                      ? 'bg-yellow-100 text-yellow-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.warm ? 'bg-yellow-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <span>Warm Leads</span>
+                </button>
+                
+                <button
+                  @click="toggleCategory('hot')"
+                  :class="[
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm font-medium',
+                    visibleCategories.hot 
+                      ? 'bg-orange-100 text-orange-700 shadow-sm' 
+                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-8 h-0.5 rounded-full', visibleCategories.hot ? 'bg-orange-500' : 'bg-gray-400']"></div>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                    </svg>
+                  </div>
+                  <span>Hot Leads</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="relative" style="height: 400px;">
+              <svg class="w-full h-full" viewBox="0 0 1000 350" preserveAspectRatio="none">
+                <!-- Grid lines -->
+                <line v-for="i in 7" :key="'grid-cat-' + i" 
+                  :x1="0" :y1="i * 50" :x2="1000" :y2="i * 50" 
+                  stroke="#f3f4f6" stroke-width="1" />
+                
+                <line v-for="i in 10" :key="'grid-cat-vert-' + i" 
+                  :x1="i * 100" :y1="0" :x2="i * 100" :y2="350" 
+                  stroke="#f9fafb" stroke-width="1" />
+                
+                <!-- Cold Leads Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.cold"
+                  :d="getCategoryAreaPath('cold')"
+                  fill="url(#gradientCold)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Warm Leads Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.warm"
+                  :d="getCategoryAreaPath('warm')"
+                  fill="url(#gradientWarm)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Hot Leads Area (if visible) -->
+                <path 
+                  v-if="visibleCategories.hot"
+                  :d="getCategoryAreaPath('hot')"
+                  fill="url(#gradientHot)"
+                  opacity="0.15"
+                  class="transition-opacity duration-300"
+                />
+                
+                <!-- Cold Leads Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.cold"
+                  :d="getCategoryLinePath('cold')"
+                  stroke="#3b82f6"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));"
+                />
+                
+                <!-- Warm Leads Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.warm"
+                  :d="getCategoryLinePath('warm')"
+                  stroke="#eab308"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(234, 179, 8, 0.3));"
+                />
+                
+                <!-- Hot Leads Line (if visible) -->
+                <path 
+                  v-if="visibleCategories.hot"
+                  :d="getCategoryLinePath('hot')"
+                  stroke="#f97316"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all duration-300"
+                  style="filter: drop-shadow(0 2px 4px rgba(249, 115, 22, 0.3));"
+                />
+                
+                <!-- Data points for Cold Leads -->
+                <g v-if="visibleCategories.cold">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-cold-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.cold / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#3b82f6"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'cold')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Warm Leads -->
+                <g v-if="visibleCategories.warm">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-warm-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.warm / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#eab308"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'warm')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Data points for Hot Leads -->
+                <g v-if="visibleCategories.hot">
+                  <circle 
+                    v-for="(point, index) in reportData.categoryTimeline" 
+                    :key="'point-hot-' + index"
+                    :cx="(index / (reportData.categoryTimeline.length - 1)) * 1000"
+                    :cy="350 - ((point.hot / reportData.maxCategoryCount) * 310 + 20)"
+                    r="4"
+                    fill="#f97316"
+                    stroke="white"
+                    stroke-width="2"
+                    class="hover:r-6 transition-all cursor-pointer"
+                    @mouseenter="showCategoryTooltip($event, point, 'hot')"
+                    @mouseleave="hideTooltip"
+                  />
+                </g>
+                
+                <!-- Gradient definitions -->
+                <defs>
+                  <linearGradient id="gradientCold" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientWarm" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#eab308;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#eab308;stop-opacity:0" />
+                  </linearGradient>
+                  <linearGradient id="gradientHot" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#f97316;stop-opacity:0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              
+              <!-- Tooltip -->
+              <div
+                v-if="tooltip.visible"
+                :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }"
+                class="absolute pointer-events-none bg-gray-900 text-white px-3 py-2 rounded-lg text-sm shadow-lg z-10"
+              >
+                <div class="font-semibold">{{ tooltip.label }}</div>
+                <div>{{ tooltip.value }}</div>
+              </div>
+              
+              <!-- X-axis labels -->
+              <div class="flex justify-between mt-3 text-xs text-gray-500 px-2">
+                <span>{{ reportData.categoryTimeline[0]?.label }}</span>
+                <span>{{ reportData.categoryTimeline[Math.floor(reportData.categoryTimeline.length / 3)]?.label }}</span>
+                <span>{{ reportData.categoryTimeline[Math.floor(reportData.categoryTimeline.length * 2 / 3)]?.label }}</span>
+                <span>{{ reportData.categoryTimeline[reportData.categoryTimeline.length - 1]?.label }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Funnel Stage Evolution -->
           <div class="bg-white border border-gray-200 rounded-lg p-6">
             <h4 class="text-lg font-semibold text-gray-900 mb-4">Funnel Stage Distribution</h4>
@@ -660,6 +891,13 @@ const visibleMetrics = ref({
   conversion: true
 })
 
+// Visible categories for the category chart
+const visibleCategories = ref({
+  cold: true,
+  warm: true,
+  hot: true
+})
+
 // Tooltip state
 const tooltip = ref({
   visible: false,
@@ -681,6 +919,10 @@ const statusLabels = {
 
 function toggleMetric(metric) {
   visibleMetrics.value[metric] = !visibleMetrics.value[metric]
+}
+
+function toggleCategory(category) {
+  visibleCategories.value[category] = !visibleCategories.value[category]
 }
 
 function showTooltip(event, point, type) {
@@ -705,6 +947,25 @@ function showTooltip(event, point, type) {
 
 function hideTooltip() {
   tooltip.value.visible = false
+}
+
+function showCategoryTooltip(event, point, category) {
+  const rect = event.target.getBoundingClientRect()
+  const container = event.target.closest('.relative')
+  const containerRect = container.getBoundingClientRect()
+  
+  tooltip.value.x = rect.left - containerRect.left + rect.width / 2
+  tooltip.value.y = rect.top - containerRect.top - 40
+  tooltip.value.label = point.label
+  
+  const categoryLabels = {
+    cold: 'Cold Leads',
+    warm: 'Warm Leads',
+    hot: 'Hot Leads'
+  }
+  
+  tooltip.value.value = `${point[category]} ${categoryLabels[category]}`
+  tooltip.value.visible = true
 }
 
 watch(() => props.isVisible, (newVal) => {
@@ -796,6 +1057,9 @@ async function generateReport() {
     
     // Generate conversion timeline
     const conversionTimeline = generateConversionTimeline(filteredProspects, startDate, endDate, timeline.length)
+    
+    // Generate category timeline (cold, warm, hot)
+    const categoryTimeline = generateCategoryTimeline(filteredProspects, startDate, endDate, timeline.length)
 
     // Top revenue prospects
     const topRevenue = [...filteredProspects]
@@ -834,9 +1098,14 @@ async function generateReport() {
       stages,
       timeline,
       conversionTimeline,
+      categoryTimeline,
       maxCount: Math.max(...timeline.map(t => t.count), 1),
       maxNewCount: Math.max(...timeline.map(t => t.newCount), 1),
       maxRevenue: Math.max(...timeline.map(t => t.revenue), 1),
+      maxCategoryCount: Math.max(
+        ...categoryTimeline.map(t => Math.max(t.cold, t.warm, t.hot)),
+        1
+      ),
       topRevenue,
       recentActivity
     }
@@ -912,6 +1181,40 @@ function generateConversionTimeline(prospects, startDate, endDate, intervals) {
   }
 
   return conversionTimeline
+}
+
+function generateCategoryTimeline(prospects, startDate, endDate, intervals) {
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+  const intervalDuration = daysDiff / intervals
+  const categoryTimeline = []
+
+  for (let i = 0; i < intervals; i++) {
+    const intervalStart = new Date(startDate.getTime() + i * intervalDuration * 24 * 60 * 60 * 1000)
+    const intervalEnd = new Date(startDate.getTime() + (i + 1) * intervalDuration * 24 * 60 * 60 * 1000)
+    
+    // Count ALL prospects that exist up to this point in time and are in each category
+    // (regardless of when they were created, we count their current status)
+    const prospectsAtThisTime = prospects.filter(p => {
+      const pDate = new Date(p.created_at || p.updated_at || Date.now())
+      // Include prospects created before or during this interval
+      return pDate <= intervalEnd
+    })
+
+    // Count prospects by their CURRENT category status
+    const coldCount = prospectsAtThisTime.filter(p => p.status === 'cold').length
+    const warmCount = prospectsAtThisTime.filter(p => p.status === 'warm').length
+    const hotCount = prospectsAtThisTime.filter(p => p.status === 'hot').length
+
+    categoryTimeline.push({
+      label: formatPeriodLabel(intervalStart, daysDiff),
+      cold: coldCount,
+      warm: warmCount,
+      hot: hotCount,
+      total: prospectsAtThisTime.length
+    })
+  }
+
+  return categoryTimeline
 }
 
 function formatPeriodLabel(date, daysDiff) {
@@ -1081,6 +1384,31 @@ function getConversionMainLinePath() {
   })
   
   return `M ${points.join(' L ')}`
+}
+
+// Category chart functions
+function getCategoryLinePath(category) {
+  if (!reportData.value?.categoryTimeline || reportData.value.categoryTimeline.length === 0) return ''
+  
+  const points = reportData.value.categoryTimeline.map((point, index) => {
+    const x = (index / (reportData.value.categoryTimeline.length - 1)) * 1000
+    const y = 350 - ((point[category] / reportData.value.maxCategoryCount) * 310 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M ${points.join(' L ')}`
+}
+
+function getCategoryAreaPath(category) {
+  if (!reportData.value?.categoryTimeline || reportData.value.categoryTimeline.length === 0) return ''
+  
+  const points = reportData.value.categoryTimeline.map((point, index) => {
+    const x = (index / (reportData.value.categoryTimeline.length - 1)) * 1000
+    const y = 350 - ((point[category] / reportData.value.maxCategoryCount) * 310 + 20)
+    return `${x},${y}`
+  })
+  
+  return `M 0,350 L ${points.join(' L ')} L 1000,350 Z`
 }
 
 function getActivityColor(type) {
