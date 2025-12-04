@@ -609,16 +609,14 @@
                   </div>
                 </div>
 
-                <!-- Save Button -->
-                <div class="pt-3 border-t border-gray-200">
-                  <button
-                    @click="saveClosingLeadTimes"
-                    :disabled="leadTimeLoading"
-                    class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div v-if="leadTimeLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {{ leadTimeLoading ? 'Saving...' : 'Save Lead Time Settings' }}
-                  </button>
+                <!-- Auto-save info -->
+                <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p class="text-xs text-blue-800">
+                    <svg class="inline h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                    Changes will be saved when you close this window
+                  </p>
                 </div>
               </div>
             </div>
@@ -1378,7 +1376,10 @@ async function deleteUserAccount(user) {
   }
 }
 
-function closeSystemSettings() {
+async function closeSystemSettings() {
+  // Sauvegarder les lead times avant de fermer
+  await saveClosingLeadTimes()
+  
   showSystemSettings.value = false
   showChangePassword.value = false
   passwordForm.value = {
@@ -1678,8 +1679,7 @@ async function loadClosingLeadTimes() {
 }
 
 async function saveClosingLeadTimes() {
-  leadTimeLoading.value = true
-  systemMessage.value = ''
+  // Sauvegarde silencieuse sans spinner ni message de succès
   
   try {
     const payload = {
@@ -1693,7 +1693,7 @@ async function saveClosingLeadTimes() {
       recurringProbability: Number(closingLeadTimes.value.recurringProbability || 0)
     }
     
-    console.log('📤 Sending lead times payload:', payload)
+    console.log('💾 Auto-saving lead times:', payload)
     
     const response = await fetch('/api/settings/closing-lead-times', {
       method: 'POST',
@@ -1707,19 +1707,16 @@ async function saveClosingLeadTimes() {
     const data = await response.json()
     
     if (data.success) {
-      systemMessage.value = 'Closing lead time settings saved successfully!'
-      systemMessageType.value = 'success'
-      // Reload settings to confirm they were saved correctly
-      await loadClosingLeadTimes()
+      console.log('✅ Lead times saved successfully')
+      // Pas de message de succès pour éviter le spam
     } else {
       throw new Error(data.error || 'Failed to save settings')
     }
   } catch (error) {
-    console.error('Error saving closing lead times:', error)
-    systemMessage.value = 'Error saving closing lead time settings: ' + error.message
+    console.error('❌ Error saving closing lead times:', error)
+    // Afficher seulement en cas d'erreur
+    systemMessage.value = 'Failed to save lead time settings'
     systemMessageType.value = 'error'
-  } finally {
-    leadTimeLoading.value = false
   }
 }
 
