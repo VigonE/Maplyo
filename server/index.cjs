@@ -627,10 +627,13 @@ app.post('/api/register', async (req, res) => {
         // Hasher le mot de passe
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Créer l'utilisateur (rôle 'user' par défaut)
+        // Déterminer le rôle : super_user pour admin@maplyo.com, sinon 'user'
+        const userRole = email.toLowerCase() === 'admin@maplyo.com' ? 'super_user' : 'user';
+
+        // Créer l'utilisateur
         db.run(
           'INSERT INTO users (email, password, name, company, role) VALUES (?, ?, ?, ?, ?)',
-          [email, hashedPassword, name, company || '', 'user'],
+          [email, hashedPassword, name, company || '', userRole],
           function(err) {
             if (err) {
               console.error('Database error:', err);
@@ -643,7 +646,7 @@ app.post('/api/register', async (req, res) => {
                 userId: this.lastID, 
                 email: email,
                 name: name,
-                role: 'user'
+                role: userRole
               },
               process.env.JWT_SECRET || 'your-secret-key',
               { expiresIn: '365d' }
@@ -652,7 +655,7 @@ app.post('/api/register', async (req, res) => {
             // Créer les onglets par défaut pour le nouvel utilisateur
             createDefaultTabsForUser(this.lastID);
 
-            console.log('✅ User registered successfully:', email);
+            console.log('✅ User registered successfully:', email, 'with role:', userRole);
             res.status(201).json({
               message: 'User registered successfully',
               token: token,
@@ -661,7 +664,7 @@ app.post('/api/register', async (req, res) => {
                 email: email,
                 name: name,
                 company: company || '',
-                role: 'user'
+                role: userRole
               }
             });
           }

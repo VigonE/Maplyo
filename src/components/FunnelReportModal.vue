@@ -1429,11 +1429,6 @@ function generateCategoryTimeline(prospects, startDate, endDate, intervals) {
         }
       }
     })
-    
-    // Log only the last interval (today's values)
-    if (i === intervals - 1) {
-      console.log(`📊 [${formatPeriodLabel(intervalEnd, daysDiff)}] Total: ${totalCount}, Cold: ${statusCounts.cold}, Warm: ${statusCounts.warm}, Hot: ${statusCounts.hot}, Won: ${statusCounts.won}, Lost: ${statusCounts.lost}, Recurring: ${statusCounts.recurring}`)
-    }
 
     categoryTimeline.push({
       label: formatPeriodLabel(intervalStart, daysDiff),
