@@ -24,7 +24,7 @@
           </button>
           <!-- Bouton Add seulement visible en mode liste -->
           <button
-            v-if="viewMode === 'list'"
+            v-if="viewMode === 'list' && !isReadOnly"
             @click="addProspectWithStatus('cold')"
             class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
           >
@@ -155,17 +155,18 @@
           >
             <draggable
               :model-value="getProspectsByStatus(status)"
-              :group="{ name: 'leads', pull: true, put: true }"
+              :group="isReadOnly ? false : { name: 'leads', pull: true, put: true }"
               item-key="id"
               @end="onStatusChange"
-              @dragover.prevent="isDragOverCategory = status"
+              @dragover.prevent="!isReadOnly && (isDragOverCategory = status)"
               @dragleave="isDragOverCategory = null"
               @drop="isDragOverCategory = null"
-              handle=".drag-handle"
+              :handle="isReadOnly ? null : '.drag-handle'"
               class="space-y-2"
               :animation="200"
               ghost-class="opacity-50"
               chosen-class="dragging"
+              :disabled="isReadOnly"
             >
               <template #item="{ element: prospect }">
                 <div
@@ -180,7 +181,7 @@
                   <div class="flex items-start justify-between">
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-2">
-                        <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600">
+                        <div v-if="!isReadOnly" class="drag-handle cursor-move text-gray-400 hover:text-gray-600">
                           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
                           </svg>
@@ -529,7 +530,7 @@
                       </div>
                     </div>
                     
-                    <div class="flex items-center gap-1 ml-4">
+                    <div v-if="!isReadOnly" class="flex items-center gap-1 ml-4">
                       <button
                         @click.stop="$emit('edit', prospect)"
                         class="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50"
@@ -576,6 +577,7 @@
                   <div class="w-3 h-3 rounded-full bg-blue-500"></div>
                   <h3 class="font-semibold text-blue-800">❄️ COLD</h3>
                   <button
+                    v-if="!isReadOnly"
                     @click.stop="addProspectWithStatus('cold')"
                     class="ml-2 text-blue-600 hover:text-blue-800 hover:bg-blue-200 p-1 transition-colors"
                     title="Add cold prospect"
@@ -687,6 +689,7 @@
                   <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <h3 class="font-semibold text-yellow-800">🌡️ WARM</h3>
                   <button
+                    v-if="!isReadOnly"
                     @click.stop="addProspectWithStatus('warm')"
                     class="ml-2 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 p-1 transition-colors"
                     title="Add warm prospect"
@@ -798,6 +801,7 @@
                   <div class="w-3 h-3 rounded-full bg-red-500"></div>
                   <h3 class="font-semibold text-red-800">🔥 HOT</h3>
                   <button
+                    v-if="!isReadOnly"
                     @click.stop="addProspectWithStatus('hot')"
                     class="ml-2 text-red-600 hover:text-red-800 hover:bg-red-200 p-1 transition-colors"
                     title="Add hot prospect"
@@ -913,6 +917,7 @@
                     <div class="w-3 h-3 rounded-full bg-purple-500"></div>
                     <h3 class="font-semibold text-purple-800">🔄 RECURRING</h3>
                     <button
+                      v-if="!isReadOnly"
                       @click.stop="addProspectWithStatus('recurring')"
                       class="ml-2 text-purple-600 hover:text-purple-800 hover:bg-purple-200 p-1 transition-colors"
                       title="Add recurring prospect"
@@ -1041,6 +1046,7 @@
                       <div class="w-3 h-3 rounded-full bg-green-500"></div>
                       <h3 class="font-semibold text-green-800">✅ WON</h3>
                       <button
+                        v-if="!isReadOnly"
                         @click.stop="addProspectWithStatus('won')"
                         class="ml-2 text-green-600 hover:text-green-800 hover:bg-green-200 p-1 transition-colors"
                         title="Add won prospect"
@@ -1141,6 +1147,7 @@
                       <div class="w-3 h-3 rounded-full bg-red-500"></div>
                       <h3 class="font-semibold text-red-800">❌ LOST</h3>
                       <button
+                        v-if="!isReadOnly"
                         @click.stop="addProspectWithStatus('lost')"
                         class="ml-2 text-red-600 hover:text-red-800 hover:bg-red-200 p-1 transition-colors"
                         title="Add lost prospect"
@@ -1380,6 +1387,10 @@ const props = defineProps({
       hotProbability: 80,
       recurringProbability: 30
     })
+  },
+  isReadOnly: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -2031,6 +2042,7 @@ function getStatusColor(status) {
 
 // Fonctions pour l'édition du montant directement sur la carte
 function startEditingRevenue(prospect) {
+  if (props.isReadOnly) return
   editingRevenue.value[prospect.id] = true
   tempRevenue.value[prospect.id] = prospect.revenue || 0
   
@@ -2094,6 +2106,7 @@ function handleRevenueKeydown(event, prospect) {
 
 // Fonctions pour l'édition de la probabilité directement sur la carte
 function startEditingProbability(prospect) {
+  if (props.isReadOnly) return
   editingProbability.value[prospect.id] = true
   tempProbability.value[prospect.id] = prospect.probability_coefficient !== undefined ? prospect.probability_coefficient : 100
   
@@ -2160,6 +2173,7 @@ function handleProbabilityKeydown(event, prospect) {
 
 // Fonctions pour l'édition de la date prévisionnelle
 function startEditingDate(prospect) {
+  if (props.isReadOnly) return
   editingDate.value[prospect.id] = true
   tempDate.value[prospect.id] = formatDateForInput(prospect.estimated_completion_date)
   
@@ -2292,6 +2306,7 @@ function formatFollowupDate(dateString) {
 
 // Fonctions pour l'édition des notes directement sur la carte
 function startEditingNotes(prospect) {
+  if (props.isReadOnly) return
   editingNotes.value[prospect.id] = true
   tempNotes.value[prospect.id] = prospect.notes || ''
   

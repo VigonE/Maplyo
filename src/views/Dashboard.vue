@@ -31,6 +31,7 @@
               >
                 <div class="py-1">
                   <button
+                    v-if="!isReadOnly"
                     @click="openSystemSettings"
                     class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
@@ -57,8 +58,9 @@
                     </svg>
                     📊 Funnel Report
                   </button>
-                  <div class="border-t border-gray-100"></div>
+                  <div v-if="!isReadOnly" class="border-t border-gray-100"></div>
                   <button
+                    v-if="!isReadOnly"
                     @click="triggerFileImport"
                     class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
@@ -67,6 +69,15 @@
                     </svg>
                     Import CSV
                   </button>
+                  <!-- Indicateur read-only -->
+                  <div v-if="isReadOnly" class="px-4 py-2 text-sm text-orange-600 bg-orange-50 border-t border-orange-100">
+                    <div class="flex items-center">
+                      <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Read-Only Mode
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -89,6 +100,7 @@
         <TabsManager
           ref="tabsManager"
           :lead-times="closingLeadTimes"
+          :is-read-only="isReadOnly"
           @add-prospect="openAddModal"
           @edit-prospect="editProspect"
           @delete-prospect="deleteProspect"
@@ -387,6 +399,7 @@
                         <option value="user">👤 User</option>
                         <option value="admin">⭐ Admin</option>
                         <option value="super_user">👑 Super User</option>
+                        <option value="read-only">🔒 Read-Only</option>
                       </select>
                       <button
                         v-if="user.email !== 'admin@maplyo.com'"
@@ -413,7 +426,8 @@
                 <p class="text-xs text-purple-800">
                   <strong>Super User :</strong> Gestion complète • 
                   <strong>Admin :</strong> Accès étendu • 
-                  <strong>User :</strong> Accès standard
+                  <strong>User :</strong> Accès standard • 
+                  <strong>Read-Only :</strong> Consultation uniquement (aucune modification)
                 </p>
               </div>
             </div>
@@ -951,6 +965,9 @@ const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
+// Read-only mode check
+const isReadOnly = computed(() => authStore.isReadOnly)
+
 // User Management (Super User)
 const allUsers = ref([])
 const usersLoading = ref(false)
@@ -1270,6 +1287,11 @@ async function scrollToProspectInList(prospect) {
 }
 
 function openAddModal(data) {
+  if (isReadOnly.value) {
+    alert('Read-only mode: You cannot add prospects')
+    return
+  }
+  
   console.log('🔍 openAddModal called with:', data, typeof data)
   
   // Gérer les deux formats : soit une string simple, soit un objet
@@ -1290,17 +1312,29 @@ function openAddModal(data) {
 }
 
 function editProspect(prospect) {
+  if (isReadOnly.value) {
+    alert('Read-only mode: You cannot edit prospects')
+    return
+  }
   editingProspect.value = { ...prospect }
   showEditModal.value = true
 }
 
 async function deleteProspect(prospect) {
+  if (isReadOnly.value) {
+    alert('Read-only mode: You cannot delete prospects')
+    return
+  }
   if (confirm('Are you sure you want to delete this lead?')) {
     await prospectsStore.deleteProspect(prospect.id)
   }
 }
 
 async function reorderProspects(newOrder) {
+  if (isReadOnly.value) {
+    alert('Read-only mode: You cannot reorder prospects')
+    return
+  }
   await prospectsStore.reorderProspects(newOrder)
 }
 

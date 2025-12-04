@@ -240,6 +240,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters pour vérifier les rôles
   const isSuperUser = computed(() => user.value?.role === 'super_user')
   const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'super_user')
+  const isReadOnly = computed(() => user.value?.role === 'read-only')
   const userRole = computed(() => user.value?.role || 'user')
 
   return {
@@ -248,6 +249,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isSuperUser,
     isAdmin,
+    isReadOnly,
     userRole,
     login,
     register,

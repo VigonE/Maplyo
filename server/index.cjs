@@ -570,6 +570,30 @@ function requireSuperUser(req, res, next) {
   );
 }
 
+// Middleware pour bloquer les utilisateurs en lecture seule
+function requireWriteAccess(req, res, next) {
+  db.get(
+    'SELECT role FROM users WHERE id = ?',
+    [req.user.userId],
+    (err, user) => {
+      if (err) {
+        console.error('❌ Error checking user role:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      if (!user || user.role === 'read-only') {
+        console.warn('❌ Write access denied for read-only user:', req.user.userId);
+        return res.status(403).json({ 
+          error: 'Forbidden',
+          message: 'Read-only access - modifications are not allowed'
+        });
+      }
+      
+      next();
+    }
+  );
+}
+
 // Middleware pour vérifier le rôle Admin ou Super User
 function requireAdmin(req, res, next) {
   db.get(
@@ -767,7 +791,7 @@ app.get('/api/profile', authenticateToken, (req, res) => {
 });
 
 // Route pour changer le mot de passe
-app.put('/api/profile/password', authenticateToken, async (req, res) => {
+app.put('/api/profile/password', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     console.log('🔐 Password change request for user:', req.user.userId);
     const { currentPassword, newPassword } = req.body;
@@ -897,7 +921,7 @@ app.get('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
   );
 });
 
-app.post('/api/settings/closing-lead-times', authenticateToken, (req, res) => {
+app.post('/api/settings/closing-lead-times', authenticateToken, requireWriteAccess, (req, res) => {
   console.log('💾 Saving closing lead times for user:', req.user.userId);
   console.log('📦 Request body:', req.body);
   
@@ -1041,7 +1065,7 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
 });
 
 // Créer un nouveau prospect
-app.post('/api/prospects', authenticateToken, async (req, res) => {
+app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
@@ -1155,7 +1179,7 @@ app.post('/api/prospects', authenticateToken, async (req, res) => {
 });
 
 // Réorganiser les prospects dans une catégorie (status) - DOIT ÊTRE AVANT /:id
-app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
+app.put('/api/prospects/reorder-category', authenticateToken, requireWriteAccess, (req, res) => {
   console.log('🎯 Reorder-category route called!');
   console.log('📦 Request body:', req.body);
   console.log('👤 User ID:', req.user?.userId);
@@ -1213,7 +1237,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, (req, res) => {
 });
 
 // Mettre à jour un prospect
-app.put('/api/prospects/:id', authenticateToken, async (req, res) => {
+app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     const prospectId = req.params.id;
     const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
@@ -1389,7 +1413,7 @@ app.get('/api/status-history', authenticateToken, (req, res) => {
 });
 
 // Supprimer un prospect
-app.delete('/api/prospects/:id', authenticateToken, (req, res) => {
+app.delete('/api/prospects/:id', authenticateToken, requireWriteAccess, (req, res) => {
   const prospectId = req.params.id;
 
   // Vérifier que le prospect appartient à l'utilisateur
@@ -1423,7 +1447,7 @@ app.delete('/api/prospects/:id', authenticateToken, (req, res) => {
 });
 
 // Supprimer les prospects orphelins (qui ne sont dans aucun onglet)
-app.delete('/api/cleanup/orphan-prospects', authenticateToken, (req, res) => {
+app.delete('/api/cleanup/orphan-prospects', authenticateToken, requireWriteAccess, (req, res) => {
   console.log('🧹 Starting orphan prospects cleanup for user:', req.user.userId);
   
   // D'abord, récupérer tous les onglets existants pour cet utilisateur
@@ -1585,7 +1609,7 @@ app.get('/api/tabs', authenticateToken, (req, res) => {
 });
 
 // Créer un nouvel onglet
-app.post('/api/tabs', authenticateToken, (req, res) => {
+app.post('/api/tabs', authenticateToken, requireWriteAccess, (req, res) => {
   try {
     const { name, description } = req.body;
     
@@ -1627,7 +1651,7 @@ app.post('/api/tabs', authenticateToken, (req, res) => {
 });
 
 // Supprimer un onglet (sauf les onglets spéciaux)
-app.delete('/api/tabs/:id', authenticateToken, (req, res) => {
+app.delete('/api/tabs/:id', authenticateToken, requireWriteAccess, (req, res) => {
   const tabId = req.params.id;
 
   // Vérifier que l'onglet appartient à l'utilisateur et n'est pas spécial
@@ -1666,7 +1690,7 @@ app.delete('/api/tabs/:id', authenticateToken, (req, res) => {
 });
 
 // Mettre à jour un onglet (renommer et modifier description)
-app.put('/api/tabs/:id', authenticateToken, (req, res) => {
+app.put('/api/tabs/:id', authenticateToken, requireWriteAccess, (req, res) => {
   try {
     const tabId = req.params.id;
     const { name, description } = req.body;
@@ -2045,7 +2069,7 @@ app.get('/api/system/diagnostic', authenticateToken, async (req, res) => {
 });
 
 // Geocoding route with robust error handling
-app.post('/api/geocode', authenticateToken, async (req, res) => {
+app.post('/api/geocode', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     const { address } = req.body;
     
@@ -2088,7 +2112,7 @@ app.post('/api/geocode', authenticateToken, async (req, res) => {
 });
 
 // Route pour l'import CSV simplifiée
-app.post('/api/prospects/import-csv', authenticateToken, async (req, res) => {
+app.post('/api/prospects/import-csv', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     console.log('📥 CSV Import request for user:', req.user.userId);
     const { csvData, options } = req.body;
@@ -2316,7 +2340,7 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
 });
 
 // Endpoint pour supprimer toutes les données de l'utilisateur
-app.delete('/api/database/delete-all', authenticateToken, (req, res) => {
+app.delete('/api/database/delete-all', authenticateToken, requireWriteAccess, (req, res) => {
   try {
     console.log(`🗑️ Deleting all data for user ${req.user.userId}`);
     
@@ -2498,7 +2522,7 @@ app.get('/api/database/export', authenticateToken, (req, res) => {
 });
 
 // Import database endpoint
-app.post('/api/database/import', authenticateToken, (req, res) => {
+app.post('/api/database/import', authenticateToken, requireWriteAccess, (req, res) => {
   try {
     console.log(`📥 Importing database for user ${req.user.userId}`);
     console.log('📋 Request body keys:', Object.keys(req.body || {}));
@@ -3030,7 +3054,7 @@ app.get('/api/database/full-dump', authenticateToken, async (req, res) => {
 });
 
 // Full database import endpoint (DANGER ZONE - Admin only)
-app.post('/api/database/full-import', authenticateToken, async (req, res) => {
+app.post('/api/database/full-import', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     console.log(`🚨 DANGER ZONE: Full database import requested by user ${req.user.userId}`);
     
@@ -3208,7 +3232,7 @@ app.get('/api/prospects/:id/todos', authenticateToken, (req, res) => {
 });
 
 // Create a new todo
-app.post('/api/prospects/:id/todos', authenticateToken, (req, res) => {
+app.post('/api/prospects/:id/todos', authenticateToken, requireWriteAccess, (req, res) => {
   console.log(`📋 POST /api/prospects/${req.params.id}/todos - User: ${req.user.userId}`, req.body);
   
   const { text, due_date } = req.body;
@@ -3256,7 +3280,7 @@ app.post('/api/prospects/:id/todos', authenticateToken, (req, res) => {
 });
 
 // Update todo
-app.put('/api/todos/:id', authenticateToken, (req, res) => {
+app.put('/api/todos/:id', authenticateToken, requireWriteAccess, (req, res) => {
   const { text, completed, due_date } = req.body;
   
   // Verify todo belongs to user
@@ -3320,7 +3344,7 @@ app.put('/api/todos/:id', authenticateToken, (req, res) => {
 });
 
 // Delete todo
-app.delete('/api/todos/:id', authenticateToken, (req, res) => {
+app.delete('/api/todos/:id', authenticateToken, requireWriteAccess, (req, res) => {
   // Verify todo belongs to user
   const verifyQuery = `
     SELECT t.* 
@@ -3406,9 +3430,9 @@ app.put('/api/users/:id/role', authenticateToken, requireSuperUser, (req, res) =
   const { role } = req.body;
   
   // Validation du rôle
-  if (!['user', 'admin', 'super_user'].includes(role)) {
+  if (!['user', 'admin', 'super_user', 'read-only'].includes(role)) {
     return res.status(400).json({ 
-      error: 'Invalid role. Must be user, admin, or super_user' 
+      error: 'Invalid role. Must be user, admin, super_user, or read-only' 
     });
   }
   

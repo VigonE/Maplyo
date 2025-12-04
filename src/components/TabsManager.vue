@@ -41,7 +41,7 @@
           </div>
 
           <!-- Action buttons -->
-          <div class="flex items-center ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div v-if="!isReadOnly" class="flex items-center ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <!-- Edit button (except for All Leads special tab) -->
             <button
               v-if="!editingTab[tab.id] && !(tab.is_special && tab.name === 'All Leads')"
@@ -71,6 +71,7 @@
 
       <!-- Bouton d'ajout d'onglet -->
       <button
+        v-if="!isReadOnly"
         @click="showAddTabModal = true"
         class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border-l border-gray-200"
         title="Add new tab"
@@ -93,6 +94,7 @@
         :is-all-leads-view="activeTab.name === 'All Leads'"
         :all-tabs="tabs"
         :lead-times="leadTimes"
+        :is-read-only="isReadOnly"
         @add-prospect="$emit('add-prospect', $event)"
         @edit="$emit('edit-prospect', $event)"
         @delete="$emit('delete-prospect', $event)"
@@ -200,6 +202,10 @@ export default {
         warm: { time: 6, probability: 45 },
         hot: { time: 3, probability: 80 }
       })
+    },
+    isReadOnly: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['add-prospect', 'edit-prospect', 'delete-prospect', 'select-prospect', 'reorder-prospects', 'tab-changed', 'filtered-prospects'],
