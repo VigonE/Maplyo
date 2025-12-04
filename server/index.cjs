@@ -270,6 +270,7 @@ function initializeDatabase() {
       password TEXT NOT NULL,
       name TEXT NOT NULL,
       company TEXT,
+      role TEXT DEFAULT 'user' CHECK(role IN ('super_user', 'admin', 'user')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
@@ -359,7 +360,8 @@ function initializeDatabase() {
       { name: 'contact', sql: `ALTER TABLE prospects ADD COLUMN contact TEXT` },
       { name: 'recurrence_months', sql: `ALTER TABLE prospects ADD COLUMN recurrence_months INTEGER DEFAULT 12` },
       { name: 'next_followup_date', sql: `ALTER TABLE prospects ADD COLUMN next_followup_date DATE` },
-      { name: 'notes_last_updated', sql: `ALTER TABLE prospects ADD COLUMN notes_last_updated DATETIME` }
+      { name: 'notes_last_updated', sql: `ALTER TABLE prospects ADD COLUMN notes_last_updated DATETIME` },
+      { name: 'role', sql: `ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'` }
     ];
 
     migrations.forEach(migration => {
@@ -544,6 +546,54 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Middleware pour vérifier le rôle Super User
+function requireSuperUser(req, res, next) {
+  db.get(
+    'SELECT role FROM users WHERE id = ?',
+    [req.user.userId],
+    (err, user) => {
+      if (err) {
+        console.error('❌ Error checking user role:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      if (!user || user.role !== 'super_user') {
+        console.warn('❌ Unauthorized access attempt by user:', req.user.userId);
+        return res.status(403).json({ 
+          error: 'Forbidden',
+          message: 'Super User privileges required'
+        });
+      }
+      
+      next();
+    }
+  );
+}
+
+// Middleware pour vérifier le rôle Admin ou Super User
+function requireAdmin(req, res, next) {
+  db.get(
+    'SELECT role FROM users WHERE id = ?',
+    [req.user.userId],
+    (err, user) => {
+      if (err) {
+        console.error('❌ Error checking user role:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      if (!user || (user.role !== 'admin' && user.role !== 'super_user')) {
+        console.warn('❌ Unauthorized access attempt by user:', req.user.userId);
+        return res.status(403).json({ 
+          error: 'Forbidden',
+          message: 'Admin privileges required'
+        });
+      }
+      
+      next();
+    }
+  );
+}
+
 // Routes d'authentification
 
 // Inscription
@@ -577,10 +627,10 @@ app.post('/api/register', async (req, res) => {
         // Hasher le mot de passe
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Créer l'utilisateur
+        // Créer l'utilisateur (rôle 'user' par défaut)
         db.run(
-          'INSERT INTO users (email, password, name, company) VALUES (?, ?, ?, ?)',
-          [email, hashedPassword, name, company || ''],
+          'INSERT INTO users (email, password, name, company, role) VALUES (?, ?, ?, ?, ?)',
+          [email, hashedPassword, name, company || '', 'user'],
           function(err) {
             if (err) {
               console.error('Database error:', err);
@@ -592,7 +642,8 @@ app.post('/api/register', async (req, res) => {
               { 
                 userId: this.lastID, 
                 email: email,
-                name: name 
+                name: name,
+                role: 'user'
               },
               process.env.JWT_SECRET || 'your-secret-key',
               { expiresIn: '365d' }
@@ -609,7 +660,8 @@ app.post('/api/register', async (req, res) => {
                 id: this.lastID,
                 email: email,
                 name: name,
-                company: company || ''
+                company: company || '',
+                role: 'user'
               }
             });
           }
@@ -664,7 +716,8 @@ app.post('/api/login', async (req, res) => {
           { 
             userId: user.id, 
             email: user.email,
-            name: user.name 
+            name: user.name,
+            role: user.role || 'user'
           },
           process.env.JWT_SECRET || 'your-secret-key',
           { expiresIn: '365d' }
@@ -678,7 +731,8 @@ app.post('/api/login', async (req, res) => {
             id: user.id,
             email: user.email,
             name: user.name,
-            company: user.company
+            company: user.company,
+            role: user.role || 'user'
           }
         });
       }
@@ -692,7 +746,7 @@ app.post('/api/login', async (req, res) => {
 // Route pour obtenir le profil utilisateur
 app.get('/api/profile', authenticateToken, (req, res) => {
   db.get(
-    'SELECT id, email, name, company FROM users WHERE id = ?',
+    'SELECT id, email, name, company, role FROM users WHERE id = ?',
     [req.user.userId],
     (err, user) => {
       if (err) {
@@ -3251,6 +3305,146 @@ app.get('/api/todos/all', authenticateToken, (req, res) => {
     console.log(`📋 Found ${todos.length} total todos for user ${req.user.userId}`);
     res.json(todos);
   });
+});
+
+// ============ USER MANAGEMENT (SUPER USER ONLY) ============
+
+// Obtenir la liste de tous les utilisateurs (Super User seulement)
+app.get('/api/users', authenticateToken, requireSuperUser, (req, res) => {
+  db.all(
+    'SELECT id, email, name, company, role, created_at FROM users ORDER BY created_at DESC',
+    [],
+    (err, users) => {
+      if (err) {
+        console.error('Error fetching users:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`✅ Retrieved ${users.length} users`);
+      res.json(users);
+    }
+  );
+});
+
+// Mettre à jour le rôle d'un utilisateur (Super User seulement)
+app.put('/api/users/:id/role', authenticateToken, requireSuperUser, (req, res) => {
+  const userId = req.params.id;
+  const { role } = req.body;
+  
+  // Validation du rôle
+  if (!['user', 'admin', 'super_user'].includes(role)) {
+    return res.status(400).json({ 
+      error: 'Invalid role. Must be user, admin, or super_user' 
+    });
+  }
+  
+  // Vérifier qu'on ne modifie pas son propre rôle
+  if (parseInt(userId) === req.user.userId) {
+    return res.status(403).json({ 
+      error: 'Cannot modify your own role' 
+    });
+  }
+  
+  // Vérifier que l'utilisateur cible n'est pas le super user principal
+  db.get(
+    'SELECT email FROM users WHERE id = ?',
+    [userId],
+    (err, user) => {
+      if (err) {
+        console.error('Error checking user:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      if (user.email === 'admin@maplyo.com' && role !== 'super_user') {
+        return res.status(403).json({ 
+          error: 'Cannot modify the main super user role' 
+        });
+      }
+      
+      // Mettre à jour le rôle
+      db.run(
+        'UPDATE users SET role = ? WHERE id = ?',
+        [role, userId],
+        function(err) {
+          if (err) {
+            console.error('Error updating user role:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+          
+          if (this.changes === 0) {
+            return res.status(404).json({ error: 'User not found' });
+          }
+          
+          console.log(`✅ Updated role for user ${userId} to ${role}`);
+          res.json({ 
+            message: 'Role updated successfully',
+            userId: userId,
+            newRole: role
+          });
+        }
+      );
+    }
+  );
+});
+
+// Supprimer un utilisateur (Super User seulement)
+app.delete('/api/users/:id', authenticateToken, requireSuperUser, (req, res) => {
+  const userId = req.params.id;
+  
+  // Vérifier qu'on ne supprime pas son propre compte
+  if (parseInt(userId) === req.user.userId) {
+    return res.status(403).json({ 
+      error: 'Cannot delete your own account' 
+    });
+  }
+  
+  // Vérifier que l'utilisateur cible n'est pas le super user principal
+  db.get(
+    'SELECT email FROM users WHERE id = ?',
+    [userId],
+    (err, user) => {
+      if (err) {
+        console.error('Error checking user:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      if (user.email === 'admin@maplyo.com') {
+        return res.status(403).json({ 
+          error: 'Cannot delete the main super user' 
+        });
+      }
+      
+      // Supprimer l'utilisateur (CASCADE supprimera ses prospects, tabs, etc.)
+      db.run(
+        'DELETE FROM users WHERE id = ?',
+        [userId],
+        function(err) {
+          if (err) {
+            console.error('Error deleting user:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+          
+          if (this.changes === 0) {
+            return res.status(404).json({ error: 'User not found' });
+          }
+          
+          console.log(`✅ Deleted user ${userId}`);
+          res.json({ 
+            message: 'User deleted successfully',
+            userId: userId
+          });
+        }
+      );
+    }
+  );
 });
 
 // ============ STATIC FILES AND SPA ============

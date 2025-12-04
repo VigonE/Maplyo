@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import Login from '@/views/Login.vue'
 import Dashboard from '@/views/Dashboard.vue'
+import Admin from '@/views/Admin.vue'
 
 const routes = [
   {
@@ -19,6 +20,12 @@ const routes = [
     name: 'Dashboard',
     component: Dashboard,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -54,6 +61,14 @@ router.beforeEach(async (to) => {
     } catch (error) {
       console.warn('Failed to load user profile in router:', error)
       // Don't logout here, just continue
+    }
+  }
+  
+  // Check admin/super user permissions
+  if (to.meta.requiresAdmin && authStore.isAuthenticated) {
+    if (!authStore.isAdmin) {
+      console.warn('User does not have admin privileges, redirecting to dashboard')
+      return '/dashboard'
     }
   }
 })

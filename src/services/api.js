@@ -117,4 +117,16 @@ export const importCsv = (csvData, options = {}) => {
   })
 }
 
+// API pour la gestion des utilisateurs (Super User seulement)
+export const usersAPI = {
+  // Obtenir la liste de tous les utilisateurs
+  getAll: () => api.get('/users'),
+  
+  // Mettre à jour le rôle d'un utilisateur
+  updateRole: (userId, role) => api.put(`/users/${userId}/role`, { role }),
+  
+  // Supprimer un utilisateur
+  delete: (userId) => api.delete(`/users/${userId}`)
+}
+
 export default api

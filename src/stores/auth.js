@@ -237,10 +237,18 @@ export const useAuthStore = defineStore('auth', () => {
     setTimeout(loadUserProfile, 500)
   }
 
+  // Getters pour vérifier les rôles
+  const isSuperUser = computed(() => user.value?.role === 'super_user')
+  const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'super_user')
+  const userRole = computed(() => user.value?.role || 'user')
+
   return {
     token,
     user,
     isAuthenticated,
+    isSuperUser,
+    isAdmin,
+    userRole,
     login,
     register,
     logout,
