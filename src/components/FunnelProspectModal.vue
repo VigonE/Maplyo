@@ -126,23 +126,40 @@
                 </div>
               </div>
 
-              <!-- Company -->
-              <div class="flex items-center">
+              <!-- Company with Autocomplete -->
+              <div class="flex items-center relative">
                 <label class="w-20 text-sm font-medium text-gray-600">Company:</label>
-                <div class="flex-1 flex items-center">
+                <div class="flex-1 flex items-center relative">
                   <span v-if="!editing.company && prospect" class="text-gray-900">{{ form.company || 'No company' }}</span>
-                  <input 
-                    v-if="editing.company || !prospect"
-                    v-model="form.company"
-                    type="text"
-                    placeholder="Enter company name"
-                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="prospect ? saveField('company') : null"
-                    @keyup.enter="prospect ? saveField('company') : null"
-                  >
+                  <div v-if="editing.company || !prospect" class="flex-1 relative">
+                    <input 
+                      v-model="companySearchQuery"
+                      @input="onCompanyInput($event.target.value)"
+                      @focus="onCompanyFocus"
+                      @blur="onCompanyBlur"
+                      type="text"
+                      placeholder="Type to search companies..."
+                      class="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <!-- Company Autocomplete Dropdown -->
+                    <div
+                      v-if="showCompanyDropdown && filteredCompanies.length > 0"
+                      class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[60]"
+                    >
+                      <div
+                        v-for="company in filteredCompanies"
+                        :key="company.id"
+                        @mousedown.prevent="selectCompany(company); if (prospect) { editing.company = false; saveField('company') }"
+                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
+                      >
+                        <div class="text-gray-900 text-sm font-medium">{{ company.name }}</div>
+                        <div v-if="company.address" class="text-gray-500 text-xs">{{ company.address }}</div>
+                      </div>
+                    </div>
+                  </div>
                   <button 
                     v-if="prospect"
-                    @click="toggleEdit('company')"
+                    @click="toggleEdit('company'); if (editing.company) companySearchQuery = form.company || ''"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,23 +169,45 @@
                 </div>
               </div>
 
-              <!-- Contact -->
-              <div class="flex items-center">
+              <!-- Contact with Autocomplete -->
+              <div class="flex items-center relative">
                 <label class="w-20 text-sm font-medium text-gray-600">Contact:</label>
-                <div class="flex-1 flex items-center">
+                <div class="flex-1 flex items-center relative">
                   <span v-if="!editing.contact && prospect" class="text-gray-900">{{ form.contact || 'No contact' }}</span>
-                  <input 
-                    v-if="editing.contact || !prospect"
-                    v-model="form.contact"
-                    type="text"
-                    placeholder="Enter contact person"
-                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="prospect ? saveField('contact') : null"
-                    @keyup.enter="prospect ? saveField('contact') : null"
-                  >
+                  <div v-if="editing.contact || !prospect" class="flex-1 relative">
+                    <input 
+                      v-model="contactSearchQuery"
+                      @input="onContactInput($event.target.value)"
+                      @focus="onContactFocus"
+                      @blur="onContactBlur"
+                      type="text"
+                      :placeholder="selectedCompany ? 'Type to search contacts...' : 'Select company first'"
+                      :disabled="!selectedCompany"
+                      class="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                    <!-- Contact Autocomplete Dropdown -->
+                    <div
+                      v-if="showContactDropdown && filteredContacts.length > 0"
+                      class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[60]"
+                    >
+                      <div
+                        v-for="contact in filteredContacts"
+                        :key="contact.id"
+                        @mousedown.prevent="selectContact(contact); if (prospect) { editing.contact = false; saveField('contact') }"
+                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
+                      >
+                        <div class="flex items-center gap-2">
+                          <div class="text-gray-900 text-sm font-medium">{{ contact.name }}</div>
+                          <span v-if="contact.is_primary" class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Primary</span>
+                        </div>
+                        <div v-if="contact.email" class="text-gray-500 text-xs">{{ contact.email }}</div>
+                        <div v-if="contact.phone" class="text-gray-500 text-xs">{{ contact.phone }}</div>
+                      </div>
+                    </div>
+                  </div>
                   <button 
                     v-if="prospect"
-                    @click="toggleEdit('contact')"
+                    @click="toggleEdit('contact'); if (editing.contact) contactSearchQuery = form.contact || ''"
                     class="ml-2 p-1 text-gray-400 hover:text-gray-600"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,6 +528,7 @@ import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProspectsStore } from '../stores/prospects'
 import { useAuthStore } from '../stores/auth'
 import axios from 'axios'
+import api, { companiesAPI } from '../services/api'
 import RichTextEditor from './RichTextEditor.vue'
 import TodoList from './TodoList.vue'
 
@@ -544,10 +584,161 @@ const handleTabsChanged = () => {
 // Computed pour les onglets disponibles
 const availableTabs = computed(() => availableTabsRef.value)
 
+// Companies and Contacts management
+const companies = ref([])
+const selectedCompany = ref(null)
+const companySearchQuery = ref('')
+const showCompanyDropdown = ref(false)
+const contactSearchQuery = ref('')
+const showContactDropdown = ref(false)
+const companyContacts = ref([])
+
+// Load companies
+const loadCompanies = async () => {
+  try {
+    const response = await companiesAPI.getAll()
+    companies.value = response || []
+    console.log('📦 Loaded companies:', companies.value.length)
+  } catch (error) {
+    console.error('❌ Error loading companies:', error)
+    companies.value = []
+  }
+}
+
+// Load contacts for selected company
+const loadCompanyContacts = async (companyId) => {
+  try {
+    const response = await companiesAPI.get(companyId)
+    companyContacts.value = response.contacts || []
+    console.log('👥 Loaded contacts for company:', companyContacts.value.length)
+  } catch (error) {
+    console.error('❌ Error loading company contacts:', error)
+    companyContacts.value = []
+  }
+}
+
+// Filter companies based on search
+const filteredCompanies = computed(() => {
+  if (!companySearchQuery.value) return companies.value
+  const query = companySearchQuery.value.toLowerCase()
+  return companies.value.filter(c => 
+    c.name.toLowerCase().includes(query) ||
+    (c.address && c.address.toLowerCase().includes(query))
+  )
+})
+
+// Filter contacts based on search
+const filteredContacts = computed(() => {
+  if (!contactSearchQuery.value) return companyContacts.value
+  const query = contactSearchQuery.value.toLowerCase()
+  return companyContacts.value.filter(c => 
+    c.name.toLowerCase().includes(query) ||
+    (c.email && c.email.toLowerCase().includes(query))
+  )
+})
+
+// Select a company
+const selectCompany = async (company) => {
+  selectedCompany.value = company
+  form.company = company.name
+  companySearchQuery.value = company.name
+  showCompanyDropdown.value = false
+  
+  // Auto-fill address from company
+  if (company.address && !form.address) {
+    form.address = company.address
+  }
+  
+  // Load company contacts
+  await loadCompanyContacts(company.id)
+  
+  // If there's a primary contact, select it automatically
+  const primaryContact = companyContacts.value.find(c => c.is_primary)
+  if (primaryContact) {
+    selectContact(primaryContact)
+  }
+}
+
+// Select a contact
+const selectContact = (contact) => {
+  form.contact = contact.name
+  contactSearchQuery.value = contact.name
+  showContactDropdown.value = false
+  
+  // Auto-fill email and phone from contact
+  if (contact.email && !form.email) {
+    form.email = contact.email
+  }
+  if (contact.phone && !form.phone) {
+    form.phone = contact.phone
+  }
+}
+
+// Handle company input change
+const onCompanyInput = (value) => {
+  companySearchQuery.value = value
+  form.company = value
+  showCompanyDropdown.value = true
+  
+  // If input is cleared, reset selected company and contacts
+  if (!value) {
+    selectedCompany.value = null
+    companyContacts.value = []
+  }
+}
+
+// Handle company focus
+const onCompanyFocus = () => {
+  showCompanyDropdown.value = true
+}
+
+// Handle company blur
+const onCompanyBlur = () => {
+  setTimeout(() => showCompanyDropdown.value = false, 200)
+}
+
+// Handle contact input change
+const onContactInput = (value) => {
+  contactSearchQuery.value = value
+  form.contact = value
+  showContactDropdown.value = selectedCompany.value !== null
+}
+
+// Handle contact focus
+const onContactFocus = () => {
+  if (selectedCompany.value) {
+    showContactDropdown.value = true
+  }
+}
+
+// Handle contact blur
+const onContactBlur = () => {
+  setTimeout(() => showContactDropdown.value = false, 200)
+}
+
+// Watch companies to match with existing prospect company
+watch(companies, async (newCompanies) => {
+  if (props.prospect && props.prospect.company && newCompanies.length > 0 && !selectedCompany.value) {
+    const matchedCompany = newCompanies.find(c => c.name === props.prospect.company)
+    if (matchedCompany) {
+      selectedCompany.value = matchedCompany
+      companySearchQuery.value = matchedCompany.name
+      await loadCompanyContacts(matchedCompany.id)
+    }
+  }
+})
+
 // Lifecycle hooks
-onMounted(() => {
+onMounted(async () => {
   loadAvailableTabs()
+  await loadCompanies()
   window.addEventListener('tabsChanged', handleTabsChanged)
+  
+  // Initialize search queries if in edit mode
+  if (props.prospect) {
+    companySearchQuery.value = props.prospect.company || ''
+    contactSearchQuery.value = props.prospect.contact || ''
+  }
 })
 
 onUnmounted(() => {
