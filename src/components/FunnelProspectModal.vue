@@ -197,9 +197,10 @@
                         class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
                       >
                         <div class="flex items-center gap-2">
-                          <div class="text-gray-900 text-sm font-medium">{{ contact.name }}</div>
+                          <div class="text-gray-900 text-sm font-medium">{{ contact.first_name }} {{ contact.last_name }}</div>
                           <span v-if="contact.is_primary" class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Primary</span>
                         </div>
+                        <div v-if="contact.position" class="text-gray-500 text-xs">{{ contact.position }}</div>
                         <div v-if="contact.email" class="text-gray-500 text-xs">{{ contact.email }}</div>
                         <div v-if="contact.phone" class="text-gray-500 text-xs">{{ contact.phone }}</div>
                       </div>
@@ -632,8 +633,10 @@ const filteredContacts = computed(() => {
   if (!contactSearchQuery.value) return companyContacts.value
   const query = contactSearchQuery.value.toLowerCase()
   return companyContacts.value.filter(c => 
-    c.name.toLowerCase().includes(query) ||
-    (c.email && c.email.toLowerCase().includes(query))
+    c.first_name.toLowerCase().includes(query) ||
+    c.last_name.toLowerCase().includes(query) ||
+    (c.email && c.email.toLowerCase().includes(query)) ||
+    (c.position && c.position.toLowerCase().includes(query))
   )
 })
 
@@ -661,8 +664,9 @@ const selectCompany = async (company) => {
 
 // Select a contact
 const selectContact = (contact) => {
-  form.contact = contact.name
-  contactSearchQuery.value = contact.name
+  const fullName = `${contact.first_name} ${contact.last_name}`
+  form.contact = fullName
+  contactSearchQuery.value = fullName
   showContactDropdown.value = false
   
   // Auto-fill email and phone from contact
