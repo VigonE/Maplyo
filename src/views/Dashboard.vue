@@ -74,6 +74,16 @@
                     </svg>
                     📊 Funnel Report
                   </button>
+                  <div class="border-t border-gray-100"></div>
+                  <button
+                    @click="goToCompanies"
+                    class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    🏢 Companies & Contacts
+                  </button>
                   <div v-if="!isReadOnly" class="border-t border-gray-100"></div>
                   <button
                     v-if="!isReadOnly"
@@ -2324,6 +2334,11 @@ const loadTheme = () => {
 // Méthode pour aller à la page d'administration
 const goToAdmin = () => {
   router.push('/admin')
+}
+
+// Méthode pour aller à la page des entreprises
+const goToCompanies = () => {
+  router.push('/companies')
 }
 
 // Méthode de déconnexion avec redirection

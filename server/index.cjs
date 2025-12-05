@@ -344,12 +344,68 @@ function initializeDatabase() {
     )
   `;
 
+  const createCompaniesTable = `
+    CREATE TABLE IF NOT EXISTS companies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      industry TEXT,
+      website TEXT,
+      phone TEXT,
+      email TEXT,
+      address TEXT,
+      city TEXT,
+      country TEXT,
+      postal_code TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  const createContactsTable = `
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      mobile TEXT,
+      position TEXT,
+      department TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  const createCompanyContactsTable = `
+    CREATE TABLE IF NOT EXISTS company_contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      contact_id INTEGER NOT NULL,
+      is_primary BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+      UNIQUE(company_id, contact_id)
+    )
+  `;
+
   db.serialize(() => {
     db.run(createUsersTable);
     db.run(createProspectsTable);
     db.run(createTabsTable);
     db.run(createSettingsTable);
     db.run(createTodosTable);
+    db.run(createCompaniesTable);
+    db.run(createContactsTable);
+    db.run(createCompanyContactsTable);
+    
+    // Créer les index pour les performances
+    db.run(`CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(last_name, first_name)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_company_contacts_company ON company_contacts(company_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_company_contacts_contact ON company_contacts(contact_id)`);
     
     // Migrations pour ajouter les colonnes manquantes aux bases de données existantes
     const migrations = [
@@ -3543,6 +3599,389 @@ app.delete('/api/users/:id', authenticateToken, requireSuperUser, (req, res) => 
       );
     }
   );
+});
+
+// ============ COMPANIES AND CONTACTS MANAGEMENT ============
+
+// Get all companies with their contacts
+app.get('/api/companies', authenticateToken, (req, res) => {
+  db.all(
+    `SELECT c.*, 
+     GROUP_CONCAT(
+       json_object(
+         'id', ct.id,
+         'first_name', ct.first_name,
+         'last_name', ct.last_name,
+         'email', ct.email,
+         'phone', ct.phone,
+         'mobile', ct.mobile,
+         'position', ct.position,
+         'department', ct.department,
+         'is_primary', cc.is_primary
+       )
+     ) as contacts
+     FROM companies c
+     LEFT JOIN company_contacts cc ON c.id = cc.company_id
+     LEFT JOIN contacts ct ON cc.contact_id = ct.id
+     GROUP BY c.id
+     ORDER BY c.name`,
+    [],
+    (err, companies) => {
+      if (err) {
+        console.error('Error fetching companies:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      // Parse contacts JSON for each company
+      const formattedCompanies = companies.map(company => ({
+        ...company,
+        contacts: company.contacts ? JSON.parse(`[${company.contacts}]`).filter(c => c.id !== null) : []
+      }));
+      
+      console.log(`✅ Retrieved ${formattedCompanies.length} companies`);
+      res.json(formattedCompanies);
+    }
+  );
+});
+
+// Get a single company with its contacts
+app.get('/api/companies/:id', authenticateToken, (req, res) => {
+  const companyId = req.params.id;
+  
+  db.get(
+    'SELECT * FROM companies WHERE id = ?',
+    [companyId],
+    (err, company) => {
+      if (err) {
+        console.error('Error fetching company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (!company) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      
+      // Get contacts for this company
+      db.all(
+        `SELECT ct.*, cc.is_primary
+         FROM contacts ct
+         JOIN company_contacts cc ON ct.id = cc.contact_id
+         WHERE cc.company_id = ?
+         ORDER BY cc.is_primary DESC, ct.last_name`,
+        [companyId],
+        (err, contacts) => {
+          if (err) {
+            console.error('Error fetching contacts:', err);
+            return res.status(500).json({ error: 'Database error' });
+          }
+          
+          company.contacts = contacts;
+          res.json(company);
+        }
+      );
+    }
+  );
+});
+
+// Create a new company
+app.post('/api/companies', authenticateToken, requireWriteAccess, (req, res) => {
+  const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Company name is required' });
+  }
+  
+  db.run(
+    `INSERT INTO companies (name, industry, website, phone, email, address, city, country, postal_code, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, industry, website, phone, email, address, city, country, postal_code, notes],
+    function(err) {
+      if (err) {
+        console.error('Error creating company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`✅ Created company ${name} with ID ${this.lastID}`);
+      res.json({
+        id: this.lastID,
+        name,
+        industry,
+        website,
+        phone,
+        email,
+        address,
+        city,
+        country,
+        postal_code,
+        notes,
+        contacts: []
+      });
+    }
+  );
+});
+
+// Update a company
+app.put('/api/companies/:id', authenticateToken, requireWriteAccess, (req, res) => {
+  const companyId = req.params.id;
+  const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Company name is required' });
+  }
+  
+  db.run(
+    `UPDATE companies 
+     SET name = ?, industry = ?, website = ?, phone = ?, email = ?, 
+         address = ?, city = ?, country = ?, postal_code = ?, notes = ?,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [name, industry, website, phone, email, address, city, country, postal_code, notes, companyId],
+    function(err) {
+      if (err) {
+        console.error('Error updating company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      
+      console.log(`✅ Updated company ${companyId}`);
+      res.json({ message: 'Company updated successfully' });
+    }
+  );
+});
+
+// Delete a company
+app.delete('/api/companies/:id', authenticateToken, requireWriteAccess, (req, res) => {
+  const companyId = req.params.id;
+  
+  db.run(
+    'DELETE FROM companies WHERE id = ?',
+    [companyId],
+    function(err) {
+      if (err) {
+        console.error('Error deleting company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Company not found' });
+      }
+      
+      console.log(`✅ Deleted company ${companyId}`);
+      res.json({ message: 'Company deleted successfully' });
+    }
+  );
+});
+
+// Get all contacts
+app.get('/api/contacts', authenticateToken, (req, res) => {
+  db.all(
+    'SELECT * FROM contacts ORDER BY last_name, first_name',
+    [],
+    (err, contacts) => {
+      if (err) {
+        console.error('Error fetching contacts:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`✅ Retrieved ${contacts.length} contacts`);
+      res.json(contacts);
+    }
+  );
+});
+
+// Create a new contact
+app.post('/api/contacts', authenticateToken, requireWriteAccess, (req, res) => {
+  const { first_name, last_name, email, phone, mobile, position, department, notes } = req.body;
+  
+  if (!first_name || !last_name) {
+    return res.status(400).json({ error: 'First name and last name are required' });
+  }
+  
+  db.run(
+    `INSERT INTO contacts (first_name, last_name, email, phone, mobile, position, department, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [first_name, last_name, email, phone, mobile, position, department, notes],
+    function(err) {
+      if (err) {
+        console.error('Error creating contact:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`✅ Created contact ${first_name} ${last_name} with ID ${this.lastID}`);
+      res.json({
+        id: this.lastID,
+        first_name,
+        last_name,
+        email,
+        phone,
+        mobile,
+        position,
+        department,
+        notes
+      });
+    }
+  );
+});
+
+// Update a contact
+app.put('/api/contacts/:id', authenticateToken, requireWriteAccess, (req, res) => {
+  const contactId = req.params.id;
+  const { first_name, last_name, email, phone, mobile, position, department, notes } = req.body;
+  
+  if (!first_name || !last_name) {
+    return res.status(400).json({ error: 'First name and last name are required' });
+  }
+  
+  db.run(
+    `UPDATE contacts 
+     SET first_name = ?, last_name = ?, email = ?, phone = ?, mobile = ?, 
+         position = ?, department = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [first_name, last_name, email, phone, mobile, position, department, notes, contactId],
+    function(err) {
+      if (err) {
+        console.error('Error updating contact:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+      
+      console.log(`✅ Updated contact ${contactId}`);
+      res.json({ message: 'Contact updated successfully' });
+    }
+  );
+});
+
+// Delete a contact
+app.delete('/api/contacts/:id', authenticateToken, requireWriteAccess, (req, res) => {
+  const contactId = req.params.id;
+  
+  db.run(
+    'DELETE FROM contacts WHERE id = ?',
+    [contactId],
+    function(err) {
+      if (err) {
+        console.error('Error deleting contact:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Contact not found' });
+      }
+      
+      console.log(`✅ Deleted contact ${contactId}`);
+      res.json({ message: 'Contact deleted successfully' });
+    }
+  );
+});
+
+// Link a contact to a company
+app.post('/api/companies/:companyId/contacts/:contactId', authenticateToken, requireWriteAccess, (req, res) => {
+  const { companyId, contactId } = req.params;
+  const { is_primary } = req.body;
+  
+  db.run(
+    `INSERT INTO company_contacts (company_id, contact_id, is_primary)
+     VALUES (?, ?, ?)`,
+    [companyId, contactId, is_primary ? 1 : 0],
+    function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: 'Contact is already linked to this company' });
+        }
+        console.error('Error linking contact to company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      console.log(`✅ Linked contact ${contactId} to company ${companyId}`);
+      res.json({ message: 'Contact linked successfully' });
+    }
+  );
+});
+
+// Unlink a contact from a company
+app.delete('/api/companies/:companyId/contacts/:contactId', authenticateToken, requireWriteAccess, (req, res) => {
+  const { companyId, contactId } = req.params;
+  
+  db.run(
+    'DELETE FROM company_contacts WHERE company_id = ? AND contact_id = ?',
+    [companyId, contactId],
+    function(err) {
+      if (err) {
+        console.error('Error unlinking contact from company:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Link not found' });
+      }
+      
+      console.log(`✅ Unlinked contact ${contactId} from company ${companyId}`);
+      res.json({ message: 'Contact unlinked successfully' });
+    }
+  );
+});
+
+// Update primary contact status
+app.put('/api/companies/:companyId/contacts/:contactId/primary', authenticateToken, requireWriteAccess, (req, res) => {
+  const { companyId, contactId } = req.params;
+  const { is_primary } = req.body;
+  
+  // If setting as primary, first unset all other primary contacts for this company
+  if (is_primary) {
+    db.run(
+      'UPDATE company_contacts SET is_primary = 0 WHERE company_id = ?',
+      [companyId],
+      (err) => {
+        if (err) {
+          console.error('Error unsetting primary contacts:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        // Now set this contact as primary
+        db.run(
+          'UPDATE company_contacts SET is_primary = 1 WHERE company_id = ? AND contact_id = ?',
+          [companyId, contactId],
+          function(err) {
+            if (err) {
+              console.error('Error setting primary contact:', err);
+              return res.status(500).json({ error: 'Database error' });
+            }
+            
+            if (this.changes === 0) {
+              return res.status(404).json({ error: 'Link not found' });
+            }
+            
+            console.log(`✅ Set contact ${contactId} as primary for company ${companyId}`);
+            res.json({ message: 'Primary contact updated successfully' });
+          }
+        );
+      }
+    );
+  } else {
+    db.run(
+      'UPDATE company_contacts SET is_primary = 0 WHERE company_id = ? AND contact_id = ?',
+      [companyId, contactId],
+      function(err) {
+        if (err) {
+          console.error('Error unsetting primary contact:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Link not found' });
+        }
+        
+        console.log(`✅ Unset primary status for contact ${contactId}`);
+        res.json({ message: 'Primary contact updated successfully' });
+      }
+    );
+  }
 });
 
 // ============ STATIC FILES AND SPA ============
