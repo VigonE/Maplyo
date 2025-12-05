@@ -1,12 +1,28 @@
 <template>
-  <div class="h-screen flex">
-    <!-- Sidebar avec onglets -->
+  <div class="h-screen flex flex-col">
+    <!-- Bandeau Read-Only Mode -->
     <div 
-      class="bg-white border-r border-gray-200 flex flex-col flex-shrink-0"
-      :style="`width: ${sidebarWidth}px`"
+      v-if="isReadOnly" 
+      class="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center"
     >
-      <!-- Header -->
-      <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center gap-2 text-sm text-orange-800">
+        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span class="font-medium">Read-Only Mode</span>
+        <span class="text-orange-600">•</span>
+        <span class="text-orange-700">View-only access - modifications disabled</span>
+      </div>
+    </div>
+
+    <div class="flex flex-1 min-h-0">
+      <!-- Sidebar avec onglets -->
+      <div 
+        class="bg-white border-r border-gray-200 flex flex-col flex-shrink-0"
+        :style="`width: ${sidebarWidth}px`"
+      >
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-200">
         <div class="flex justify-between items-center">
           <h1 class="text-2xl font-bold text-blue-600">Maplyo CRM</h1>
           <div class="flex items-center gap-2">
@@ -863,6 +879,7 @@
       :current-tab-name="currentTabName"
       @close="closeFunnelReportModal"
     />
+    </div>
   </div>
 </template>
 
