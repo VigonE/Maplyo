@@ -143,17 +143,30 @@
                     >
                     <!-- Company Autocomplete Dropdown -->
                     <div
-                      v-if="showCompanyDropdown && filteredCompanies.length > 0"
+                      v-if="showCompanyDropdown && (filteredCompanies.length > 0 || companySearchQuery)"
                       class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[60]"
                     >
                       <div
                         v-for="company in filteredCompanies"
                         :key="company.id"
                         @mousedown.prevent="selectCompany(company); if (prospect) { editing.company = false; saveField('company') }"
-                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
+                        class="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200"
                       >
                         <div class="text-gray-900 text-sm font-medium">{{ company.name }}</div>
                         <div v-if="company.address" class="text-gray-500 text-xs">{{ company.address }}</div>
+                      </div>
+                      <!-- Create new company option -->
+                      <div
+                        v-if="companySearchQuery && filteredCompanies.length === 0"
+                        @mousedown.prevent="createNewCompany"
+                        class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-t-2 border-blue-200 bg-blue-50"
+                      >
+                        <div class="text-blue-600 text-sm font-medium flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                          Create new company "{{ companySearchQuery }}"
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -644,6 +657,7 @@ const filteredContacts = computed(() => {
 const selectCompany = async (company) => {
   selectedCompany.value = company
   form.company = company.name
+  form.company_id = company.id  // Store company_id for database relation
   companySearchQuery.value = company.name
   showCompanyDropdown.value = false
   
@@ -666,6 +680,7 @@ const selectCompany = async (company) => {
 const selectContact = (contact) => {
   const fullName = `${contact.first_name} ${contact.last_name}`
   form.contact = fullName
+  form.contact_id = contact.id  // Store contact_id for database relation
   contactSearchQuery.value = fullName
   showContactDropdown.value = false
   
@@ -684,10 +699,16 @@ const onCompanyInput = (value) => {
   form.company = value
   showCompanyDropdown.value = true
   
-  // If input is cleared, reset selected company and contacts
+  // If input is cleared or manually typed, reset selected company and contacts
   if (!value) {
     selectedCompany.value = null
     companyContacts.value = []
+    form.company_id = null
+    form.contact_id = null
+  } else {
+    // If user is typing manually (not selecting from dropdown), clear IDs
+    form.company_id = null
+    form.contact_id = null
   }
 }
 
@@ -718,6 +739,33 @@ const onContactFocus = () => {
 // Handle contact blur
 const onContactBlur = () => {
   setTimeout(() => showContactDropdown.value = false, 200)
+}
+
+// Create new company
+const createNewCompany = async () => {
+  try {
+    const newCompany = {
+      name: companySearchQuery.value,
+      address: form.address || ''
+    }
+    
+    const response = await companiesAPI.create(newCompany)
+    console.log('✅ Created new company:', response)
+    
+    // Add to companies list
+    companies.value.push(response)
+    
+    // Select the newly created company
+    await selectCompany(response)
+    
+    if (props.prospect) {
+      editing.company = false
+      saveField('company')
+    }
+  } catch (error) {
+    console.error('❌ Error creating company:', error)
+    alert('Failed to create company. Please try again.')
+  }
 }
 
 // Watch companies to match with existing prospect company
@@ -765,7 +813,9 @@ const form = reactive({
   estimated_completion_date: '',
   recurrence_months: 12,
   next_followup_date: '',
-  tabId: ''
+  tabId: '',
+  company_id: null,
+  contact_id: null
 })
 
 // Editing state for each field

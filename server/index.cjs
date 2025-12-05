@@ -417,7 +417,9 @@ function initializeDatabase() {
       { name: 'recurrence_months', sql: `ALTER TABLE prospects ADD COLUMN recurrence_months INTEGER DEFAULT 12` },
       { name: 'next_followup_date', sql: `ALTER TABLE prospects ADD COLUMN next_followup_date DATE` },
       { name: 'notes_last_updated', sql: `ALTER TABLE prospects ADD COLUMN notes_last_updated DATETIME` },
-      { name: 'role', sql: `ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'` }
+      { name: 'role', sql: `ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'` },
+      { name: 'company_id', sql: `ALTER TABLE prospects ADD COLUMN company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL` },
+      { name: 'contact_id', sql: `ALTER TABLE prospects ADD COLUMN contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL` }
     ];
 
     migrations.forEach(migration => {
@@ -436,6 +438,23 @@ function initializeDatabase() {
         console.warn('⚠️  Position to contact migration warning:', err.message);
       } else {
         console.log('✅ Migrated position data to contact column');
+      }
+    });
+
+    // Create indexes for company_id and contact_id
+    db.run(`CREATE INDEX IF NOT EXISTS idx_prospects_company ON prospects(company_id)`, (err) => {
+      if (err) {
+        console.warn('⚠️  Index creation warning (prospects company):', err.message);
+      } else {
+        console.log('✅ Created index on prospects.company_id');
+      }
+    });
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_prospects_contact ON prospects(contact_id)`, (err) => {
+      if (err) {
+        console.warn('⚠️  Index creation warning (prospects contact):', err.message);
+      } else {
+        console.log('✅ Created index on prospects.contact_id');
       }
     });
     
@@ -1125,9 +1144,9 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id } = req.body;
     console.log('Extracted tabId:', tabId)
-    console.log('📝 Creating prospect:', name, 'for tab:', tabId);
+    console.log('📝 Creating prospect:', name, 'for tab:', tabId, '| company_id:', company_id, '| contact_id:', contact_id);
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1197,12 +1216,12 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, notes_last_updated, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, notes_last_updated, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
             contact || '', address || '', latitude, longitude, status || 'cold', 
-            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate // Nouveau prospect en haut
+            revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate, company_id || null, contact_id || null // Nouveau prospect en haut
           ],
           function(err) {
             if (err) {
@@ -1296,7 +1315,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, requireWriteAccess
 app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1395,13 +1414,13 @@ app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req,
            name = ?, email = ?, phone = ?, company = ?, contact = ?, 
            address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
            probability_coefficient = ?, notes = ?, notes_last_updated = ?, tab_id = ?, estimated_completion_date = ?, 
-           recurrence_months = ?, next_followup_date = ?, updated_at = CURRENT_TIMESTAMP
+           recurrence_months = ?, next_followup_date = ?, company_id = ?, contact_id = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', contact || '',
             address || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
-            notes || '', notes_last_updated, tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, prospectId, req.user.userId
+            notes || '', notes_last_updated, tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, company_id || null, contact_id || null, prospectId, req.user.userId
           ],
           function(err) {
             if (err) {
