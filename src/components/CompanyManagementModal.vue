@@ -385,6 +385,15 @@
                   </div>
                   <div class="flex gap-1 ml-4">
                     <button
+                      @click="editContact(contact)"
+                      class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Edit"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
                       @click="togglePrimaryContact(contact)"
                       :class="[
                         'p-2 rounded transition-colors',
@@ -584,6 +593,124 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Contact Modal -->
+    <div v-if="showEditContactModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4" @click.self="closeEditContactModal">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900">Edit Contact</h2>
+          <button @click="closeEditContactModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveContactEdit" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+              <input
+                v-model="contactForm.first_name"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="First Name"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+              <input
+                v-model="contactForm.last_name"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Last Name"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              v-model="contactForm.email"
+              type="email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="email@example.com"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                v-model="contactForm.phone"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="+1 234 567 8900"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+              <input
+                v-model="contactForm.mobile"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="+1 234 567 8900"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
+              <input
+                v-model="contactForm.position"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Position"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <input
+                v-model="contactForm.department"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Department"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              v-model="contactForm.notes"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Additional notes..."
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              @click="closeEditContactModal"
+              class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="saving"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {{ saving ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -606,8 +733,10 @@ const saving = ref(false);
 const showCompanyModal = ref(false);
 const showContactsModal = ref(false);
 const showCompanyDetailsModal = ref(false);
+const showEditContactModal = ref(false);
 const editingCompany = ref(null);
 const selectedCompany = ref(null);
+const editingContact = ref(null);
 
 const companyForm = ref({
   name: '',
@@ -782,6 +911,60 @@ async function addContact() {
   } catch (error) {
     console.error('Error adding contact:', error);
     alert('Error adding contact');
+  } finally {
+    saving.value = false;
+  }
+}
+
+function editContact(contact) {
+  editingContact.value = contact;
+  contactForm.value = {
+    first_name: contact.first_name,
+    last_name: contact.last_name,
+    email: contact.email || '',
+    phone: contact.phone || '',
+    mobile: contact.mobile || '',
+    position: contact.position || '',
+    department: contact.department || '',
+    notes: contact.notes || ''
+  };
+  showEditContactModal.value = true;
+}
+
+function closeEditContactModal() {
+  showEditContactModal.value = false;
+  editingContact.value = null;
+  contactForm.value = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    mobile: '',
+    position: '',
+    department: '',
+    notes: ''
+  };
+}
+
+async function saveContactEdit() {
+  try {
+    saving.value = true;
+    await api.updateContact(editingContact.value.id, contactForm.value);
+    
+    // Reload company details
+    const updatedCompany = await api.getCompany(selectedCompany.value.id);
+    selectedCompany.value = updatedCompany;
+    
+    // Update in companies list
+    const index = companies.value.findIndex(c => c.id === selectedCompany.value.id);
+    if (index !== -1) {
+      companies.value[index] = updatedCompany;
+    }
+    
+    closeEditContactModal();
+  } catch (error) {
+    console.error('Error updating contact:', error);
+    alert('Error updating contact');
   } finally {
     saving.value = false;
   }
