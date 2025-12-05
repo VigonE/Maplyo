@@ -9,8 +9,8 @@
       <!-- Header -->
       <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900">Gestion des Entreprises</h2>
-          <p class="text-sm text-gray-500 mt-1">Gérez vos entreprises et leurs contacts</p>
+          <h2 class="text-2xl font-bold text-gray-900">Company Management</h2>
+          <p class="text-sm text-gray-500 mt-1">Manage your companies and their contacts</p>
         </div>
         <div class="flex items-center gap-2">
           <button
@@ -20,7 +20,7 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            Nouvelle Entreprise
+            New Company
           </button>
           <button
             @click="closeModal"
@@ -37,7 +37,7 @@
       <div v-if="loading" class="flex-1 flex items-center justify-center">
         <div class="text-center">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p class="text-gray-600 mt-4">Chargement...</p>
+          <p class="text-gray-600 mt-4">Loading...</p>
         </div>
       </div>
 
@@ -47,8 +47,8 @@
           <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
-          <h3 class="text-lg font-medium text-gray-900 mt-4">Aucune entreprise</h3>
-          <p class="text-gray-500 mt-2">Créez votre première entreprise pour commencer</p>
+          <h3 class="text-lg font-medium text-gray-900 mt-4">No companies</h3>
+          <p class="text-gray-500 mt-2">Create your first company to get started</p>
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -68,7 +68,7 @@
                 <button
                   @click.stop="editCompany(company)"
                   class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                  title="Modifier"
+                  title="Edit"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -77,7 +77,7 @@
                 <button
                   @click.stop="deleteCompany(company)"
                   class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Supprimer"
+                  title="Delete"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -125,7 +125,7 @@
                   @click.stop="manageContacts(company)"
                   class="text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Gérer les contacts →
+                  Manage contacts →
                 </button>
               </div>
             </div>
@@ -139,7 +139,7 @@
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900">
-            {{ editingCompany ? 'Modifier l\'entreprise' : 'Nouvelle entreprise' }}
+            {{ editingCompany ? 'Edit Company' : 'New Company' }}
           </h2>
           <button @click="closeCompanyModal" class="text-gray-400 hover:text-gray-600">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,28 +150,28 @@
 
         <form @submit.prevent="saveCompany" class="p-6 space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nom de l'entreprise *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
             <input
               v-model="companyForm.name"
               type="text"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Nom de l'entreprise"
+              placeholder="Company name"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Secteur</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Industry</label>
               <input
                 v-model="companyForm.industry"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ex: Technologie, Finance..."
+                placeholder="e.g. Technology, Finance..."
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Site web</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
               <input
                 v-model="companyForm.website"
                 type="url"
@@ -192,52 +192,52 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <input
                 v-model="companyForm.phone"
                 type="tel"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="+33 1 23 45 67 89"
+                placeholder="+1 234 567 8900"
               />
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
             <input
               v-model="companyForm.address"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Adresse complète"
+              placeholder="Full address"
             />
           </div>
 
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
               <input
                 v-model="companyForm.city"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ville"
+                placeholder="City"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Code postal</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
               <input
                 v-model="companyForm.postal_code"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="75001"
+                placeholder="12345"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
               <input
                 v-model="companyForm.country"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="France"
+                placeholder="USA"
               />
             </div>
           </div>
@@ -248,7 +248,7 @@
               v-model="companyForm.notes"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Notes supplémentaires..."
+              placeholder="Additional notes..."
             ></textarea>
           </div>
 
@@ -258,14 +258,14 @@
               @click="closeCompanyModal"
               class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
-              Annuler
+              Cancel
             </button>
             <button
               type="submit"
               :disabled="saving"
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+              {{ saving ? 'Saving...' : 'Save' }}
             </button>
           </div>
         </form>
@@ -277,8 +277,8 @@
       <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 class="text-xl font-bold text-gray-900">Contacts de {{ selectedCompany?.name }}</h2>
-            <p class="text-sm text-gray-500 mt-1">Gérez les contacts associés à cette entreprise</p>
+            <h2 class="text-xl font-bold text-gray-900">Contacts for {{ selectedCompany?.name }}</h2>
+            <p class="text-sm text-gray-500 mt-1">Manage contacts associated with this company</p>
           </div>
           <button @click="closeContactsModal" class="text-gray-400 hover:text-gray-600">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,21 +290,21 @@
         <div class="flex-1 overflow-y-auto p-6">
           <!-- Add Contact Form -->
           <div class="bg-blue-50 rounded-lg p-4 mb-6">
-            <h3 class="font-semibold text-gray-900 mb-3">Ajouter un contact</h3>
+            <h3 class="font-semibold text-gray-900 mb-3">Add a contact</h3>
             <form @submit.prevent="addContact" class="grid grid-cols-2 gap-3">
               <input
                 v-model="contactForm.first_name"
                 type="text"
                 required
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Prénom *"
+                placeholder="First Name *"
               />
               <input
                 v-model="contactForm.last_name"
                 type="text"
                 required
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nom *"
+                placeholder="Last Name *"
               />
               <input
                 v-model="contactForm.email"
@@ -316,19 +316,19 @@
                 v-model="contactForm.phone"
                 type="tel"
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Téléphone"
+                placeholder="Phone"
               />
               <input
                 v-model="contactForm.position"
                 type="text"
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Poste"
+                placeholder="Position"
               />
               <input
                 v-model="contactForm.department"
                 type="text"
                 class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Département"
+                placeholder="Department"
               />
               <div class="col-span-2">
                 <button
@@ -336,7 +336,7 @@
                   :disabled="saving"
                   class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {{ saving ? 'Ajout...' : 'Ajouter le contact' }}
+                  {{ saving ? 'Adding...' : 'Add Contact' }}
                 </button>
               </div>
             </form>
@@ -344,13 +344,13 @@
 
           <!-- Contacts List -->
           <div class="space-y-3">
-            <h3 class="font-semibold text-gray-900">Contacts associés ({{ selectedCompany?.contacts?.length || 0 }})</h3>
+            <h3 class="font-semibold text-gray-900">Associated Contacts ({{ selectedCompany?.contacts?.length || 0 }})</h3>
             
             <div v-if="!selectedCompany?.contacts || selectedCompany.contacts.length === 0" class="text-center py-8 text-gray-500">
               <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <p>Aucun contact associé</p>
+              <p>No associated contacts</p>
             </div>
 
             <div v-else class="space-y-2">
@@ -364,7 +364,7 @@
                     <div class="flex items-center gap-2">
                       <h4 class="font-semibold text-gray-900">{{ contact.first_name }} {{ contact.last_name }}</h4>
                       <span v-if="contact.is_primary" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                        Principal
+                        Primary
                       </span>
                     </div>
                     <p v-if="contact.position" class="text-sm text-gray-600 mt-1">{{ contact.position }}</p>
@@ -392,7 +392,7 @@
                           ? 'text-blue-600 hover:bg-blue-50'
                           : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                       ]"
-                      title="Contact principal"
+                      title="Primary contact"
                     >
                       <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -401,12 +401,181 @@
                     <button
                       @click="removeContact(contact)"
                       class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      title="Retirer"
+                      title="Remove"
                     >
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Details Modal -->
+    <div v-if="showCompanyDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click.self="closeCompanyDetailsModal">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-6">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <h2 class="text-2xl font-bold">{{ selectedCompany?.name }}</h2>
+              <p v-if="selectedCompany?.industry" class="text-blue-100 mt-1">{{ selectedCompany.industry }}</p>
+            </div>
+            <div class="flex gap-2">
+              <button
+                @click="editCompany(selectedCompany); closeCompanyDetailsModal();"
+                class="p-2 hover:bg-blue-500 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                @click="closeCompanyDetailsModal"
+                class="p-2 hover:bg-blue-500 rounded-lg transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Company Information -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Contact Information -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Contact Information
+              </h3>
+              <div class="space-y-3">
+                <div v-if="selectedCompany?.email">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">Email</label>
+                  <p class="text-gray-900">{{ selectedCompany.email }}</p>
+                </div>
+                <div v-if="selectedCompany?.phone">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">Phone</label>
+                  <p class="text-gray-900">{{ selectedCompany.phone }}</p>
+                </div>
+                <div v-if="selectedCompany?.website">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">Website</label>
+                  <a :href="selectedCompany.website" target="_blank" class="text-blue-600 hover:underline">
+                    {{ selectedCompany.website }}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Location Information -->
+            <div class="bg-gray-50 rounded-lg p-4">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Location
+              </h3>
+              <div class="space-y-3">
+                <div v-if="selectedCompany?.address">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">Address</label>
+                  <p class="text-gray-900">{{ selectedCompany.address }}</p>
+                </div>
+                <div v-if="selectedCompany?.city || selectedCompany?.postal_code">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">City</label>
+                  <p class="text-gray-900">
+                    {{ selectedCompany.city }}{{ selectedCompany.postal_code ? ', ' + selectedCompany.postal_code : '' }}
+                  </p>
+                </div>
+                <div v-if="selectedCompany?.country">
+                  <label class="text-xs text-gray-500 uppercase tracking-wide">Country</label>
+                  <p class="text-gray-900">{{ selectedCompany.country }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div v-if="selectedCompany?.notes" class="mt-6 bg-yellow-50 rounded-lg p-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              Notes
+            </h3>
+            <p class="text-gray-700 whitespace-pre-wrap">{{ selectedCompany.notes }}</p>
+          </div>
+
+          <!-- Contacts Section -->
+          <div class="mt-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Contacts ({{ selectedCompany?.contacts?.length || 0 }})
+              </h3>
+              <button
+                @click="manageContacts(selectedCompany); closeCompanyDetailsModal();"
+                class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Manage Contacts
+              </button>
+            </div>
+
+            <div v-if="!selectedCompany?.contacts || selectedCompany.contacts.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
+              <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p class="text-gray-500">No contacts associated with this company</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="contact in selectedCompany.contacts"
+                :key="contact.id"
+                class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <h4 class="font-semibold text-gray-900">{{ contact.first_name }} {{ contact.last_name }}</h4>
+                      <span v-if="contact.is_primary" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                        Primary
+                      </span>
+                    </div>
+                    <p v-if="contact.position" class="text-sm text-gray-600 mt-1">{{ contact.position }}</p>
+                    <p v-if="contact.department" class="text-xs text-gray-500">{{ contact.department }}</p>
+                  </div>
+                </div>
+                <div class="space-y-1 text-sm">
+                  <div v-if="contact.email" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <a :href="'mailto:' + contact.email" class="hover:text-blue-600">{{ contact.email }}</a>
+                  </div>
+                  <div v-if="contact.phone" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <a :href="'tel:' + contact.phone" class="hover:text-blue-600">{{ contact.phone }}</a>
+                  </div>
+                  <div v-if="contact.mobile" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <a :href="'tel:' + contact.mobile" class="hover:text-blue-600">{{ contact.mobile }}</a>
                   </div>
                 </div>
               </div>
@@ -436,6 +605,7 @@ const loading = ref(false);
 const saving = ref(false);
 const showCompanyModal = ref(false);
 const showContactsModal = ref(false);
+const showCompanyDetailsModal = ref(false);
 const editingCompany = ref(null);
 const selectedCompany = ref(null);
 
@@ -474,8 +644,8 @@ async function loadCompanies() {
     loading.value = true;
     companies.value = await api.getCompanies();
   } catch (error) {
-    console.error('Erreur lors du chargement des entreprises:', error);
-    alert('Erreur lors du chargement des entreprises');
+    console.error('Error loading companies:', error);
+    alert('Error loading companies');
   } finally {
     loading.value = false;
   }
@@ -524,15 +694,15 @@ async function saveCompany() {
     await loadCompanies();
     closeCompanyModal();
   } catch (error) {
-    console.error('Erreur lors de l\'enregistrement:', error);
-    alert('Erreur lors de l\'enregistrement de l\'entreprise');
+    console.error('Error saving company:', error);
+    alert('Error saving company');
   } finally {
     saving.value = false;
   }
 }
 
 async function deleteCompany(company) {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer "${company.name}" ?`)) {
+  if (!confirm(`Are you sure you want to delete "${company.name}"?`)) {
     return;
   }
   
@@ -540,13 +710,26 @@ async function deleteCompany(company) {
     await api.deleteCompany(company.id);
     await loadCompanies();
   } catch (error) {
-    console.error('Erreur lors de la suppression:', error);
-    alert('Erreur lors de la suppression de l\'entreprise');
+    console.error('Error deleting company:', error);
+    alert('Error deleting company');
   }
 }
 
-function selectCompany(company) {
-  // Optional: navigate to company details or open modal
+async function selectCompany(company) {
+  try {
+    // Load full company details with contacts
+    const fullCompany = await api.getCompany(company.id);
+    selectedCompany.value = fullCompany;
+    showCompanyDetailsModal.value = true;
+  } catch (error) {
+    console.error('Error loading company details:', error);
+    alert('Error loading company details');
+  }
+}
+
+function closeCompanyDetailsModal() {
+  showCompanyDetailsModal.value = false;
+  selectedCompany.value = null;
 }
 
 async function manageContacts(company) {
@@ -597,15 +780,15 @@ async function addContact() {
       notes: ''
     };
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du contact:', error);
-    alert('Erreur lors de l\'ajout du contact');
+    console.error('Error adding contact:', error);
+    alert('Error adding contact');
   } finally {
     saving.value = false;
   }
 }
 
 async function removeContact(contact) {
-  if (!confirm(`Retirer "${contact.first_name} ${contact.last_name}" de cette entreprise ?`)) {
+  if (!confirm(`Remove "${contact.first_name} ${contact.last_name}" from this company?`)) {
     return;
   }
   
@@ -622,8 +805,8 @@ async function removeContact(contact) {
       companies.value[index] = updatedCompany;
     }
   } catch (error) {
-    console.error('Erreur lors du retrait du contact:', error);
-    alert('Erreur lors du retrait du contact');
+    console.error('Error removing contact:', error);
+    alert('Error removing contact');
   }
 }
 
@@ -641,8 +824,8 @@ async function togglePrimaryContact(contact) {
       companies.value[index] = updatedCompany;
     }
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du contact principal:', error);
-    alert('Erreur lors de la mise à jour du contact principal');
+    console.error('Error updating primary contact:', error);
+    alert('Error updating primary contact');
   }
 }
 </script>
