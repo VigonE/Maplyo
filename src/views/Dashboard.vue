@@ -76,7 +76,7 @@
                   </button>
                   <div class="border-t border-gray-100"></div>
                   <button
-                    @click="goToCompanies"
+                    @click="openCompaniesModal"
                     class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -889,6 +889,12 @@
       :current-tab-name="currentTabName"
       @close="closeFunnelReportModal"
     />
+
+    <!-- Companies Management Modal -->
+    <CompanyManagementModal
+      :is-visible="showCompaniesModal"
+      @close="closeCompaniesModal"
+    />
     </div>
   </div>
 </template>
@@ -954,6 +960,7 @@ import FunnelProspectModal from '@/components/FunnelProspectModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import ForecastModal from '@/components/ForecastModal.vue'
 import FunnelReportModal from '@/components/FunnelReportModal.vue'
+import CompanyManagementModal from '@/components/CompanyManagementModal.vue'
 import api, { profileAPI, usersAPI } from '@/services/api'
 
 const router = useRouter()
@@ -1025,6 +1032,9 @@ const showForecastModal = ref(false)
 
 // Funnel Report Modal
 const showFunnelReportModal = ref(false)
+
+// Companies Management Modal
+const showCompaniesModal = ref(false)
 
 // User profile and password management
 const userProfile = ref(null)
@@ -2130,6 +2140,16 @@ function closeFunnelReportModal() {
   showFunnelReportModal.value = false
 }
 
+// Fonctions pour la gestion des entreprises
+function openCompaniesModal() {
+  showSettingsMenu.value = false
+  showCompaniesModal.value = true
+}
+
+function closeCompaniesModal() {
+  showCompaniesModal.value = false
+}
+
 function onCsvImported(results) {
   console.log('CSV import completed:', results)
   showCsvImportModal.value = false
@@ -2334,11 +2354,6 @@ const loadTheme = () => {
 // Méthode pour aller à la page d'administration
 const goToAdmin = () => {
   router.push('/admin')
-}
-
-// Méthode pour aller à la page des entreprises
-const goToCompanies = () => {
-  router.push('/companies')
 }
 
 // Méthode de déconnexion avec redirection

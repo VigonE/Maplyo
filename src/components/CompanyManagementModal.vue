@@ -1,160 +1,141 @@
 <template>
-  <div class="h-full flex flex-col bg-gray-50">
-    <!-- Header with Navigation -->
-    <div class="bg-white shadow-sm border-b border-gray-200">
-      <div class="px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-6">
-            <div>
-              <h1 class="text-2xl font-bold text-blue-600">Maplyo CRM</h1>
-            </div>
-            <nav class="flex items-center gap-4">
-              <router-link
-                to="/dashboard"
-                class="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Dashboard
-              </router-link>
-              <router-link
-                to="/companies"
-                class="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg font-medium"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Entreprises
-              </router-link>
-            </nav>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              @click="openCreateCompanyModal"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Nouvelle Entreprise
-            </button>
-            <button
-              @click="handleLogout"
-              class="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              title="Se déconnecter"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </div>
+  <!-- Modal Overlay -->
+  <div
+    v-if="isVisible"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    @click.self="closeModal"
+  >
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+      <!-- Header -->
+      <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900">Gestion des Entreprises</h2>
+          <p class="text-sm text-gray-500 mt-1">Gérez vos entreprises et leurs contacts</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="openCreateCompanyModal"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Nouvelle Entreprise
+          </button>
+          <button
+            @click="closeModal"
+            class="text-gray-400 hover:text-gray-600 p-2"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="text-gray-600 mt-4">Chargement...</p>
-      </div>
-    </div>
-
-    <!-- Companies List -->
-    <div v-else class="flex-1 overflow-auto p-6">
-      <div v-if="companies.length === 0" class="text-center py-12">
-        <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-        <h3 class="text-lg font-medium text-gray-900 mt-4">Aucune entreprise</h3>
-        <p class="text-gray-500 mt-2">Créez votre première entreprise pour commencer</p>
+      <!-- Loading State -->
+      <div v-if="loading" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="text-gray-600 mt-4">Chargement...</p>
+        </div>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div
-          v-for="company in companies"
-          :key="company.id"
-          class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-          @click="selectCompany(company)"
-        >
-          <!-- Company Header -->
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-gray-900">{{ company.name }}</h3>
-              <p v-if="company.industry" class="text-sm text-gray-500 mt-1">{{ company.industry }}</p>
-            </div>
-            <div class="flex gap-1">
-              <button
-                @click.stop="editCompany(company)"
-                class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                title="Modifier"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button
-                @click.stop="deleteCompany(company)"
-                class="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                title="Supprimer"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          </div>
+      <!-- Companies List -->
+      <div v-else class="flex-1 overflow-auto p-6">
+        <div v-if="companies.length === 0" class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mt-4">Aucune entreprise</h3>
+          <p class="text-gray-500 mt-2">Créez votre première entreprise pour commencer</p>
+        </div>
 
-          <!-- Company Info -->
-          <div class="space-y-2 text-sm">
-            <div v-if="company.email" class="flex items-center gap-2 text-gray-600">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span>{{ company.email }}</span>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            v-for="company in companies"
+            :key="company.id"
+            class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+            @click="selectCompany(company)"
+          >
+            <!-- Company Header -->
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900">{{ company.name }}</h3>
+                <p v-if="company.industry" class="text-sm text-gray-500 mt-1">{{ company.industry }}</p>
+              </div>
+              <div class="flex gap-1">
+                <button
+                  @click.stop="editCompany(company)"
+                  class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                  title="Modifier"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  @click.stop="deleteCompany(company)"
+                  class="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  title="Supprimer"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div v-if="company.phone" class="flex items-center gap-2 text-gray-600">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              <span>{{ company.phone }}</span>
-            </div>
-            <div v-if="company.website" class="flex items-center gap-2 text-gray-600">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-              </svg>
-              <a :href="company.website" target="_blank" class="text-blue-600 hover:underline">{{ company.website }}</a>
-            </div>
-            <div v-if="company.address" class="flex items-center gap-2 text-gray-600">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>{{ company.address }}</span>
-            </div>
-          </div>
 
-          <!-- Contacts Count -->
-          <div class="mt-4 pt-4 border-t border-gray-200">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">
-                {{ company.contacts?.length || 0 }} contact(s)
-              </span>
-              <button
-                @click.stop="manageContacts(company)"
-                class="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Gérer les contacts →
-              </button>
+            <!-- Company Info -->
+            <div class="space-y-2 text-sm">
+              <div v-if="company.email" class="flex items-center gap-2 text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>{{ company.email }}</span>
+              </div>
+              <div v-if="company.phone" class="flex items-center gap-2 text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                <span>{{ company.phone }}</span>
+              </div>
+              <div v-if="company.website" class="flex items-center gap-2 text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                <a :href="company.website" target="_blank" @click.stop class="text-blue-600 hover:underline">{{ company.website }}</a>
+              </div>
+              <div v-if="company.address" class="flex items-center gap-2 text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{{ company.address }}</span>
+              </div>
+            </div>
+
+            <!-- Contacts Count -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-600">
+                  {{ company.contacts?.length || 0 }} contact(s)
+                </span>
+                <button
+                  @click.stop="manageContacts(company)"
+                  class="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Gérer les contacts →
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Company Modal -->
-    <div v-if="showCompanyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <!-- Company Edit Modal -->
+    <div v-if="showCompanyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click.self="closeCompanyModal">
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900">
@@ -292,7 +273,7 @@
     </div>
 
     <!-- Contacts Management Modal -->
-    <div v-if="showContactsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div v-if="showContactsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click.self="closeContactsModal">
       <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
@@ -438,13 +419,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { ref, watch } from 'vue';
 import api from '../services/api';
 
-const router = useRouter();
-const authStore = useAuthStore();
+const props = defineProps({
+  isVisible: {
+    type: Boolean,
+    required: true
+  }
+});
+
+const emit = defineEmits(['close']);
 
 const companies = ref([]);
 const loading = ref(false);
@@ -478,8 +463,10 @@ const contactForm = ref({
   notes: ''
 });
 
-onMounted(() => {
-  loadCompanies();
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    loadCompanies();
+  }
 });
 
 async function loadCompanies() {
@@ -492,6 +479,10 @@ async function loadCompanies() {
   } finally {
     loading.value = false;
   }
+}
+
+function closeModal() {
+  emit('close');
 }
 
 function openCreateCompanyModal() {
@@ -653,10 +644,5 @@ async function togglePrimaryContact(contact) {
     console.error('Erreur lors de la mise à jour du contact principal:', error);
     alert('Erreur lors de la mise à jour du contact principal');
   }
-}
-
-function handleLogout() {
-  authStore.logout();
-  router.push('/login');
 }
 </script>
