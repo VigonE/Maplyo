@@ -1082,9 +1082,23 @@ app.post('/api/settings/closing-lead-times', authenticateToken, requireWriteAcce
 app.get('/api/prospects', authenticateToken, (req, res) => {
   console.log('📋 Fetching prospects for user:', req.user.userId);
   db.all(
-    `SELECT * FROM prospects WHERE user_id = ? 
+    `SELECT 
+      p.*,
+      c.name as company_name,
+      c.address as company_address,
+      c.email as company_email,
+      c.phone as company_phone,
+      ct.first_name as contact_first_name,
+      ct.last_name as contact_last_name,
+      ct.email as contact_email,
+      ct.phone as contact_phone,
+      ct.position as contact_position
+     FROM prospects p
+     LEFT JOIN companies c ON p.company_id = c.id
+     LEFT JOIN contacts ct ON p.contact_id = ct.id
+     WHERE p.user_id = ? 
      ORDER BY 
-       CASE status 
+       CASE p.status 
          WHEN 'hot' THEN 1 
          WHEN 'warm' THEN 2 
          WHEN 'cold' THEN 3 
@@ -1092,8 +1106,8 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
          WHEN 'lost' THEN 5 
          ELSE 6 
        END,
-       display_order ASC, 
-       created_at DESC`,
+       p.display_order ASC, 
+       p.created_at DESC`,
     [req.user.userId],
     (err, prospects) => {
       if (err) {
@@ -1103,7 +1117,7 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
 
       console.log(`📊 Found ${prospects.length} prospects`);
       
-      // Fetch status history for each prospect
+      // Fetch status history for each prospect and enrich with company/contact data
       const prospectsWithHistory = [];
       let completed = 0;
       
@@ -1112,6 +1126,41 @@ app.get('/api/prospects', authenticateToken, (req, res) => {
       }
       
       prospects.forEach(prospect => {
+        // Enrich prospect with company/contact data if available
+        // CRITICAL: Linked data MUST completely replace text fields
+        if (prospect.company_id) {
+          // FORCE use of linked company data (ignore old text fields completely)
+          console.log(`🔗 Prospect ${prospect.id}: company_id=${prospect.company_id}, company_name from DB="${prospect.company_name}", old text="${prospect.company}"`);
+          prospect.company = prospect.company_name || '';
+          prospect.address = prospect.company_address || '';
+          console.log(`   → Final company name: "${prospect.company}"`);
+          // Preserve prospect's own email/phone if they exist and are different
+          const prospectHasOwnEmail = prospect.email && prospect.email !== prospect.company_email;
+          const prospectHasOwnPhone = prospect.phone && prospect.phone !== prospect.company_phone;
+          if (!prospectHasOwnEmail) prospect.email = prospect.company_email || '';
+          if (!prospectHasOwnPhone) prospect.phone = prospect.company_phone || '';
+        }
+        
+        if (prospect.contact_id) {
+          // FORCE use of linked contact data (ignore old text fields completely)
+          const contactName = `${prospect.contact_first_name || ''} ${prospect.contact_last_name || ''}`.trim();
+          prospect.contact = contactName || '';
+          // Contact details always override
+          prospect.email = prospect.contact_email || prospect.email || '';
+          prospect.phone = prospect.contact_phone || prospect.phone || '';
+        }
+        
+        // Clean up temporary JOIN fields
+        delete prospect.company_name;
+        delete prospect.company_address;
+        delete prospect.company_email;
+        delete prospect.company_phone;
+        delete prospect.contact_first_name;
+        delete prospect.contact_last_name;
+        delete prospect.contact_email;
+        delete prospect.contact_phone;
+        delete prospect.contact_position;
+        
         db.all(
           `SELECT new_status as status, changed_at 
            FROM status_history 
