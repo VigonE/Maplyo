@@ -593,17 +593,26 @@ export const contactsAPI = {
   
   linkToCompany: createDemoWrapper(
     contactsAPIOriginal.linkToCompany,
-    () => ({ success: true })
+    (demoStore, companyId, contactId) => {
+      demoStore.linkContactToCompany(contactId, companyId)
+      return { success: true }
+    }
   ),
   
   unlinkFromCompany: createDemoWrapper(
     contactsAPIOriginal.unlinkFromCompany,
-    () => ({ success: true })
+    (demoStore, companyId, contactId) => {
+      demoStore.unlinkContactFromCompany(contactId)
+      return { success: true }
+    }
   ),
   
   setPrimary: createDemoWrapper(
     contactsAPIOriginal.setPrimary,
-    () => ({ success: true })
+    (demoStore, companyId, contactId, isPrimary) => {
+      demoStore.setPrimaryContact(companyId, contactId, isPrimary)
+      return { success: true }
+    }
   )
 }
 
