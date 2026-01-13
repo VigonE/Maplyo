@@ -151,6 +151,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useDemoStore } from '../stores/demo'
 import { useTodoSync, TODO_EVENTS } from '@/composables/useTodoSync'
 import api from '../services/api'
 
@@ -162,6 +163,7 @@ const props = defineProps({
 })
 
 const authStore = useAuthStore()
+const demoStore = useDemoStore()
 
 // Todo Sync
 const { emitTodoSync } = useTodoSync()
@@ -211,7 +213,13 @@ async function addTodo() {
       due_date: newTodoDueDate.value || null
     })
 
-    todos.value.unshift(response.data)
+    // En mode démo, recharger depuis le demoStore au lieu d'ajouter localement
+    if (demoStore.isDemoMode) {
+      await loadTodos()
+    } else {
+      todos.value.unshift(response.data)
+    }
+    
     clearNewTodo()
     console.log('✅ Added todo:', response.data)
     
@@ -235,10 +243,15 @@ async function toggleTodo(todo) {
       completed: !todo.completed
     })
 
-    // Update local todo
-    const index = todos.value.findIndex(t => t.id === todo.id)
-    if (index !== -1) {
-      todos.value[index] = response.data
+    // En mode démo, recharger depuis le demoStore au lieu de modifier localement
+    if (demoStore.isDemoMode) {
+      await loadTodos()
+    } else {
+      // Update local todo
+      const index = todos.value.findIndex(t => t.id === todo.id)
+      if (index !== -1) {
+        todos.value[index] = response.data
+      }
     }
     
     console.log('✅ Toggled todo completion:', response.data)
@@ -257,10 +270,15 @@ async function deleteTodo(todo) {
   try {
     await api.delete(`/todos/${todo.id}`)
 
-    // Remove from local list
-    const index = todos.value.findIndex(t => t.id === todo.id)
-    if (index !== -1) {
-      todos.value.splice(index, 1)
+    // En mode démo, recharger depuis le demoStore au lieu de supprimer localement
+    if (demoStore.isDemoMode) {
+      await loadTodos()
+    } else {
+      // Remove from local list
+      const index = todos.value.findIndex(t => t.id === todo.id)
+      if (index !== -1) {
+        todos.value.splice(index, 1)
+      }
     }
     
     console.log('✅ Deleted todo:', todo.id)

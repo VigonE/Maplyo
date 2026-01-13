@@ -186,7 +186,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick, defineExpose } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import axios from 'axios'
+import api from '@/services/api'
 import ProspectsList from './ProspectsList.vue'
 
 export default {
@@ -232,9 +232,7 @@ export default {
       try {
         console.log('📋 Loading tabs from server...')
         console.log('🔑 Auth token:', authStore.token ? 'Present' : 'Missing')
-        const response = await axios.get('/api/tabs', {
-          headers: { Authorization: `Bearer ${authStore.token}` }
-        })
+        const response = await api.get('/tabs')
         tabs.value = response.data
         console.log('📋 Loaded tabs from server:', tabs.value.length, tabs.value)
         

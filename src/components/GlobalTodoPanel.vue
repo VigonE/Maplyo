@@ -162,7 +162,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useTodoSync, TODO_EVENTS } from '@/composables/useTodoSync'
+import { useDemoStore } from '@/stores/demo'
 import api from '@/services/api.js'
+
+// Stores
+const demoStore = useDemoStore()
 
 // Props
 const props = defineProps({
@@ -225,6 +229,13 @@ function togglePanel() {
 
 function getProspectName(prospectId) {
   const prospect = props.prospects.find(p => p.id === prospectId)
+  if (!prospect) {
+    console.warn('❌ Prospect not found for TODO:', {
+      prospectId,
+      prospectIdType: typeof prospectId,
+      availableProspects: props.prospects.map(p => ({ id: p.id, name: p.name, idType: typeof p.id }))
+    })
+  }
   return prospect ? prospect.name : 'Unknown prospect'
 }
 
@@ -310,6 +321,12 @@ onUnmounted(() => {
 // Gérer les événements de synchronisation
 function handleTodoSync(event, data) {
   console.log('🔄 GlobalTodoPanel received sync event:', event, data)
+  
+  // En mode démo, recharger depuis le demoStore au lieu de manipuler localement
+  if (demoStore.isDemoMode) {
+    loadTodos()
+    return
+  }
   
   switch (event) {
     case TODO_EVENTS.ADDED:

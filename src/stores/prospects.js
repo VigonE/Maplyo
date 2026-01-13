@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 import api from '@/services/api'
+import { prospectsAPI } from '@/services/api'
+import { useDemoStore } from '@/stores/demo'
 
 export const useProspectsStore = defineStore('prospects', () => {
   // Utiliser shallowRef pour éviter la réactivité profonde sur de gros tableaux
@@ -140,6 +142,15 @@ export const useProspectsStore = defineStore('prospects', () => {
   }
 
   async function fetchProspects(force = false) {
+    // Vérifier si on est en mode démo
+    const demoStore = useDemoStore()
+    if (demoStore.isDemoMode) {
+      // En mode démo, charger les prospects depuis le store démo
+      prospects.value = demoStore.getDemoProspects()
+      clearCaches()
+      return
+    }
+    
     // Éviter les requêtes multiples simultanées
     if (loading.value && !force) return
     
@@ -151,7 +162,7 @@ export const useProspectsStore = defineStore('prospects', () => {
     
     loading.value = true
     try {
-      const response = await api.get('/prospects')
+      const response = await prospectsAPI.getAll()
       prospects.value = response.data
       lastFetchTime.value = now
       clearCaches()
@@ -164,10 +175,17 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   async function createProspect(prospectData) {
     try {
-      const response = await api.post('/prospects', prospectData)
+      const response = await prospectsAPI.create(prospectData)
       
-      // Add new prospect locally instead of reloading
-      prospects.value = [...prospects.value, response.data]
+      // En mode démo, l'intercepteur a déjà ajouté le prospect au demoStore
+      // Il suffit de recharger depuis le demoStore
+      const demoStore = useDemoStore()
+      if (demoStore.isDemoMode) {
+        prospects.value = demoStore.getDemoProspects()
+      } else {
+        // En mode normal, ajouter le prospect localement
+        prospects.value = [...prospects.value, response.data]
+      }
       clearCaches()
       
       return { success: true, data: response.data }
@@ -202,7 +220,7 @@ export const useProspectsStore = defineStore('prospects', () => {
         next_followup_date: completeData.next_followup_date
       })
       
-      const response = await api.put(`/prospects/${id}`, completeData)
+      const response = await prospectsAPI.update(id, completeData)
       
       console.log('✅ Server response:', response.data)
       console.log('   - Returned recurrence fields:', {
@@ -211,7 +229,13 @@ export const useProspectsStore = defineStore('prospects', () => {
       })
       
       // Mettre à jour avec les données du serveur
-      updateProspectLocal(id, response.data)
+      // En mode démo, recharger depuis le demoStore
+      const demoStore = useDemoStore()
+      if (demoStore.isDemoMode) {
+        prospects.value = demoStore.getDemoProspects()
+      } else {
+        updateProspectLocal(id, response.data)
+      }
       
       return { success: true, data: response.data }
     } catch (error) {
@@ -248,10 +272,16 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   async function deleteProspect(id) {
     try {
-      await api.delete(`/prospects/${id}`)
+      await prospectsAPI.delete(id)
       
-      // Delete locally instead of reloading
-      prospects.value = prospects.value.filter(p => p.id !== id)
+      // En mode démo, recharger depuis le demoStore
+      const demoStore = useDemoStore()
+      if (demoStore.isDemoMode) {
+        prospects.value = demoStore.getDemoProspects()
+      } else {
+        // Delete locally instead of reloading
+        prospects.value = prospects.value.filter(p => p.id !== id)
+      }
       clearCaches()
       
       return { success: true }

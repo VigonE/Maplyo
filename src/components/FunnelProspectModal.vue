@@ -541,7 +541,6 @@
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProspectsStore } from '../stores/prospects'
 import { useAuthStore } from '../stores/auth'
-import axios from 'axios'
 import api, { companiesAPI } from '../services/api'
 import RichTextEditor from './RichTextEditor.vue'
 import TodoList from './TodoList.vue'
@@ -569,9 +568,7 @@ const availableTabsRef = ref([])
 const loadAvailableTabs = async () => {
   try {
     console.log('📋 Loading available tabs from API...')
-    const response = await axios.get('/api/tabs', {
-      headers: { Authorization: `Bearer ${authStore.token}` }
-    })
+    const response = await api.get('/tabs')
     // Filtrer pour ne garder que les onglets non-spéciaux pour l'assignation
     availableTabsRef.value = response.data.filter(tab => !tab.is_special)
     console.log('📋 Available tabs for assignment:', availableTabsRef.value)

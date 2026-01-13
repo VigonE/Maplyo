@@ -81,6 +81,35 @@
             </button>
           </div>
         </form>
+
+        <!-- Demo Button -->
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">Or</span>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <button
+              type="button"
+              @click="enterDemoMode"
+              class="w-full flex justify-center items-center py-2 px-4 border-2 border-primary-600 rounded-md shadow-sm text-sm font-medium text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Try Demo
+            </button>
+            <p class="mt-2 text-xs text-center text-gray-500">
+              Free access with sample data
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -90,9 +119,11 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDemoStore } from '@/stores/demo'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const demoStore = useDemoStore()
 
 const isLogin = ref(true)
 const loading = ref(false)
@@ -123,5 +154,25 @@ async function handleSubmit() {
   } finally {
     loading.value = false
   }
+}
+
+// Enter demo mode
+function enterDemoMode() {
+  // Initialize demo mode with data
+  demoStore.initDemoMode()
+  
+  // Create demo token
+  const demoToken = 'demo-token-' + Date.now()
+  
+  // Sauvegarder dans sessionStorage (pas localStorage) pour que ça disparaisse à la fermeture
+  sessionStorage.setItem('maplyo_auth_token', demoToken)
+  sessionStorage.setItem('maplyo_auth_user', JSON.stringify(demoStore.demoUser))
+  
+  // Mettre à jour le store auth
+  authStore.token = demoToken
+  authStore.user = demoStore.demoUser
+  
+  // Rediriger vers le dashboard
+  router.push('/dashboard')
 }
 </script>

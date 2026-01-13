@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useDemoStore } from '@/stores/demo'
 
 // Use different base URL depending on environment
 const getBaseURL = () => {
@@ -16,23 +17,275 @@ const api = axios.create({
   timeout: 10000
 })
 
-// Request interceptor pour ajouter le token
+// Request interceptor pour ajouter le token et gérer le mode démo
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const authStore = useAuthStore()
+    const demoStore = useDemoStore()
+    
+    // Debug logging
+    console.log('📡 API Request:', config.url, {
+      token: authStore.token?.substring(0, 20) + '...',
+      demoStoreFlag: demoStore.isDemoMode,
+      tokenStartsWith: authStore.token?.startsWith('demo-token')
+    })
+    
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
+    
+    // Vérifier si on est en mode démo (par le store OU par le token)
+    const isDemoMode = demoStore.isDemoMode || (authStore.token && authStore.token.startsWith('demo-token'))
+    
+    if (isDemoMode) {
+      // En mode démo, intercepter la requête et retourner des données simulées
+      console.log('🎭 Demo mode: intercepting request to', config.url)
+      
+      // Simuler un délai réseau
+      await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100))
+      
+      // Créer une réponse simulée basée sur l'URL
+      const mockResponse = createMockResponse(config, demoStore)
+      
+      // Annuler la requête et utiliser l'adaptateur pour retourner la réponse simulée
+      config.adapter = () => Promise.resolve({
+        data: mockResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: config,
+        request: {}
+      })
+    }
+    
     return config
   },
   (error) => Promise.reject(error)
 )
+
+// Fonction pour créer des réponses simulées en mode démo
+function createMockResponse(config, demoStore) {
+  const url = config.url
+  const method = config.method.toLowerCase()
+  
+  // Tabs
+  if (url.includes('/tabs')) {
+    if (method === 'get') {
+      return [{ id: 'default', name: 'All Leads', order: 0, user_id: 9999 }]
+    }
+    return { success: true }
+  }
+  
+  // Todos
+  if (url.includes('/todos')) {
+    if (method === 'get') {
+      // Si l'URL contient /prospects/{id}/todos, filtrer par prospect_id
+      const prospectIdMatch = url.match(/\/prospects\/(\d+)\/todos/)
+      if (prospectIdMatch) {
+        const prospectId = parseInt(prospectIdMatch[1])
+        const allTodos = demoStore.getDemoTodos()
+        return allTodos.filter(todo => todo.prospect_id === prospectId)
+      }
+      // Sinon retourner tous les todos (/todos/all)
+      return demoStore.getDemoTodos()
+    }
+    if (method === 'post') {
+      // Extraire le prospect_id de l'URL si présent (/prospects/{id}/todos)
+      const prospectIdMatch = url.match(/\/prospects\/(\d+)\/todos/)
+      const prospectId = prospectIdMatch ? parseInt(prospectIdMatch[1]) : null
+      
+      const todoData = {
+        ...config.data,
+        prospect_id: prospectId
+      }
+      
+      const newTodo = demoStore.createDemoTodo(todoData)
+      return newTodo
+    }
+    if (method === 'put') {
+      const id = parseInt(url.match(/\/todos\/(\d+)/)?.[1])
+      const updated = demoStore.updateDemoTodo(id, config.data)
+      return updated
+    }
+    if (method === 'delete') {
+      const id = parseInt(url.match(/\/todos\/(\d+)/)?.[1])
+      demoStore.deleteDemoTodo(id)
+      return { success: true }
+    }
+  }
+  
+  // Prospects
+  if (url.includes('/prospects')) {
+    if (method === 'get' && !url.match(/\/prospects\/\d+/)) {
+      return demoStore.getDemoProspects()
+    }
+    if (method === 'get' && url.match(/\/prospects\/(\d+)/)) {
+      const id = parseInt(url.match(/\/prospects\/(\d+)/)?.[1])
+      return demoStore.getDemoProspectById(id)
+    }
+    if (method === 'post' && url.includes('/import-csv')) {
+      return { success: false, error: 'Import CSV non disponible en mode démo' }
+    }
+    if (method === 'post' && url.includes('/reorder')) {
+      return { success: true }
+    }
+    if (method === 'post') {
+      const newProspect = demoStore.createDemoProspect(config.data)
+      return newProspect
+    }
+    if (method === 'put') {
+      const id = parseInt(url.match(/\/prospects\/(\d+)/)?.[1])
+      const updated = demoStore.updateDemoProspect(id, config.data)
+      return updated
+    }
+    if (method === 'delete') {
+      const id = parseInt(url.match(/\/prospects\/(\d+)/)?.[1])
+      demoStore.deleteDemoProspect(id)
+      return { success: true }
+    }
+  }
+  
+  // Companies
+  if (url.includes('/companies')) {
+    if (method === 'get' && !url.match(/\/companies\/\d+/)) {
+      return demoStore.getDemoCompanies()
+    }
+    if (method === 'get' && url.match(/\/companies\/(\d+)/)) {
+      const id = parseInt(url.match(/\/companies\/(\d+)/)?.[1])
+      const company = demoStore.getDemoCompanyById(id)
+      if (company) {
+        // Ajouter les contacts de l'entreprise
+        const contacts = demoStore.getDemoContactsByCompany(id)
+        return { ...company, contacts }
+      }
+      return company
+    }
+    if (method === 'post') {
+      const newCompany = demoStore.createDemoCompany(config.data)
+      return newCompany
+    }
+    if (method === 'put') {
+      const id = parseInt(url.match(/\/companies\/(\d+)/)?.[1])
+      const updated = demoStore.updateDemoCompany(id, config.data)
+      return updated
+    }
+    if (method === 'delete') {
+      const id = parseInt(url.match(/\/companies\/(\d+)/)?.[1])
+      demoStore.deleteDemoCompany(id)
+      return { success: true }
+    }
+  }
+  
+  // Contacts
+  if (url.includes('/contacts')) {
+    // Link contact to company: POST /companies/{companyId}/contacts/{contactId}
+    if (method === 'post' && url.match(/\/companies\/(\d+)\/contacts\/(\d+)/)) {
+      const matches = url.match(/\/companies\/(\d+)\/contacts\/(\d+)/)
+      const companyId = parseInt(matches[1])
+      const contactId = parseInt(matches[2])
+      demoStore.linkContactToCompany(contactId, companyId)
+      return { success: true }
+    }
+    
+    // Unlink contact from company: DELETE /companies/{companyId}/contacts/{contactId}
+    if (method === 'delete' && url.match(/\/companies\/(\d+)\/contacts\/(\d+)/)) {
+      const matches = url.match(/\/companies\/(\d+)\/contacts\/(\d+)/)
+      const contactId = parseInt(matches[2])
+      demoStore.unlinkContactFromCompany(contactId)
+      return { success: true }
+    }
+    
+    // Set primary contact: PUT /companies/{companyId}/contacts/{contactId}/primary
+    if (method === 'put' && url.includes('/primary')) {
+      const matches = url.match(/\/companies\/(\d+)\/contacts\/(\d+)\/primary/)
+      if (matches) {
+        const companyId = parseInt(matches[1])
+        const contactId = parseInt(matches[2])
+        const isPrimary = config.data?.is_primary !== false
+        demoStore.setPrimaryContact(companyId, contactId, isPrimary)
+        return { success: true }
+      }
+    }
+    
+    // Get all contacts
+    if (method === 'get' && !url.match(/\/contacts\/\d+/)) {
+      return demoStore.getDemoContacts()
+    }
+    
+    // Get contact by id
+    if (method === 'get' && url.match(/\/contacts\/(\d+)/)) {
+      const id = parseInt(url.match(/\/contacts\/(\d+)/)?.[1])
+      return demoStore.getDemoContactById(id)
+    }
+    
+    // Create contact
+    if (method === 'post' && !url.includes('/companies')) {
+      const newContact = demoStore.createDemoContact(config.data)
+      return newContact
+    }
+    
+    // Update contact
+    if (method === 'put' && !url.includes('/primary')) {
+      const id = parseInt(url.match(/\/contacts\/(\d+)/)?.[1])
+      const updated = demoStore.updateDemoContact(id, config.data)
+      return updated
+    }
+    
+    // Delete contact
+    if (method === 'delete' && !url.includes('/companies')) {
+      const id = parseInt(url.match(/\/contacts\/(\d+)/)?.[1])
+      demoStore.deleteDemoContact(id)
+      return { success: true }
+    }
+  }
+  
+  // Settings
+  if (url.includes('/settings')) {
+    return { 
+      cold_closing_lead_time: 30,
+      warm_closing_lead_time: 15,
+      hot_closing_lead_time: 7,
+      recurring_closing_lead_time: 30
+    }
+  }
+  
+  // Profile
+  if (url.includes('/profile')) {
+    return demoStore.demoUser
+  }
+  
+  // Users (admin)
+  if (url.includes('/users')) {
+    return []
+  }
+  
+  // Par défaut
+  return { success: true }
+}
 
 // Response interceptor pour gérer les erreurs d'auth - MOINS AGRESSIF
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    
+    // En mode démo, ignorer les erreurs 401 et retourner des données simulées
+    const authStore = useAuthStore()
+    const demoStore = useDemoStore()
+    const isDemoMode = demoStore.isDemoMode || (authStore.token && authStore.token.startsWith('demo-token'))
+    
+    if (isDemoMode && error.response?.status === 401) {
+      console.log('🎭 Demo mode: caught 401 error, returning mock data for', originalRequest.url)
+      const mockResponse = createMockResponse(originalRequest, demoStore)
+      return {
+        data: mockResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: originalRequest,
+        request: {}
+      }
+    }
     
     // Handle different types of 401 errors
     if (error.response?.status === 401) {
@@ -129,8 +382,8 @@ export const usersAPI = {
   delete: (userId) => api.delete(`/users/${userId}`)
 }
 
-// API pour la gestion des entreprises
-export const companiesAPI = {
+// API pour la gestion des entreprises (version originale sans wrapper)
+const companiesAPIOriginal = {
   // Get all companies with their contacts
   getAll: async () => {
     const response = await api.get('/companies')
@@ -162,8 +415,8 @@ export const companiesAPI = {
   }
 }
 
-// API pour la gestion des contacts
-export const contactsAPI = {
+// API pour la gestion des contacts (version originale sans wrapper)
+const contactsAPIOriginal = {
   // Get all contacts
   getAll: async () => {
     const response = await api.get('/contacts')
@@ -205,6 +458,153 @@ export const contactsAPI = {
     const response = await api.put(`/companies/${companyId}/contacts/${contactId}/primary`, { is_primary: isPrimary })
     return response.data
   }
+}
+
+// Wrapper functions pour gérer le mode démo
+const createDemoWrapper = (apiFunction, demoHandler) => {
+  return async (...args) => {
+    const demoStore = useDemoStore()
+    if (demoStore.isDemoMode && demoHandler) {
+      // Simuler un délai réseau
+      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200))
+      return demoHandler(demoStore, ...args)
+    }
+    return apiFunction(...args)
+  }
+}
+
+// Prospects API avec support du mode démo
+export const prospectsAPI = {
+  getAll: createDemoWrapper(
+    () => api.get('/prospects'),
+    (demoStore) => ({ data: demoStore.getDemoProspects() })
+  ),
+  
+  getById: createDemoWrapper(
+    (id) => api.get(`/prospects/${id}`),
+    (demoStore, id) => ({ data: demoStore.getDemoProspectById(id) })
+  ),
+  
+  create: createDemoWrapper(
+    (data) => api.post('/prospects', data),
+    (demoStore, data) => ({ data: demoStore.createDemoProspect(data) })
+  ),
+  
+  update: createDemoWrapper(
+    (id, data) => api.put(`/prospects/${id}`, data),
+    (demoStore, id, data) => ({ data: demoStore.updateDemoProspect(id, data) })
+  ),
+  
+  delete: createDemoWrapper(
+    (id) => api.delete(`/prospects/${id}`),
+    (demoStore, id) => {
+      demoStore.deleteDemoProspect(id)
+      return { data: { success: true } }
+    }
+  ),
+  
+  reorder: createDemoWrapper(
+    (data) => api.post('/prospects/reorder', data),
+    () => ({ data: { success: true } })
+  )
+}
+
+// Todos API avec support du mode démo
+export const todosAPI = {
+  getAll: createDemoWrapper(
+    () => api.get('/todos'),
+    (demoStore) => ({ data: demoStore.getDemoTodos() })
+  ),
+  
+  create: createDemoWrapper(
+    (data) => api.post('/todos', data),
+    (demoStore, data) => ({ data: demoStore.createDemoTodo(data) })
+  ),
+  
+  update: createDemoWrapper(
+    (id, data) => api.put(`/todos/${id}`, data),
+    (demoStore, id, data) => ({ data: demoStore.updateDemoTodo(id, data) })
+  ),
+  
+  delete: createDemoWrapper(
+    (id) => api.delete(`/todos/${id}`),
+    (demoStore, id) => {
+      demoStore.deleteDemoTodo(id)
+      return { data: { success: true } }
+    }
+  )
+}
+
+// Wrapper pour companies API avec support du mode démo
+export const companiesAPI = {
+  getAll: createDemoWrapper(
+    companiesAPIOriginal.getAll,
+    (demoStore) => demoStore.getDemoCompanies()
+  ),
+  
+  get: createDemoWrapper(
+    companiesAPIOriginal.get,
+    (demoStore, id) => demoStore.getDemoCompanies().find(c => c.id === id)
+  ),
+  
+  create: createDemoWrapper(
+    companiesAPIOriginal.create,
+    (demoStore, data) => demoStore.createDemoCompany(data)
+  ),
+  
+  update: createDemoWrapper(
+    companiesAPIOriginal.update,
+    (demoStore, id, data) => demoStore.updateDemoCompany(id, data)
+  ),
+  
+  delete: createDemoWrapper(
+    companiesAPIOriginal.delete,
+    (demoStore, id) => {
+      demoStore.deleteDemoCompany(id)
+      return { success: true }
+    }
+  )
+}
+
+// Wrapper pour contacts API avec support du mode démo
+export const contactsAPI = {
+  getAll: createDemoWrapper(
+    contactsAPIOriginal.getAll,
+    (demoStore) => demoStore.getDemoContacts()
+  ),
+  
+  create: createDemoWrapper(
+    contactsAPIOriginal.create,
+    (demoStore, data) => demoStore.createDemoContact(data)
+  ),
+  
+  update: createDemoWrapper(
+    contactsAPIOriginal.update,
+    (demoStore, id, data) => demoStore.updateDemoContact(id, data)
+  ),
+  
+  delete: createDemoWrapper(
+    contactsAPIOriginal.delete,
+    (demoStore, id) => {
+      demoStore.deleteDemoContact(id)
+      return { success: true }
+    }
+  ),
+  
+  linkToCompany: createDemoWrapper(
+    contactsAPIOriginal.linkToCompany,
+    () => ({ success: true })
+  ),
+  
+  unlinkFromCompany: createDemoWrapper(
+    contactsAPIOriginal.unlinkFromCompany,
+    () => ({ success: true })
+  ),
+  
+  setPrimary: createDemoWrapper(
+    contactsAPIOriginal.setPrimary,
+    () => ({ success: true })
+  )
 }
 
 // Convenience methods for backward compatibility

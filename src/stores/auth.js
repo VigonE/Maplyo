@@ -11,9 +11,35 @@ const STORAGE_KEYS = {
 
 function saveToStorage(key, value) {
   try {
-    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value)
+    
+    // Si c'est un token démo, sauvegarder UNIQUEMENT dans sessionStorage
+    if (key === STORAGE_KEYS.TOKEN && stringValue.startsWith('demo-token')) {
+      sessionStorage.setItem(key, stringValue)
+      // Sauvegarder aussi le user démo uniquement dans sessionStorage
+      sessionStorage.setItem(STORAGE_KEYS.USER, sessionStorage.getItem(STORAGE_KEYS.USER) || '')
+      // Ne PAS sauvegarder dans localStorage
+      return
+    }
+    
+    // Si c'est un user démo (vérifier si email est 'demo@maplyo.com')
+    if (key === STORAGE_KEYS.USER) {
+      try {
+        const userData = typeof value === 'string' ? JSON.parse(value) : value
+        if (userData && userData.email === 'demo@maplyo.com') {
+          sessionStorage.setItem(key, stringValue)
+          // Ne PAS sauvegarder dans localStorage
+          return
+        }
+      } catch (e) {
+        // Si erreur de parsing, continuer normalement
+      }
+    }
+    
+    // Pour les vrais tokens/users, sauvegarder dans les deux
+    localStorage.setItem(key, stringValue)
     // Backup dans sessionStorage aussi
-    sessionStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+    sessionStorage.setItem(key, stringValue)
   } catch (e) {
     console.warn('Storage save error:', e)
   }
@@ -21,16 +47,24 @@ function saveToStorage(key, value) {
 
 function loadFromStorage(key, isJson = false) {
   try {
-    // Essayer localStorage d'abord (persiste entre sessions)
-    let value = localStorage.getItem(key)
+    // Essayer sessionStorage d'abord (pour le mode démo)
+    let value = sessionStorage.getItem(key)
+    let isDemo = false
     
-    // Si pas trouvé dans localStorage, essayer sessionStorage
+    // Vérifier si c'est un token démo
+    if (key === STORAGE_KEYS.TOKEN && value && value.startsWith('demo-token')) {
+      isDemo = true
+    }
+    
+    // Si pas trouvé dans sessionStorage, essayer localStorage
     if (!value) {
-      value = sessionStorage.getItem(key)
-      // Si trouvé dans sessionStorage, le remettre dans localStorage
-      if (value) {
-        localStorage.setItem(key, value)
-      }
+      value = localStorage.getItem(key)
+    }
+    
+    // Si trouvé dans sessionStorage et que ce n'est PAS un token démo,
+    // le copier dans localStorage pour persistance
+    if (value && !isDemo && sessionStorage.getItem(key) && !localStorage.getItem(key)) {
+      localStorage.setItem(key, value)
     }
     
     // Migration depuis les anciennes clés
@@ -138,6 +172,11 @@ export const useAuthStore = defineStore('auth', () => {
   // Function to validate token locally (check expiration) - ne déconnecte PAS automatiquement
   function validateToken() {
     if (!token.value) return false
+    
+    // Si c'est un token démo, toujours valide
+    if (token.value.startsWith('demo-token')) {
+      return true
+    }
     
     try {
       // Decode JWT payload (simple base64 decode)

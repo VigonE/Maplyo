@@ -1,8 +1,33 @@
 <template>
   <div class="h-screen flex flex-col">
+    <!-- Bandeau Demo Mode -->
+    <div 
+      v-if="isDemoMode" 
+      class="bg-blue-100 border-b border-blue-300 px-4 py-2 flex items-center justify-between"
+    >
+      <div class="flex items-center gap-2 text-sm text-blue-800">
+        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="font-semibold">Demo Mode</span>
+        <span class="text-blue-600">•</span>
+        <span class="text-blue-700">All changes are temporary and will be lost when you close your browser</span>
+      </div>
+      <button
+        @click="exitDemoMode"
+        class="text-blue-700 hover:text-blue-900 font-medium text-sm flex items-center gap-1"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        Exit Demo
+      </button>
+    </div>
+    
     <!-- Bandeau Read-Only Mode -->
     <div 
-      v-if="isReadOnly" 
+      v-else-if="isReadOnly" 
       class="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center"
     >
       <div class="flex items-center gap-2 text-sm text-orange-800">
@@ -47,7 +72,7 @@
               >
                 <div class="py-1">
                   <button
-                    v-if="!isReadOnly"
+                    v-if="!isReadOnly && !isDemoMode"
                     @click="openSystemSettings"
                     class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
@@ -84,9 +109,9 @@
                     </svg>
                     🏢 Companies & Contacts
                   </button>
-                  <div v-if="!isReadOnly" class="border-t border-gray-100"></div>
+                  <div v-if="!isReadOnly && !isDemoMode" class="border-t border-gray-100"></div>
                   <button
-                    v-if="!isReadOnly"
+                    v-if="!isReadOnly && !isDemoMode"
                     @click="triggerFileImport"
                     class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
@@ -102,6 +127,16 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                       Read-Only Mode
+                    </div>
+                  </div>
+                  <!-- Indicateur démo -->
+                  <div v-if="isDemoMode" class="px-4 py-2 text-sm text-blue-600 bg-blue-50 border-t border-blue-100">
+                    <div class="flex items-center">
+                      <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Demo Mode
                     </div>
                   </div>
                 </div>
@@ -375,7 +410,7 @@
             </div>
 
             <!-- User Management (Super User Only) -->
-            <div v-if="authStore.isSuperUser" class="border rounded-lg p-4 bg-gradient-to-r from-purple-50 to-blue-50">
+            <div v-if="authStore.isSuperUser && !isDemoMode" class="border rounded-lg p-4 bg-gradient-to-r from-purple-50 to-blue-50">
               <div class="flex items-center justify-between mb-4">
                 <h4 class="text-md font-medium text-gray-800">👑 User Management</h4>
                 <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">Super User</span>
@@ -953,6 +988,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProspectsStore } from '@/stores/prospects'
+import { useDemoStore } from '@/stores/demo'
 import TabsManager from '@/components/TabsManager.vue'
 import MapView from '@/components/MapView.vue'
 import GlobalTodoPanel from '@/components/GlobalTodoPanel.vue'
@@ -966,6 +1002,7 @@ import api, { profileAPI, usersAPI } from '@/services/api'
 const router = useRouter()
 const authStore = useAuthStore()
 const prospectsStore = useProspectsStore()
+const demoStore = useDemoStore()
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
@@ -1001,6 +1038,9 @@ const modalKey = ref(0) // Pour forcer le re-rendu du modal
 
 // Read-only mode check
 const isReadOnly = computed(() => authStore.isReadOnly)
+
+// Demo mode check
+const isDemoMode = computed(() => demoStore.isDemoMode)
 
 // User Management (Super User)
 const allUsers = ref([])
@@ -1098,9 +1138,9 @@ const availableTabs = computed(() => {
 const currentTabName = computed(() => {
   if (tabsManager.value && tabsManager.value.tabs && currentTabId.value) {
     const currentTab = tabsManager.value.tabs.find(tab => tab.id === currentTabId.value)
-    return currentTab ? currentTab.name : 'Tous les prospects'
+    return currentTab ? currentTab.name : 'All Leads'
   }
-  return 'Tous les prospects'
+  return 'All Leads'
 })
 
 // Prospects for forecast (current tab only - strict)
@@ -1740,16 +1780,10 @@ function cancelChangePassword() {
 // Closing Lead Time functions
 async function loadClosingLeadTimes() {
   try {
-    const response = await fetch('/api/settings/closing-lead-times', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json'
-      }
-    })
+    const response = await api.get('/settings/closing-lead-times')
+    const data = response.data
     
-    if (response.ok) {
-      const data = await response.json()
+    if (data) {
       if (data.success && data.settings) {
         console.log('📥 Loaded settings from server:', data.settings);
         closingLeadTimes.value = {
@@ -1787,16 +1821,8 @@ async function saveClosingLeadTimes() {
     
     console.log('💾 Auto-saving lead times:', payload)
     
-    const response = await fetch('/api/settings/closing-lead-times', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    const data = await response.json()
+    const response = await api.post('/settings/closing-lead-times', payload)
+    const data = response.data
     
     if (data.success) {
       console.log('✅ Lead times saved successfully')
@@ -2363,6 +2389,18 @@ const handleLogout = () => {
   localStorage.removeItem('maplyo_sidebar_width')
   
   authStore.logout()
+  router.push('/login')
+}
+
+// Method to exit demo mode
+const exitDemoMode = () => {
+  // Exit demo mode
+  demoStore.exitDemoMode()
+  
+  // Logout demo user
+  authStore.logout()
+  
+  // Redirect to login page
   router.push('/login')
 }
 
