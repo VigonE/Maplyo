@@ -932,7 +932,11 @@ export const useDemoStore = defineStore('demo', () => {
 
   // Méthodes pour les companies
   function getDemoCompanies() {
-    return demoCompanies.value;
+    // Attach contacts to each company
+    return demoCompanies.value.map(company => {
+      const companyContacts = demoContacts.value.filter(c => c.company_id === company.id);
+      return { ...company, contacts: companyContacts };
+    });
   }
 
   function createDemoCompany(company) {
@@ -1059,7 +1063,12 @@ export const useDemoStore = defineStore('demo', () => {
   }
 
   function getDemoCompanyById(id) {
-    return demoCompanies.value.find(c => c.id === id);
+    const company = demoCompanies.value.find(c => c.id === id);
+    if (!company) return null;
+    
+    // Attach contacts to company
+    const companyContacts = demoContacts.value.filter(c => c.company_id === id);
+    return { ...company, contacts: companyContacts };
   }
 
   return {
