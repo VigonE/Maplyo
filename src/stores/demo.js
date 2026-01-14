@@ -44,7 +44,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 1 (J+12 à J+18) - Mix of hot leads and recurring
       {
         id: 1,
-        name: 'TechVision Inc',
+        name: 'Migration Cloud Enterprise Q1',
         address: '350 5th Avenue, New York, NY 10118',
         latitude: 40.7484,
         longitude: -73.9857,
@@ -66,7 +66,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 7,
-        name: 'NextGen Technologies',
+        name: 'Annual Renewal + Premium Features',
         address: '1201 3rd Avenue, Seattle, WA 98101',
         latitude: 47.6062,
         longitude: -122.3321,
@@ -89,7 +89,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 4,
-        name: 'CloudFirst Corp',
+        name: 'Cloud Infrastructure Project 2026',
         address: '1601 Elm Street, Dallas, TX 75201',
         latitude: 32.7767,
         longitude: -96.7970,
@@ -111,7 +111,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 12,
-        name: 'GreenEnergy Corp',
+        name: 'Semi-Annual Contract - Energy Monitoring',
         address: '1500 Broadway, Denver, CO 80202',
         latitude: 39.7392,
         longitude: -104.9903,
@@ -134,7 +134,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 11,
-        name: 'EduTech Solutions',
+        name: 'Digital Campus E-Learning Platform',
         address: '1000 S Congress Ave, Austin, TX 78704',
         latitude: 30.2672,
         longitude: -97.7431,
@@ -158,7 +158,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 2 (J+36 à J+50) - Strong month
       {
         id: 3,
-        name: 'GlobalTech Solutions',
+        name: 'Digital Transformation - Consulting Suite',
         address: '233 S Wacker Drive, Chicago, IL 60606',
         latitude: 41.8781,
         longitude: -87.6298,
@@ -180,7 +180,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 15,
-        name: 'SecureNet Inc',
+        name: 'Enterprise Security Pack + SOC Integration',
         address: '201 Mission Street, San Francisco, CA 94105',
         latitude: 37.7897,
         longitude: -122.3972,
@@ -202,7 +202,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 20,
-        name: 'HealthFirst Analytics',
+        name: 'Multi-Site Medical Analytics Solution',
         address: '10 E 53rd Street, New York, NY 10022',
         latitude: 40.7614,
         longitude: -73.9776,
@@ -224,7 +224,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 18,
-        name: 'CloudStream Media',
+        name: 'Renewal + CDN & Analytics Extension',
         address: '5800 Sunset Blvd, Los Angeles, CA 90028',
         latitude: 34.0979,
         longitude: -118.3267,
@@ -247,7 +247,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 2,
-        name: 'InnovateSoft LLC',
+        name: 'Licence SaaS Starter - 25 Users',
         address: '1455 Market Street, San Francisco, CA 94103',
         latitude: 37.7749,
         longitude: -122.4194,
@@ -271,7 +271,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 3 (J+63 à J+78) - Mars
       {
         id: 8,
-        name: 'FinTech Solutions Group',
+        name: 'Digital Banking 2.0 Platform',
         address: '1717 Main Street, Houston, TX 77002',
         latitude: 29.7604,
         longitude: -95.3698,
@@ -293,7 +293,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 5,
-        name: 'DataDrive Systems',
+        name: 'Quarterly Analytics Pro Subscription',
         address: '1100 Peachtree Street NE, Atlanta, GA 30309',
         latitude: 33.7490,
         longitude: -84.3880,
@@ -316,7 +316,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 17,
-        name: 'AutoTech Industries',
+        name: 'Suite IoT Manufacturing - 15 Sites',
         address: '1 Ford Road, Dearborn, MI 48126',
         latitude: 42.3223,
         longitude: -83.1763,
@@ -338,7 +338,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 6,
-        name: 'Apex Industries',
+        name: 'ERP Renewal + Premium Tier',
         address: '500 Boylston Street, Boston, MA 02116',
         latitude: 42.3601,
         longitude: -71.0589,
@@ -361,7 +361,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 13,
-        name: 'LogiFlow Systems',
+        name: 'Fleet Management & GPS Tracking Solution',
         address: '2000 W Loop S, Houston, TX 77027',
         latitude: 29.7516,
         longitude: -95.4615,
@@ -385,7 +385,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 4 (J+95 à J+110) - Avril
       {
         id: 9,
-        name: 'MediCare Plus',
+        name: 'HIPAA Compliant Electronic Medical Records',
         address: '3400 Civic Center Blvd, Philadelphia, PA 19104',
         latitude: 39.9526,
         longitude: -75.1652,
@@ -407,7 +407,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 19,
-        name: 'PropTech Ventures',
+        name: 'Real Estate CRM + Client Portal',
         address: '1455 Pennsylvania Ave NW, Washington, DC 20004',
         latitude: 38.8985,
         longitude: -77.0319,
@@ -429,7 +429,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 14,
-        name: 'DesignWorks Studio',
+        name: 'Semi-Annual Project Manager Pro Renewal',
         address: '600 Congress Ave, Austin, TX 78701',
         latitude: 30.2686,
         longitude: -97.7436,
@@ -452,7 +452,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 10,
-        name: 'RetailMax Corporation',
+        name: 'Omnichannel E-Commerce Expansion',
         address: '8701 Georgia Ave, Silver Spring, MD 20910',
         latitude: 38.9897,
         longitude: -77.0292,
@@ -476,7 +476,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 5 (J+128 à J+143) - Mai
       {
         id: 21,
-        name: 'BioMed Research Corp',
+        name: 'Laboratory LIMS System - 3 Sites',
         address: '4560 Horton Street, Emeryville, CA 94608',
         latitude: 37.8313,
         longitude: -122.2852,
@@ -498,7 +498,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 16,
-        name: 'FoodChain Distributors',
+        name: 'Renewal + Warehouse Management Module',
         address: '1800 N Lamar Blvd, Austin, TX 78701',
         latitude: 30.2777,
         longitude: -97.7527,
@@ -521,7 +521,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 22,
-        name: 'TechStart Accelerator',
+        name: 'Startup Portfolio Management Platform',
         address: '2100 Milvia Street, Berkeley, CA 94704',
         latitude: 37.8716,
         longitude: -122.2727,
@@ -545,7 +545,7 @@ export const useDemoStore = defineStore('demo', () => {
       // MOIS 6 (J+160 à J+175) - Juin
       {
         id: 23,
-        name: 'Maritime Logistics Inc',
+        name: 'Maritime Supply Chain Solution',
         address: '1000 2nd Avenue, Seattle, WA 98104',
         latitude: 47.6051,
         longitude: -122.3378,
@@ -567,7 +567,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 24,
-        name: 'SmartHome Solutions',
+        name: 'Annual IoT Platform Renewal',
         address: '3000 E 1st Avenue, Denver, CO 80206',
         latitude: 39.7178,
         longitude: -104.9534,
@@ -590,7 +590,7 @@ export const useDemoStore = defineStore('demo', () => {
       },
       {
         id: 25,
-        name: 'ConsultPro Group',
+        name: 'Multi-Site Deployment - 8 Offices',
         address: '500 W Madison Street, Chicago, IL 60661',
         latitude: 41.8820,
         longitude: -87.6400,
@@ -608,6 +608,248 @@ export const useDemoStore = defineStore('demo', () => {
         company_id: 25,
         assigned_to: 9999,
         created_at: '2025-12-18T13:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Leads supplémentaires pour avoir plusieurs opportunités par société
+
+      // TechVision Inc - 2ème opportunité (company_id: 1)
+      {
+        id: 26,
+        name: 'Premium Training & Support - 1 Year',
+        address: '350 5th Avenue, New York, NY 10118',
+        latitude: 40.7484,
+        longitude: -73.9857,
+        status: 'warm',
+        revenue: 45000,
+        probability_coefficient: 78,
+        expected_close_date: getFutureDate(90),
+        estimated_completion_date: getFutureDate(90),
+        notes: 'Package formation et support pour accompagner le déploiement principal.',
+        contact_name: 'Lisa Thompson',
+        contact_email: 'l.thompson@techvision.com',
+        contact_phone: '+1 (212) 555-0124',
+        last_contact_date: getTodayISO(),
+        next_action: 'Proposal review',
+        company_id: 1,
+        assigned_to: 9999,
+        created_at: '2026-01-10T10:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // GlobalTech Solutions - 2ème opportunité (company_id: 3)
+      {
+        id: 27,
+        name: 'Module Analytics & BI Add-on',
+        address: '233 S Wacker Drive, Chicago, IL 60606',
+        latitude: 41.8781,
+        longitude: -87.6298,
+        status: 'cold',
+        revenue: 95000,
+        probability_coefficient: 45,
+        expected_close_date: getFutureDate(180),
+        estimated_completion_date: getFutureDate(180),
+        notes: 'Extension analytics pour le système principal. En discussion préliminaire.',
+        contact_name: 'James Park',
+        contact_email: 'j.park@globaltech.com',
+        contact_phone: '+1 (312) 555-0347',
+        last_contact_date: getTodayISO(),
+        next_action: 'Technical requirements gathering',
+        company_id: 3,
+        assigned_to: 9999,
+        created_at: '2026-01-11T14:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // CloudFirst Corp - 2ème opportunité (company_id: 4)
+      {
+        id: 28,
+        name: 'Professional Services - Data Migration',
+        address: '1601 Elm Street, Dallas, TX 75201',
+        latitude: 32.7767,
+        longitude: -96.7970,
+        status: 'hot',
+        revenue: 65000,
+        probability_coefficient: 88,
+        expected_close_date: getFutureDate(70),
+        estimated_completion_date: getFutureDate(70),
+        notes: 'Services de migration de données legacy vers nouvelle plateforme.',
+        contact_name: 'Tom Bradley',
+        contact_email: 't.bradley@cloudfirst.com',
+        contact_phone: '+1 (214) 555-0457',
+        last_contact_date: getTodayISO(),
+        next_action: 'SOW signature',
+        company_id: 4,
+        assigned_to: 9999,
+        created_at: '2026-01-09T11:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // DataDrive Systems - 2ème opportunité (company_id: 5)
+      {
+        id: 29,
+        name: 'Enterprise Plan Upgrade',
+        address: '1100 Peachtree Street NE, Atlanta, GA 30309',
+        latitude: 33.7490,
+        longitude: -84.3880,
+        status: 'warm',
+        revenue: 145000,
+        probability_coefficient: 70,
+        expected_close_date: getFutureDate(150),
+        estimated_completion_date: getFutureDate(150),
+        notes: 'Upgrade du plan actuel vers Enterprise. Discussion sur fonctionnalités avancées.',
+        contact_name: 'Rebecca Foster',
+        contact_email: 'r.foster@datadrive.com',
+        contact_phone: '+1 (404) 555-0568',
+        last_contact_date: getTodayISO(),
+        next_action: 'Enterprise features demo',
+        company_id: 5,
+        assigned_to: 9999,
+        created_at: '2026-01-12T09:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // NextGen Technologies - 2ème opportunité (company_id: 7)
+      {
+        id: 30,
+        name: 'API Extension & Third-Party Integrations',
+        address: '1201 3rd Avenue, Seattle, WA 98101',
+        latitude: 47.6062,
+        longitude: -122.3321,
+        status: 'warm',
+        revenue: 75000,
+        probability_coefficient: 72,
+        expected_close_date: getFutureDate(200),
+        estimated_completion_date: getFutureDate(200),
+        notes: 'Package intégrations avec leurs systèmes existants (Salesforce, SAP).',
+        contact_name: 'Nathan Brooks',
+        contact_email: 'n.brooks@nextgentech.com',
+        contact_phone: '+1 (206) 555-0791',
+        last_contact_date: getTodayISO(),
+        next_action: 'Integration architecture review',
+        company_id: 7,
+        assigned_to: 9999,
+        created_at: '2026-01-08T15:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // FinTech Solutions Group - 2ème opportunité (company_id: 8)
+      {
+        id: 31,
+        name: 'Compliance & Financial Reporting Module',
+        address: '1717 Main Street, Houston, TX 77002',
+        latitude: 29.7604,
+        longitude: -95.3698,
+        status: 'cold',
+        revenue: 185000,
+        probability_coefficient: 38,
+        expected_close_date: getFutureDate(320),
+        estimated_completion_date: getFutureDate(320),
+        notes: 'Module spécialisé pour conformité réglementaire bancaire. Prospection initiale.',
+        contact_name: 'Gregory Hall',
+        contact_email: 'g.hall@fintechsg.com',
+        contact_phone: '+1 (713) 555-0891',
+        last_contact_date: getTodayISO(),
+        next_action: 'Compliance requirements analysis',
+        company_id: 8,
+        assigned_to: 9999,
+        created_at: '2026-01-13T10:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // SecureNet Inc - 2ème opportunité (company_id: 15)
+      {
+        id: 32,
+        name: 'Advanced Security Training - IT Team',
+        address: '201 Mission Street, San Francisco, CA 94105',
+        latitude: 37.7897,
+        longitude: -122.3972,
+        status: 'warm',
+        revenue: 38000,
+        probability_coefficient: 80,
+        expected_close_date: getFutureDate(160),
+        estimated_completion_date: getFutureDate(160),
+        notes: 'Programme de formation pour leur équipe de sécurité interne.',
+        contact_name: 'Steven Clark',
+        contact_email: 's.clark@securenet.com',
+        contact_phone: '+1 (415) 555-1567',
+        last_contact_date: getTodayISO(),
+        next_action: 'Training program proposal',
+        company_id: 15,
+        assigned_to: 9999,
+        created_at: '2026-01-14T11:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // HealthFirst Analytics - 2ème opportunité (company_id: 20)
+      {
+        id: 33,
+        name: 'Telemedicine & Patient Portal Module',
+        address: '10 E 53rd Street, New York, NY 10022',
+        latitude: 40.7614,
+        longitude: -73.9776,
+        status: 'warm',
+        revenue: 210000,
+        probability_coefficient: 68,
+        expected_close_date: getFutureDate(280),
+        estimated_completion_date: getFutureDate(280),
+        notes: 'Extension télémédecine pour compléter la plateforme analytics existante.',
+        contact_name: 'Dr. Sandra Mitchell',
+        contact_email: 's.mitchell@healthfirst.com',
+        contact_phone: '+1 (212) 555-2012',
+        last_contact_date: getTodayISO(),
+        next_action: 'Telemedicine platform demo',
+        company_id: 20,
+        assigned_to: 9999,
+        created_at: '2026-01-15T09:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // InnovateSoft LLC - 2ème opportunité (company_id: 2)
+      {
+        id: 34,
+        name: 'Add-on Mobile App Development',
+        address: '1455 Market Street, San Francisco, CA 94103',
+        latitude: 37.7749,
+        longitude: -122.4194,
+        status: 'cold',
+        revenue: 55000,
+        probability_coefficient: 42,
+        expected_close_date: getFutureDate(250),
+        estimated_completion_date: getFutureDate(250),
+        notes: 'Application mobile native iOS/Android pour compléter la solution web.',
+        contact_name: 'Alex Kumar',
+        contact_email: 'a.kumar@innovatesoft.com',
+        contact_phone: '+1 (415) 555-0235',
+        last_contact_date: getTodayISO(),
+        next_action: 'Mobile requirements discovery',
+        company_id: 2,
+        assigned_to: 9999,
+        created_at: '2026-01-16T14:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Apex Industries - 2ème opportunité (company_id: 6)
+      {
+        id: 35,
+        name: 'IoT Sensors Integration - Main Factory',
+        address: '500 Boylston Street, Boston, MA 02116',
+        latitude: 42.3601,
+        longitude: -71.0589,
+        status: 'warm',
+        revenue: 280000,
+        probability_coefficient: 62,
+        expected_close_date: getFutureDate(340),
+        estimated_completion_date: getFutureDate(340),
+        notes: 'Intégration capteurs IoT pour monitoring production temps réel.',
+        contact_name: 'William Roberts',
+        contact_email: 'w.roberts@apexind.com',
+        contact_phone: '+1 (617) 555-0679',
+        last_contact_date: getTodayISO(),
+        next_action: 'Factory site visit & assessment',
+        company_id: 6,
+        assigned_to: 9999,
+        created_at: '2026-01-17T10:00:00Z',
         updated_at: new Date().toISOString()
       }
     ];
