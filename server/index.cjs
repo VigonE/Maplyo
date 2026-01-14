@@ -1193,7 +1193,7 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId, '| company_id:', company_id, '| contact_id:', contact_id);
 
@@ -1204,8 +1204,14 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
     let latitude = null;
     let longitude = null;
 
-    // Géocodage de l'adresse si elle est fournie avec fonction robuste
-    if (address && address.trim()) {
+    // Priorité : coordonnées fournies > géocodage
+    if (providedLatitude !== undefined && providedLongitude !== undefined) {
+      // Utiliser les coordonnées fournies (depuis company ou manuellement)
+      latitude = providedLatitude;
+      longitude = providedLongitude;
+      console.log('📍 PROSPECT CREATION - Using provided coordinates:', { latitude, longitude });
+    } else if (address && address.trim()) {
+      // Géocodage de l'adresse si elle est fournie avec fonction robuste
       try {
         console.log('🗺️ PROSPECT CREATION - Starting geocoding for address:', address);
         console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');
@@ -1364,7 +1370,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, requireWriteAccess
 app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id } = req.body;
+    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1387,8 +1393,14 @@ app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req,
         let latitude = null;
         let longitude = null;
 
-        // Géocodage de l'adresse si elle est fournie avec fonction robuste
-        if (address && address.trim()) {
+        // Priorité : coordonnées fournies > géocodage > coordonnées existantes
+        if (providedLatitude !== undefined && providedLongitude !== undefined) {
+          // Utiliser les coordonnées fournies (depuis company ou manuellement)
+          latitude = providedLatitude;
+          longitude = providedLongitude;
+          console.log('📍 PROSPECT UPDATE - Using provided coordinates:', { latitude, longitude });
+        } else if (address && address.trim()) {
+          // Géocodage de l'adresse si elle est fournie avec fonction robuste
           try {
             console.log('🗺️ PROSPECT UPDATE - Starting geocoding for address:', address);
             console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');

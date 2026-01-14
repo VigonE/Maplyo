@@ -672,9 +672,13 @@ const selectCompany = async (company) => {
   companySearchQuery.value = company.name
   showCompanyDropdown.value = false
   
-  // Auto-fill address from company (ALWAYS override with company address)
+  // Auto-fill address and coordinates from company (ALWAYS override with company data)
   if (company.address) {
     form.address = company.address
+  }
+  if (company.latitude !== undefined && company.longitude !== undefined) {
+    form.latitude = company.latitude
+    form.longitude = company.longitude
   }
   
   // Load company contacts
@@ -860,6 +864,8 @@ const form = reactive({
   company: '',
   contact: '',
   address: '',
+  latitude: null,
+  longitude: null,
   status: props.initialStatus || 'cold',
   revenue: 0,
   probability_coefficient: getDefaultProbability(props.initialStatus || 'cold'),
@@ -900,6 +906,8 @@ watch(() => props.prospect, (newProspect) => {
       company: newProspect.company || '',
       contact: newProspect.contact || newProspect.position || '',
       address: newProspect.address || '',
+      latitude: newProspect.latitude || null,
+      longitude: newProspect.longitude || null,
       status: newProspect.status || 'cold',
       revenue: newProspect.revenue || 0,
       probability_coefficient: newProspect.probability_coefficient !== undefined ? newProspect.probability_coefficient : 100,
@@ -921,6 +929,8 @@ watch(() => props.prospect, (newProspect) => {
       company: '',
       contact: '',
       address: '',
+      latitude: null,
+      longitude: null,
       status: status,
       revenue: 0,
       probability_coefficient: getDefaultProbability(status),
@@ -1010,8 +1020,11 @@ async function saveField(field) {
       email: form.email,
       phone: form.phone,
       company: form.company,
+      company_id: form.company_id,
       contact: form.contact,
       address: form.address,
+      latitude: form.latitude,
+      longitude: form.longitude,
       status: form.status,
       revenue: form.revenue,
       probability_coefficient: form.probability_coefficient,
@@ -1088,8 +1101,11 @@ async function createProspect() {
       email: form.email,
       phone: form.phone,
       company: form.company,
+      company_id: form.company_id,
       contact: form.contact,
       address: form.address,
+      latitude: form.latitude,
+      longitude: form.longitude,
       status: form.status,
       revenue: form.revenue,
       probability_coefficient: form.probability_coefficient,
