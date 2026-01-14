@@ -1698,10 +1698,7 @@ export const useDemoStore = defineStore('demo', () => {
     demoUser.value = null;
     sessionStorage.removeItem('demoMode');
     
-    // Nettoyer aussi les données auth du sessionStorage
-    sessionStorage.removeItem('maplyo_auth_token');
-    sessionStorage.removeItem('maplyo_auth_user');
-    sessionStorage.removeItem('maplyo_login_time');
+    // Note: auth cleanup is handled by authStore.logout() - don't interfere
   }
 
   // Méthodes CRUD pour les prospects en mode démo

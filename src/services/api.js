@@ -27,10 +27,13 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
     
+    // Ne jamais intercepter les endpoints d'authentification
+    const isAuthEndpoint = config.url.includes('/login') || config.url.includes('/register')
+    
     // Vérifier si on est en mode démo (par le store OU par le token)
     const isDemoMode = demoStore.isDemoMode || (authStore.token && authStore.token.startsWith('demo-token'))
     
-    if (isDemoMode) {
+    if (isDemoMode && !isAuthEndpoint) {
       // En mode démo, intercepter la requête et retourner des données simulées
       // Simuler un délai réseau
       await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100))
