@@ -851,10 +851,301 @@ export const useDemoStore = defineStore('demo', () => {
         assigned_to: 9999,
         created_at: '2026-01-17T10:00:00Z',
         updated_at: new Date().toISOString()
+      },
+
+      // EUROPEAN LEADS
+
+      // DigiTech Industries France (company_id: 26)
+      {
+        id: 36,
+        name: 'ERP Modernization Project',
+        address: '35 Rue Joseph Monier, Rueil-Malmaison, 92500, France',
+        latitude: 48.8766,
+        longitude: 2.1833,
+        status: 'hot',
+        revenue: 320000,
+        probability_coefficient: 85,
+        expected_close_date: getFutureDate(45),
+        estimated_completion_date: getFutureDate(45),
+        notes: 'Large French industrial company. Legacy system modernization. Strong alignment.',
+        contact_name: 'Jean-Pierre Dubois',
+        contact_email: 'jp.dubois@digitech-industries.fr',
+        contact_phone: '+33 1 47 14 20 00',
+        last_contact_date: getTodayISO(),
+        next_action: 'Contract finalization',
+        company_id: 26,
+        assigned_to: 9999,
+        created_at: '2025-11-28T09:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // AutoVision Systems GmbH (company_id: 27)
+      {
+        id: 37,
+        name: 'Supply Chain Digitalization - Munich Plant',
+        address: 'Petuelring 130, Munich, 80788, Germany',
+        latitude: 48.1775,
+        longitude: 11.5582,
+        status: 'warm',
+        revenue: 450000,
+        probability_coefficient: 72,
+        expected_close_date: getFutureDate(110),
+        estimated_completion_date: getFutureDate(110),
+        notes: 'Automotive supplier. Complex requirements. Multiple stakeholders engaged.',
+        contact_name: 'Dr. Klaus Mueller',
+        contact_email: 'k.mueller@autovision-systems.de',
+        contact_phone: '+49 89 382 00',
+        last_contact_date: getTodayISO(),
+        next_action: 'Technical workshop',
+        company_id: 27,
+        assigned_to: 9999,
+        created_at: '2025-12-05T10:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // FinTech London Ltd (company_id: 28)
+      {
+        id: 38,
+        name: 'Regulatory Compliance Platform UK',
+        address: '25 Canada Square, Canary Wharf, London, E14 5LQ, UK',
+        latitude: 51.5045,
+        longitude: -0.0195,
+        status: 'hot',
+        revenue: 275000,
+        probability_coefficient: 88,
+        expected_close_date: getFutureDate(65),
+        estimated_completion_date: getFutureDate(65),
+        notes: 'UK fintech startup. FCA compliance requirements. Fast-track implementation.',
+        contact_name: 'Emma Thompson',
+        contact_email: 'e.thompson@fintechlondon.co.uk',
+        contact_phone: '+44 20 7418 8000',
+        last_contact_date: getTodayISO(),
+        next_action: 'Compliance review meeting',
+        company_id: 28,
+        assigned_to: 9999,
+        created_at: '2025-12-12T11:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Barcelona Innovation Hub (company_id: 29)
+      {
+        id: 39,
+        name: 'Smart City IoT Platform',
+        address: 'Carrer de Badajoz 97, Barcelona, 08018, Spain',
+        latitude: 41.4036,
+        longitude: 2.1964,
+        status: 'warm',
+        revenue: 195000,
+        probability_coefficient: 68,
+        expected_close_date: getFutureDate(135),
+        estimated_completion_date: getFutureDate(135),
+        notes: 'Barcelona smart city initiative. Public-private partnership. Procurement phase.',
+        contact_name: 'Carlos Rodriguez',
+        contact_email: 'c.rodriguez@bcn-innovation.es',
+        contact_phone: '+34 93 256 30 00',
+        last_contact_date: getTodayISO(),
+        next_action: 'Tender proposal submission',
+        company_id: 29,
+        assigned_to: 9999,
+        created_at: '2025-12-18T14:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Milano Fashion Tech (company_id: 30)
+      {
+        id: 40,
+        name: 'Luxury Retail CRM Solution',
+        address: 'Via Tortona 27, Milan, 20144, Italy',
+        latitude: 45.4511,
+        longitude: 9.1652,
+        status: 'warm',
+        revenue: 165000,
+        probability_coefficient: 65,
+        expected_close_date: getFutureDate(155),
+        estimated_completion_date: getFutureDate(155),
+        notes: 'Italian luxury fashion company. Omnichannel retail focus. Brand requirements.',
+        contact_name: 'Alessandra Rossi',
+        contact_email: 'a.rossi@milanofashion.it',
+        contact_phone: '+39 02 4817 0000',
+        last_contact_date: getTodayISO(),
+        next_action: 'Brand customization demo',
+        company_id: 30,
+        assigned_to: 9999,
+        created_at: '2025-12-20T09:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Amsterdam HealthTech (company_id: 31)
+      {
+        id: 41,
+        name: 'GDPR-Compliant Patient Management System',
+        address: 'Strawinskylaan 3051, Amsterdam, 1077 ZX, Netherlands',
+        latitude: 52.3376,
+        longitude: 4.8740,
+        status: 'hot',
+        revenue: 240000,
+        probability_coefficient: 82,
+        expected_close_date: getFutureDate(75),
+        estimated_completion_date: getFutureDate(75),
+        notes: 'Dutch healthcare provider network. GDPR compliance critical. Strong interest.',
+        contact_name: 'Pieter van den Berg',
+        contact_email: 'p.vandenberg@ams-health.nl',
+        contact_phone: '+31 20 570 5000',
+        last_contact_date: getTodayISO(),
+        next_action: 'GDPR compliance verification',
+        company_id: 31,
+        assigned_to: 9999,
+        created_at: '2025-12-22T10:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Zurich FinServe AG (company_id: 32)
+      {
+        id: 42,
+        name: 'Private Banking Digital Transformation',
+        address: 'Paradeplatz 8, Zurich, 8001, Switzerland',
+        latitude: 47.3691,
+        longitude: 8.5397,
+        status: 'warm',
+        revenue: 580000,
+        probability_coefficient: 70,
+        expected_close_date: getFutureDate(180),
+        estimated_completion_date: getFutureDate(180),
+        notes: 'Swiss private bank. High-security requirements. Long sales cycle expected.',
+        contact_name: 'Hans Zimmermann',
+        contact_email: 'h.zimmermann@zurich-finserve.ch',
+        contact_phone: '+41 44 234 1111',
+        last_contact_date: getTodayISO(),
+        next_action: 'Security audit presentation',
+        company_id: 32,
+        assigned_to: 9999,
+        created_at: '2025-12-08T08:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Nordic Energy Solutions (company_id: 33)
+      {
+        id: 43,
+        name: 'Wind Farm Management Platform',
+        address: 'Kalvebod Brygge 45, Copenhagen, 1560, Denmark',
+        latitude: 55.6713,
+        longitude: 12.5695,
+        status: 'recurring',
+        revenue: 155000,
+        probability_coefficient: 92,
+        recurrence_months: 12,
+        expected_close_date: getFutureDate(95),
+        next_followup_date: getFutureDate(460),
+        notes: 'Danish renewable energy company. Annual contract renewal. Very satisfied.',
+        contact_name: 'Lars Andersen',
+        contact_email: 'l.andersen@nordic-energy.dk',
+        contact_phone: '+45 33 45 60 00',
+        last_contact_date: getTodayISO(),
+        next_action: 'Renewal discussion',
+        company_id: 33,
+        assigned_to: 9999,
+        created_at: '2025-02-15T09:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Dublin Tech Innovators (company_id: 34)
+      {
+        id: 44,
+        name: 'SaaS Platform Scaling Solution',
+        address: 'Grand Canal Quay, Dublin 2, D02 H210, Ireland',
+        latitude: 53.3382,
+        longitude: -6.2397,
+        status: 'warm',
+        revenue: 125000,
+        probability_coefficient: 63,
+        expected_close_date: getFutureDate(125),
+        estimated_completion_date: getFutureDate(125),
+        notes: 'Irish SaaS company. Rapid growth phase. Infrastructure scaling needs.',
+        contact_name: 'Siobhan O\'Connor',
+        contact_email: 's.oconnor@dublin-tech.ie',
+        contact_phone: '+353 1 234 5000',
+        last_contact_date: getTodayISO(),
+        next_action: 'Scaling architecture review',
+        company_id: 34,
+        assigned_to: 9999,
+        created_at: '2025-12-28T11:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // Brussels EU Consulting (company_id: 35)
+      {
+        id: 45,
+        name: 'Multi-Lingual Project Management Suite',
+        address: 'Avenue Louise 480, Brussels, 1050, Belgium',
+        latitude: 50.8263,
+        longitude: 4.3617,
+        status: 'cold',
+        revenue: 98000,
+        probability_coefficient: 48,
+        expected_close_date: getFutureDate(220),
+        estimated_completion_date: getFutureDate(220),
+        notes: 'EU consulting firm. Multi-language support essential. Early exploratory phase.',
+        contact_name: 'Marie Dupont',
+        contact_email: 'm.dupont@eu-consulting.be',
+        phone: '+32 2 505 1000',
+        last_contact_date: getTodayISO(),
+        next_action: 'Requirements gathering call',
+        company_id: 35,
+        assigned_to: 9999,
+        created_at: '2026-01-05T13:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // DigiTech Industries France - 2nd opportunity (company_id: 26)
+      {
+        id: 46,
+        name: 'Cloud Migration Services Package',
+        address: '35 Rue Joseph Monier, Rueil-Malmaison, 92500, France',
+        latitude: 48.8766,
+        longitude: 2.1833,
+        status: 'warm',
+        revenue: 145000,
+        probability_coefficient: 75,
+        expected_close_date: getFutureDate(100),
+        estimated_completion_date: getFutureDate(100),
+        notes: 'Complementary cloud migration for legacy systems. Following main ERP project.',
+        contact_name: 'Sophie Martin',
+        contact_email: 's.martin@digitech-industries.fr',
+        contact_phone: '+33 1 47 14 20 50',
+        last_contact_date: getTodayISO(),
+        next_action: 'Migration roadmap review',
+        company_id: 26,
+        assigned_to: 9999,
+        created_at: '2026-01-10T14:00:00Z',
+        updated_at: new Date().toISOString()
+      },
+
+      // AutoVision Systems GmbH - 2nd opportunity (company_id: 27)
+      {
+        id: 47,
+        name: 'Quality Assurance Analytics Module',
+        address: 'Petuelring 130, Munich, 80788, Germany',
+        latitude: 48.1775,
+        longitude: 11.5582,
+        status: 'cold',
+        revenue: 185000,
+        probability_coefficient: 42,
+        expected_close_date: getFutureDate(260),
+        estimated_completion_date: getFutureDate(260),
+        notes: 'Advanced QA analytics add-on. Interest expressed but timeline unclear.',
+        contact_name: 'Sabine Weber',
+        contact_email: 's.weber@autovision-systems.de',
+        contact_phone: '+49 89 382 00 100',
+        last_contact_date: getTodayISO(),
+        next_action: 'Product demonstration',
+        company_id: 27,
+        assigned_to: 9999,
+        created_at: '2026-01-12T09:00:00Z',
+        updated_at: new Date().toISOString()
       }
     ];
 
-    // Demo companies (20 companies)
+    // Demo companies (35 companies - including European companies)
     demoCompanies.value = [
       { id: 1, name: 'TechVision Inc', industry: 'Enterprise Software', size: '50-200', website: 'www.techvision.com', created_at: '2025-12-20T10:00:00Z' },
       { id: 2, name: 'InnovateSoft LLC', industry: 'SaaS Startup', size: '10-50', website: 'www.innovatesoft.com', created_at: '2025-12-10T09:00:00Z' },
@@ -880,7 +1171,19 @@ export const useDemoStore = defineStore('demo', () => {
       { id: 22, name: 'TechStart Accelerator', industry: 'Startup Accelerator', size: '10-50', website: 'www.techstart.com', created_at: '2025-12-28T09:00:00Z' },
       { id: 23, name: 'Maritime Logistics Inc', industry: 'Shipping & Logistics', size: '200-500', website: 'www.maritime.com', created_at: '2026-01-08T10:00:00Z' },
       { id: 24, name: 'SmartHome Solutions', industry: 'IoT Technology', size: '50-200', website: 'www.smarthome.com', created_at: '2025-06-30T11:00:00Z' },
-      { id: 25, name: 'ConsultPro Group', industry: 'Management Consulting', size: '200-500', website: 'www.consultpro.com', created_at: '2025-12-18T13:00:00Z' }
+      { id: 25, name: 'ConsultPro Group', industry: 'Management Consulting', size: '200-500', website: 'www.consultpro.com', created_at: '2025-12-18T13:00:00Z' },
+      
+      // European Companies
+      { id: 26, name: 'DigiTech Industries France', industry: 'Industrial Automation', size: '500+', website: 'www.digitech-industries.fr', created_at: '2025-11-28T09:00:00Z' },
+      { id: 27, name: 'AutoVision Systems GmbH', industry: 'Automotive Technology', size: '500+', website: 'www.autovision-systems.de', created_at: '2025-12-05T10:00:00Z' },
+      { id: 28, name: 'FinTech London Ltd', industry: 'Financial Technology', size: '50-200', website: 'www.fintechlondon.co.uk', created_at: '2025-12-12T11:00:00Z' },
+      { id: 29, name: 'Barcelona Innovation Hub', industry: 'Smart City Solutions', size: '200-500', website: 'www.bcn-innovation.es', created_at: '2025-12-18T14:00:00Z' },
+      { id: 30, name: 'Milano Fashion Tech', industry: 'Luxury Retail', size: '50-200', website: 'www.milanofashion.it', created_at: '2025-12-20T09:00:00Z' },
+      { id: 31, name: 'Amsterdam HealthTech', industry: 'Healthcare Technology', size: '200-500', website: 'www.ams-health.nl', created_at: '2025-12-22T10:00:00Z' },
+      { id: 32, name: 'Zurich FinServe AG', industry: 'Private Banking', size: '500+', website: 'www.zurich-finserve.ch', created_at: '2025-12-08T08:00:00Z' },
+      { id: 33, name: 'Nordic Energy Solutions', industry: 'Renewable Energy', size: '200-500', website: 'www.nordic-energy.dk', created_at: '2025-02-15T09:00:00Z' },
+      { id: 34, name: 'Dublin Tech Innovators', industry: 'SaaS Platform', size: '10-50', website: 'www.dublin-tech.ie', created_at: '2025-12-28T11:00:00Z' },
+      { id: 35, name: 'Brussels EU Consulting', industry: 'EU Consulting', size: '50-200', website: 'www.eu-consulting.be', created_at: '2026-01-05T13:00:00Z' }
     ];
 
     // Demo contacts (48 contacts - multiple per company)
@@ -992,7 +1295,56 @@ export const useDemoStore = defineStore('demo', () => {
       // ConsultPro Group (company_id: 25)
       { id: 57, company_id: 25, name: 'Michael Anderson', email: 'm.anderson@consultpro.com', phone: '+1 (312) 555-2500', position: 'Managing Partner', is_primary: true, created_at: '2025-12-18T13:00:00Z' },
       { id: 58, company_id: 25, name: 'Susan Wright', email: 's.wright@consultpro.com', phone: '+1 (312) 555-2501', position: 'Director of Technology', is_primary: false, created_at: '2025-12-18T13:05:00Z' },
-      { id: 59, company_id: 25, name: 'Robert Johnson', email: 'r.johnson@consultpro.com', phone: '+1 (312) 555-2502', position: 'VP of Client Services', is_primary: false, created_at: '2025-12-18T13:10:00Z' }
+      { id: 59, company_id: 25, name: 'Robert Johnson', email: 'r.johnson@consultpro.com', phone: '+1 (312) 555-2502', position: 'VP of Client Services', is_primary: false, created_at: '2025-12-18T13:10:00Z' },
+
+      // EUROPEAN CONTACTS
+
+      // DigiTech Industries France (company_id: 26)
+      { id: 60, company_id: 26, name: 'Jean-Pierre Dubois', email: 'jp.dubois@digitech-industries.fr', phone: '+33 1 47 14 20 00', position: 'Directeur des Systèmes d\'Information', is_primary: true, created_at: '2025-11-28T09:00:00Z' },
+      { id: 61, company_id: 26, name: 'Sophie Martin', email: 's.martin@digitech-industries.fr', phone: '+33 1 47 14 20 50', position: 'Responsable Transformation Digitale', is_primary: false, created_at: '2025-11-28T09:05:00Z' },
+      { id: 62, company_id: 26, name: 'Alain Rousseau', email: 'a.rousseau@digitech-industries.fr', phone: '+33 1 47 14 20 75', position: 'PDG', is_primary: false, created_at: '2025-11-28T09:10:00Z' },
+
+      // AutoVision Systems GmbH (company_id: 27)
+      { id: 63, company_id: 27, name: 'Dr. Klaus Mueller', email: 'k.mueller@autovision-systems.de', phone: '+49 89 382 00', position: 'Head of Digital Manufacturing', is_primary: true, created_at: '2025-12-05T10:00:00Z' },
+      { id: 64, company_id: 27, name: 'Sabine Weber', email: 's.weber@autovision-systems.de', phone: '+49 89 382 00 100', position: 'VP of Quality Assurance', is_primary: false, created_at: '2025-12-05T10:05:00Z' },
+      { id: 65, company_id: 27, name: 'Friedrich Schmidt', email: 'f.schmidt@autovision-systems.de', phone: '+49 89 382 00 200', position: 'CIO', is_primary: false, created_at: '2025-12-05T10:10:00Z' },
+
+      // FinTech London Ltd (company_id: 28)
+      { id: 66, company_id: 28, name: 'Emma Thompson', email: 'e.thompson@fintechlondon.co.uk', phone: '+44 20 7418 8000', position: 'Chief Compliance Officer', is_primary: true, created_at: '2025-12-12T11:00:00Z' },
+      { id: 67, company_id: 28, name: 'Oliver James', email: 'o.james@fintechlondon.co.uk', phone: '+44 20 7418 8050', position: 'CEO', is_primary: false, created_at: '2025-12-12T11:05:00Z' },
+      { id: 68, company_id: 28, name: 'Charlotte Brown', email: 'c.brown@fintechlondon.co.uk', phone: '+44 20 7418 8100', position: 'CTO', is_primary: false, created_at: '2025-12-12T11:10:00Z' },
+
+      // Barcelona Innovation Hub (company_id: 29)
+      { id: 69, company_id: 29, name: 'Carlos Rodriguez', email: 'c.rodriguez@bcn-innovation.es', phone: '+34 93 256 30 00', position: 'Director de Innovación', is_primary: true, created_at: '2025-12-18T14:00:00Z' },
+      { id: 70, company_id: 29, name: 'Isabel Garcia', email: 'i.garcia@bcn-innovation.es', phone: '+34 93 256 30 50', position: 'Jefa de Proyectos Smart City', is_primary: false, created_at: '2025-12-18T14:05:00Z' },
+
+      // Milano Fashion Tech (company_id: 30)
+      { id: 71, company_id: 30, name: 'Alessandra Rossi', email: 'a.rossi@milanofashion.it', phone: '+39 02 4817 0000', position: 'Direttore Digitale', is_primary: true, created_at: '2025-12-20T09:00:00Z' },
+      { id: 72, company_id: 30, name: 'Marco Bianchi', email: 'm.bianchi@milanofashion.it', phone: '+39 02 4817 0050', position: 'CEO', is_primary: false, created_at: '2025-12-20T09:05:00Z' },
+      { id: 73, company_id: 30, name: 'Lucia Ferrari', email: 'l.ferrari@milanofashion.it', phone: '+39 02 4817 0100', position: 'VP of Customer Experience', is_primary: false, created_at: '2025-12-20T09:10:00Z' },
+
+      // Amsterdam HealthTech (company_id: 31)
+      { id: 74, company_id: 31, name: 'Pieter van den Berg', email: 'p.vandenberg@ams-health.nl', phone: '+31 20 570 5000', position: 'Director of IT', is_primary: true, created_at: '2025-12-22T10:00:00Z' },
+      { id: 75, company_id: 31, name: 'Anna de Vries', email: 'a.devries@ams-health.nl', phone: '+31 20 570 5050', position: 'Chief Medical Officer', is_primary: false, created_at: '2025-12-22T10:05:00Z' },
+      { id: 76, company_id: 31, name: 'Jan Bakker', email: 'j.bakker@ams-health.nl', phone: '+31 20 570 5100', position: 'CEO', is_primary: false, created_at: '2025-12-22T10:10:00Z' },
+
+      // Zurich FinServe AG (company_id: 32)
+      { id: 77, company_id: 32, name: 'Hans Zimmermann', email: 'h.zimmermann@zurich-finserve.ch', phone: '+41 44 234 1111', position: 'Head of Private Banking', is_primary: true, created_at: '2025-12-08T08:00:00Z' },
+      { id: 78, company_id: 32, name: 'Ursula Meier', email: 'u.meier@zurich-finserve.ch', phone: '+41 44 234 1150', position: 'Chief Security Officer', is_primary: false, created_at: '2025-12-08T08:05:00Z' },
+      { id: 79, company_id: 32, name: 'Stefan Keller', email: 's.keller@zurich-finserve.ch', phone: '+41 44 234 1200', position: 'Managing Director', is_primary: false, created_at: '2025-12-08T08:10:00Z' },
+
+      // Nordic Energy Solutions (company_id: 33)
+      { id: 80, company_id: 33, name: 'Lars Andersen', email: 'l.andersen@nordic-energy.dk', phone: '+45 33 45 60 00', position: 'VP of Operations', is_primary: true, created_at: '2025-02-15T09:00:00Z' },
+      { id: 81, company_id: 33, name: 'Mette Jensen', email: 'm.jensen@nordic-energy.dk', phone: '+45 33 45 60 50', position: 'CTO', is_primary: false, created_at: '2025-02-15T09:05:00Z' },
+
+      // Dublin Tech Innovators (company_id: 34)
+      { id: 82, company_id: 34, name: 'Siobhan O\'Connor', email: 's.oconnor@dublin-tech.ie', phone: '+353 1 234 5000', position: 'CEO', is_primary: true, created_at: '2025-12-28T11:00:00Z' },
+      { id: 83, company_id: 34, name: 'Liam Murphy', email: 'l.murphy@dublin-tech.ie', phone: '+353 1 234 5050', position: 'Head of Engineering', is_primary: false, created_at: '2025-12-28T11:05:00Z' },
+      { id: 84, company_id: 34, name: 'Aoife Kelly', email: 'a.kelly@dublin-tech.ie', phone: '+353 1 234 5100', position: 'VP of Product', is_primary: false, created_at: '2025-12-28T11:10:00Z' },
+
+      // Brussels EU Consulting (company_id: 35)
+      { id: 85, company_id: 35, name: 'Marie Dupont', email: 'm.dupont@eu-consulting.be', phone: '+32 2 505 1000', position: 'Directrice Générale', is_primary: true, created_at: '2026-01-05T13:00:00Z' },
+      { id: 86, company_id: 35, name: 'Philippe Laurent', email: 'p.laurent@eu-consulting.be', phone: '+32 2 505 1050', position: 'Responsable IT', is_primary: false, created_at: '2026-01-05T13:05:00Z' }
     ];
 
     // Demo todos (25 todos distributed across prospects)
@@ -1086,11 +1438,36 @@ export const useDemoStore = defineStore('demo', () => {
 
   // Méthodes CRUD pour les prospects en mode démo
   function getDemoProspects() {
-    return demoProspects.value;
+    // Enrichir chaque prospect avec le nom de la company
+    return demoProspects.value.map(prospect => {
+      if (prospect.company_id) {
+        const company = demoCompanies.value.find(c => c.id === prospect.company_id);
+        if (company) {
+          return {
+            ...prospect,
+            company: company.name
+          };
+        }
+      }
+      return prospect;
+    });
   }
 
   function getDemoProspectById(id) {
-    return demoProspects.value.find(p => p.id === id);
+    const prospect = demoProspects.value.find(p => p.id === id);
+    if (!prospect) return null;
+    
+    // Enrichir avec le nom de la company
+    if (prospect.company_id) {
+      const company = demoCompanies.value.find(c => c.id === prospect.company_id);
+      if (company) {
+        return {
+          ...prospect,
+          company: company.name
+        };
+      }
+    }
+    return prospect;
   }
 
   function createDemoProspect(prospect) {
@@ -1104,6 +1481,17 @@ export const useDemoStore = defineStore('demo', () => {
     };
     demoProspects.value.push(newProspect);
     saveToSessionStorage();
+    
+    // Retourner avec le nom de company enrichi
+    if (newProspect.company_id) {
+      const company = demoCompanies.value.find(c => c.id === newProspect.company_id);
+      if (company) {
+        return {
+          ...newProspect,
+          company: company.name
+        };
+      }
+    }
     return newProspect;
   }
 
@@ -1116,7 +1504,20 @@ export const useDemoStore = defineStore('demo', () => {
         updated_at: new Date().toISOString()
       };
       saveToSessionStorage();
-      return demoProspects.value[index];
+      
+      const updatedProspect = demoProspects.value[index];
+      
+      // Retourner avec le nom de company enrichi
+      if (updatedProspect.company_id) {
+        const company = demoCompanies.value.find(c => c.id === updatedProspect.company_id);
+        if (company) {
+          return {
+            ...updatedProspect,
+            company: company.name
+          };
+        }
+      }
+      return updatedProspect;
     }
     return null;
   }
