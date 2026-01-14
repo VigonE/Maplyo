@@ -112,49 +112,6 @@
         <div class="flex justify-between items-center">
           <h1 class="text-xl lg:text-2xl font-bold text-blue-600">Maplyo CRM</h1>
           <div class="flex items-center gap-2">
-            <!-- Boutons de navigation rapide (Mobile uniquement) -->
-            <div class="lg:hidden flex items-center gap-1 mr-2">
-              <button
-                @click="mobileView = 'funnel'"
-                :class="{
-                  'bg-blue-600 text-white': mobileView === 'funnel',
-                  'bg-gray-100 text-gray-600': mobileView !== 'funnel'
-                }"
-                class="p-2 rounded-lg transition-colors"
-                title="Funnel View"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </button>
-              <button
-                @click="mobileView = 'map'"
-                :class="{
-                  'bg-blue-600 text-white': mobileView === 'map',
-                  'bg-gray-100 text-gray-600': mobileView !== 'map'
-                }"
-                class="p-2 rounded-lg transition-colors"
-                title="Map View"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-              </button>
-              <button
-                @click="mobileView = 'todo'"
-                :class="{
-                  'bg-blue-600 text-white': mobileView === 'todo',
-                  'bg-gray-100 text-gray-600': mobileView !== 'todo'
-                }"
-                class="p-2 rounded-lg transition-colors"
-                title="Todo View"
-              >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </button>
-            </div>
-            
             <!-- Bouton engrenage avec menu déroulant -->
             <div class="relative">
               <button
