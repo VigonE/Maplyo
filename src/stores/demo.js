@@ -1,6 +1,46 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
+// Fonction de geocoding côté client (Nominatim OpenStreetMap)
+async function geocodeAddress(fullAddress) {
+  if (!fullAddress || fullAddress.trim() === '') {
+    return null;
+  }
+  
+  try {
+    console.log('🗺️ DEMO MODE - Geocoding address:', fullAddress);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(fullAddress)}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Maplyo-Demo/1.0'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('❌ DEMO MODE - Geocoding failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      const result = {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon)
+      };
+      console.log('✅ DEMO MODE - Geocoding successful:', result);
+      return result;
+    }
+    
+    console.log('⚠️ DEMO MODE - No geocoding results found');
+    return null;
+  } catch (error) {
+    console.error('❌ DEMO MODE - Geocoding error:', error);
+    return null;
+  }
+}
+
 export const useDemoStore = defineStore('demo', () => {
   // État du mode démo
   const isDemoMode = ref(false);
@@ -1822,24 +1862,81 @@ export const useDemoStore = defineStore('demo', () => {
     });
   }
 
-  function createDemoCompany(company) {
+  async function createDemoCompany(company) {
     const newId = Math.max(...demoCompanies.value.map(c => c.id), 0) + 1;
+    
+    // Construire l'adresse complète pour le geocoding
+    let latitude = null;
+    let longitude = null;
+    
+    if (company.address || company.city || company.postal_code || company.country) {
+      const addressParts = [];
+      if (company.address) addressParts.push(company.address);
+      if (company.city) addressParts.push(company.city);
+      if (company.postal_code) addressParts.push(company.postal_code);
+      if (company.country) addressParts.push(company.country);
+      
+      const fullAddress = addressParts.join(', ');
+      console.log('🏢 DEMO MODE - Creating company with address:', fullAddress);
+      
+      // Faire le geocoding
+      const geoResult = await geocodeAddress(fullAddress);
+      if (geoResult) {
+        latitude = geoResult.latitude;
+        longitude = geoResult.longitude;
+      }
+    }
+    
     const newCompany = {
       ...company,
       id: newId,
+      latitude,
+      longitude,
       created_at: new Date().toISOString()
     };
+    
     demoCompanies.value.push(newCompany);
     saveToSessionStorage();
     return newCompany;
   }
 
-  function updateDemoCompany(id, updates) {
+  async function updateDemoCompany(id, updates) {
     const index = demoCompanies.value.findIndex(c => c.id === id);
     if (index !== -1) {
+      // Si l'adresse a changé, re-geocoder
+      let latitude = demoCompanies.value[index].latitude;
+      let longitude = demoCompanies.value[index].longitude;
+      
+      if (updates.address || updates.city || updates.postal_code || updates.country) {
+        const addressParts = [];
+        if (updates.address !== undefined ? updates.address : demoCompanies.value[index].address) {
+          addressParts.push(updates.address !== undefined ? updates.address : demoCompanies.value[index].address);
+        }
+        if (updates.city !== undefined ? updates.city : demoCompanies.value[index].city) {
+          addressParts.push(updates.city !== undefined ? updates.city : demoCompanies.value[index].city);
+        }
+        if (updates.postal_code !== undefined ? updates.postal_code : demoCompanies.value[index].postal_code) {
+          addressParts.push(updates.postal_code !== undefined ? updates.postal_code : demoCompanies.value[index].postal_code);
+        }
+        if (updates.country !== undefined ? updates.country : demoCompanies.value[index].country) {
+          addressParts.push(updates.country !== undefined ? updates.country : demoCompanies.value[index].country);
+        }
+        
+        const fullAddress = addressParts.join(', ');
+        console.log('🏢 DEMO MODE - Updating company with address:', fullAddress);
+        
+        const geoResult = await geocodeAddress(fullAddress);
+        if (geoResult) {
+          latitude = geoResult.latitude;
+          longitude = geoResult.longitude;
+        }
+      }
+      
       demoCompanies.value[index] = {
         ...demoCompanies.value[index],
-        ...updates
+        ...updates,
+        latitude,
+        longitude
       };
       saveToSessionStorage();
       return demoCompanies.value[index];

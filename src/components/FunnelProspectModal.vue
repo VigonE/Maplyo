@@ -688,6 +688,14 @@ const selectCompany = async (company) => {
   companySearchQuery.value = company.name
   showCompanyDropdown.value = false
   
+  console.log('🏢 Selected company data:', {
+    name: company.name,
+    address: company.address,
+    city: company.city,
+    postal_code: company.postal_code,
+    country: company.country
+  });
+  
   // Auto-fill address and coordinates from company (ALWAYS override with company data)
   if (company.address) {
     form.address = company.address
@@ -705,6 +713,15 @@ const selectCompany = async (company) => {
     form.latitude = company.latitude
     form.longitude = company.longitude
   }
+  
+  console.log('📋 Form after company selection:', {
+    address: form.address,
+    city: form.city,
+    postal_code: form.postal_code,
+    country: form.country,
+    latitude: form.latitude,
+    longitude: form.longitude
+  });
   
   // Load company contacts
   await loadCompanyContacts(company.id)

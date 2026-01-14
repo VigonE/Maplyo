@@ -3784,6 +3784,8 @@ app.get('/api/companies/:id', authenticateToken, (req, res) => {
 app.post('/api/companies', authenticateToken, requireWriteAccess, async (req, res) => {
   const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
   
+  console.log('🏢 COMPANY CREATION - Received data:', { name, address, city, postal_code, country });
+  
   if (!name) {
     return res.status(400).json({ error: 'Company name is required' });
   }
@@ -3812,12 +3814,14 @@ app.post('/api/companies', authenticateToken, requireWriteAccess, async (req, re
     } catch (geoError) {
       console.warn('⚠️ COMPANY CREATION - Geocoding failed:', geoError.message);
     }
+  } else {
+    console.log('⚠️ COMPANY CREATION - No address provided, skipping geocoding');
   }
   
   db.run(
-    `INSERT INTO companies (name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes)
+    `INSERT INTO companies (name, industry, website, phone, email, address, city, postal_code, country, latitude, longitude, notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes],
+    [name, industry, website, phone, email, address, city, postal_code, country, latitude, longitude, notes],
     function(err) {
       if (err) {
         console.error('Error creating company:', err);
@@ -3850,6 +3854,8 @@ app.put('/api/companies/:id', authenticateToken, requireWriteAccess, async (req,
   const companyId = req.params.id;
   const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
   
+  console.log('🏢 COMPANY UPDATE - Received data:', { name, address, city, postal_code, country });
+  
   if (!name) {
     return res.status(400).json({ error: 'Company name is required' });
   }
@@ -3878,15 +3884,17 @@ app.put('/api/companies/:id', authenticateToken, requireWriteAccess, async (req,
     } catch (geoError) {
       console.warn('⚠️ COMPANY UPDATE - Geocoding failed:', geoError.message);
     }
+  } else {
+    console.log('⚠️ COMPANY UPDATE - No address provided, skipping geocoding');
   }
   
   db.run(
     `UPDATE companies 
      SET name = ?, industry = ?, website = ?, phone = ?, email = ?, 
-         address = ?, city = ?, country = ?, postal_code = ?, latitude = ?, longitude = ?, notes = ?,
+         address = ?, city = ?, postal_code = ?, country = ?, latitude = ?, longitude = ?, notes = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes, companyId],
+    [name, industry, website, phone, email, address, city, postal_code, country, latitude, longitude, notes, companyId],
     function(err) {
       if (err) {
         console.error('Error updating company:', err);
