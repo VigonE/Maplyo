@@ -933,6 +933,7 @@
       :is-visible="showCompaniesModal"
       :initial-company-id="selectedCompanyId"
       @close="closeCompaniesModal"
+      @open-prospect="openProspectFromCompany"
     />
     </div>
   </div>
@@ -2145,6 +2146,12 @@ function openCompaniesModal(companyId = null) {
 function closeCompaniesModal() {
   showCompaniesModal.value = false
   selectedCompanyId.value = null
+}
+
+function openProspectFromCompany(prospect) {
+  // Ouvrir la modal du prospect en mode édition
+  editingProspect.value = { ...prospect }
+  showEditModal.value = true
 }
 
 function onCsvImported(results) {

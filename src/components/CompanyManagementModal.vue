@@ -525,6 +525,66 @@
             <p class="text-gray-700 whitespace-pre-wrap">{{ selectedCompany.notes }}</p>
           </div>
 
+          <!-- Leads Section -->
+          <div class="mt-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Leads ({{ companyProspects.length }})
+              </h3>
+            </div>
+
+            <div v-if="companyProspects.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
+              <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <p class="text-gray-500">No leads associated with this company</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="prospect in companyProspects"
+                :key="prospect.id"
+                class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                @click="openProspectModal(prospect)"
+              >
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full" :class="getStatusColor(prospect.status)"></div>
+                      <h4 class="font-semibold text-gray-900 hover:text-blue-600">{{ prospect.name }}</h4>
+                    </div>
+                    <span class="inline-block text-xs mt-1 px-2 py-0.5 rounded-full" :class="getStatusBadge(prospect.status)">
+                      {{ prospect.status?.toUpperCase() }}
+                    </span>
+                  </div>
+                </div>
+                <div class="space-y-1 text-sm mt-3">
+                  <div v-if="prospect.email" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span class="truncate">{{ prospect.email }}</span>
+                  </div>
+                  <div v-if="prospect.phone" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <span>{{ prospect.phone }}</span>
+                  </div>
+                  <div v-if="prospect.revenue" class="flex items-center gap-2 text-gray-600">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>${{ prospect.revenue.toLocaleString() }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Contacts Section -->
           <div class="mt-6">
             <div class="flex items-center justify-between mb-4">
@@ -715,7 +775,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import api from '../services/api';
 
 const props = defineProps({
@@ -729,7 +789,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'open-prospect']);
 
 const companies = ref([]);
 const loading = ref(false);
@@ -741,6 +801,42 @@ const showEditContactModal = ref(false);
 const editingCompany = ref(null);
 const selectedCompany = ref(null);
 const editingContact = ref(null);
+const allProspects = ref([]);
+
+// Computed pour filtrer les leads de la company sélectionnée
+const companyProspects = computed(() => {
+  if (!selectedCompany.value) return [];
+  return allProspects.value.filter(p => p.company_id === selectedCompany.value.id);
+});
+
+// Fonctions pour gérer les statuts des leads
+function getStatusColor(status) {
+  const colors = {
+    cold: 'bg-blue-500',
+    warm: 'bg-orange-500',
+    hot: 'bg-red-500',
+    won: 'bg-green-500',
+    lost: 'bg-gray-500',
+    recurring: 'bg-purple-500'
+  };
+  return colors[status] || 'bg-gray-500';
+}
+
+function getStatusBadge(status) {
+  const badges = {
+    cold: 'bg-blue-100 text-blue-800',
+    warm: 'bg-orange-100 text-orange-800',
+    hot: 'bg-red-100 text-red-800',
+    won: 'bg-green-100 text-green-800',
+    lost: 'bg-gray-100 text-gray-800',
+    recurring: 'bg-purple-100 text-purple-800'
+  };
+  return badges[status] || 'bg-gray-100 text-gray-800';
+}
+
+function openProspectModal(prospect) {
+  emit('open-prospect', prospect);
+}
 
 const companyForm = ref({
   name: '',
@@ -864,12 +960,29 @@ async function selectCompany(company) {
 watch(() => [props.isVisible, props.initialCompanyId], async ([visible, companyId]) => {
   if (visible && companyId) {
     await loadCompanies();
+    await loadProspects();
     const company = companies.value.find(c => c.id === companyId);
     if (company) {
       await selectCompany(company);
     }
   }
 });
+
+watch(() => props.isVisible, async (visible) => {
+  if (visible) {
+    await loadCompanies();
+    await loadProspects();
+  }
+});
+
+async function loadProspects() {
+  try {
+    const response = await api.get('/prospects');
+    allProspects.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading prospects:', error);
+  }
+}
 
 function closeCompanyDetailsModal() {
   showCompanyDetailsModal.value = false;
