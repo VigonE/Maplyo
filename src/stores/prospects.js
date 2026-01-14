@@ -187,7 +187,17 @@ export const useProspectsStore = defineStore('prospects', () => {
       }
       clearCaches()
       
-      return { success: true, data: response.data }
+      // Émettre un événement global pour notifier les autres composants (carte, etc.)
+      console.log('🎉 Prospect created, emitting prospectCreated event with coordinates:', {
+        id: response.data.id,
+        latitude: response.data.latitude,
+        longitude: response.data.longitude
+      })
+      window.dispatchEvent(new CustomEvent('prospectCreated', { 
+        detail: response.data 
+      }))
+      
+      return { success: true, data: response.data, prospect: response.data }
     } catch (error) {
       console.error('Error creating prospect:', error)
       return { success: false, error: error.response?.data?.error || 'Creation error' }

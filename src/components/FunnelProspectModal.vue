@@ -682,6 +682,15 @@ const selectCompany = async (company) => {
   if (company.address) {
     form.address = company.address
   }
+  if (company.city) {
+    form.city = company.city
+  }
+  if (company.country) {
+    form.country = company.country
+  }
+  if (company.postal_code) {
+    form.postal_code = company.postal_code
+  }
   if (company.latitude !== undefined && company.longitude !== undefined) {
     form.latitude = company.latitude
     form.longitude = company.longitude
@@ -880,6 +889,9 @@ const form = reactive({
   company: '',
   contact: '',
   address: '',
+  city: '',
+  country: '',
+  postal_code: '',
   latitude: null,
   longitude: null,
   status: props.initialStatus || 'cold',
@@ -922,17 +934,22 @@ watch(() => props.prospect, (newProspect) => {
       company: newProspect.company || '',
       contact: newProspect.contact || newProspect.position || '',
       address: newProspect.address || '',
+      city: newProspect.city || '',
+      country: newProspect.country || '',
+      postal_code: newProspect.postal_code || '',
       latitude: newProspect.latitude || null,
       longitude: newProspect.longitude || null,
       status: newProspect.status || 'cold',
       revenue: newProspect.revenue || 0,
-      probability_coefficient: newProspect.probability_coefficient !== undefined ? newProspect.probability_coefficient : 100,
+      probability_coefficient: newProspect.probability_coefficient !== undefined ? newProspect.probability_coefficient : getDefaultProbability(newProspect.status || 'cold'),
       notes: newProspect.notes || '',
       notes_last_updated: newProspect.notes_last_updated || null,
       estimated_completion_date: newProspect.estimated_completion_date || '',
       recurrence_months: newProspect.recurrence_months || 12,
       next_followup_date: newProspect.next_followup_date || '',
-      tabId: newProspect.tab_id || newProspect.tabId || ''
+      tabId: newProspect.tabId || newProspect.tab_id || '',
+      company_id: newProspect.company_id || null,
+      contact_id: newProspect.contact_id || null
     })
   } else {
     // Reset form for new prospect
@@ -945,6 +962,9 @@ watch(() => props.prospect, (newProspect) => {
       company: '',
       contact: '',
       address: '',
+      city: '',
+      country: '',
+      postal_code: '',
       latitude: null,
       longitude: null,
       status: status,
@@ -955,7 +975,9 @@ watch(() => props.prospect, (newProspect) => {
       estimated_completion_date: '',
       recurrence_months: 12,
       next_followup_date: '',
-      tabId: ''
+      tabId: '',
+      company_id: null,
+      contact_id: null
     })
     // Re-set default tab for new prospect
     if (availableTabsRef.value.length > 0) {
@@ -1039,6 +1061,9 @@ async function saveField(field) {
       company_id: form.company_id,
       contact: form.contact,
       address: form.address,
+      city: form.city,
+      country: form.country,
+      postal_code: form.postal_code,
       latitude: form.latitude,
       longitude: form.longitude,
       status: form.status,
@@ -1133,6 +1158,9 @@ async function createProspect() {
       company_id: form.company_id,
       contact: form.contact,
       address: form.address,
+      city: form.city,
+      country: form.country,
+      postal_code: form.postal_code,
       latitude: form.latitude,
       longitude: form.longitude,
       status: form.status,

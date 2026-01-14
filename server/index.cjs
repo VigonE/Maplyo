@@ -419,7 +419,10 @@ function initializeDatabase() {
       { name: 'notes_last_updated', sql: `ALTER TABLE prospects ADD COLUMN notes_last_updated DATETIME` },
       { name: 'role', sql: `ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'` },
       { name: 'company_id', sql: `ALTER TABLE prospects ADD COLUMN company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL` },
-      { name: 'contact_id', sql: `ALTER TABLE prospects ADD COLUMN contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL` }
+      { name: 'contact_id', sql: `ALTER TABLE prospects ADD COLUMN contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL` },
+      { name: 'city', sql: `ALTER TABLE prospects ADD COLUMN city TEXT` },
+      { name: 'country', sql: `ALTER TABLE prospects ADD COLUMN country TEXT` },
+      { name: 'postal_code', sql: `ALTER TABLE prospects ADD COLUMN postal_code TEXT` }
     ];
 
     migrations.forEach(migration => {
@@ -1193,7 +1196,7 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
   try {
     console.log('=== SERVER PROSPECT CREATION ===')
     console.log('Received request body:', req.body)
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
+    const { name, email, phone, company, contact, address, city, country, postal_code, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
     console.log('Extracted tabId:', tabId)
     console.log('📝 Creating prospect:', name, 'for tab:', tabId, '| company_id:', company_id, '| contact_id:', contact_id);
 
@@ -1271,11 +1274,11 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
         // Insérer le nouveau prospect en position 0
         db.run(
           `INSERT INTO prospects 
-           (user_id, name, email, phone, company, contact, address, latitude, longitude, status, revenue, probability_coefficient, notes, notes_last_updated, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, name, email, phone, company, contact, address, city, country, postal_code, latitude, longitude, status, revenue, probability_coefficient, notes, notes_last_updated, tab_id, display_order, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.userId, name, email || '', phone || '', company || '', 
-            contact || '', address || '', latitude, longitude, status || 'cold', 
+            contact || '', address || '', city || '', country || '', postal_code || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, notes || '', notes_last_updated, tabId || 'default', 0, estimatedDate, recurrenceMonthsValue, nextFollowupDate, company_id || null, contact_id || null // Nouveau prospect en haut
           ],
           function(err) {
@@ -1370,7 +1373,7 @@ app.put('/api/prospects/reorder-category', authenticateToken, requireWriteAccess
 app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req, res) => {
   try {
     const prospectId = req.params.id;
-    const { name, email, phone, company, contact, address, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
+    const { name, email, phone, company, contact, address, city, country, postal_code, status, revenue, probability_coefficient, notes, notes_last_updated, tabId, estimated_completion_date, recurrence_months, next_followup_date, company_id, contact_id, latitude: providedLatitude, longitude: providedLongitude } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
@@ -1473,13 +1476,13 @@ app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req,
         db.run(
           `UPDATE prospects SET 
            name = ?, email = ?, phone = ?, company = ?, contact = ?, 
-           address = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
+           address = ?, city = ?, country = ?, postal_code = ?, latitude = ?, longitude = ?, status = ?, revenue = ?, 
            probability_coefficient = ?, notes = ?, notes_last_updated = ?, tab_id = ?, estimated_completion_date = ?, 
            recurrence_months = ?, next_followup_date = ?, company_id = ?, contact_id = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`,
           [
             name, email || '', phone || '', company || '', contact || '',
-            address || '', latitude, longitude, status || 'cold', 
+            address || '', city || '', country || '', postal_code || '', latitude, longitude, status || 'cold', 
             revenue || 0, probability_coefficient !== undefined ? probability_coefficient : 100, 
             notes || '', notes_last_updated, tabId || 'default', estimatedDate, recurrenceMonthsValue, nextFollowupDate, company_id || null, contact_id || null, prospectId, req.user.userId
           ],

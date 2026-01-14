@@ -331,12 +331,32 @@ onMounted(async () => {
   
   // Listen for Escape key to close panel
   document.addEventListener('keydown', handleEscapeKey)
+  
+  // Listen for prospect creation events to refresh map immediately
+  window.addEventListener('prospectCreated', handleProspectCreated)
 })
 
 onUnmounted(() => {
-  // Clean up event listener
+  // Clean up event listeners
   document.removeEventListener('keydown', handleEscapeKey)
+  window.removeEventListener('prospectCreated', handleProspectCreated)
 })
+
+function handleProspectCreated(event) {
+  console.log('🗺️ MapView: Received prospectCreated event, refreshing markers', event.detail)
+  // Force refresh of markers even if props haven't changed yet
+  if (map && event.detail) {
+    // The prospect should already be in props.prospects via the store
+    // Just force a marker update
+    nextTick(() => {
+      if (showHeatmap.value) {
+        updateHeatmap()
+      } else {
+        updateMarkers(filteredProspects.value)
+      }
+    })
+  }
+}
 
 function handleEscapeKey(event) {
   if (event.key === 'Escape' && showFiltersPanel.value) {
