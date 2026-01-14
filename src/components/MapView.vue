@@ -1,7 +1,7 @@
 <template>
   <div class="h-full relative">
     <!-- Button to open filters panel -->
-    <div class="absolute bottom-4 right-4 z-[500] flex flex-col gap-2 filters-panel-buttons">
+    <div class="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 z-[500] flex flex-col gap-1 sm:gap-2 filters-panel-buttons">
       <!-- Heatmap Button -->
       <button
         @click="toggleHeatmap"
@@ -9,10 +9,10 @@
           'bg-blue-600 text-white': showHeatmap,
           'bg-white text-gray-700 hover:bg-gray-50': !showHeatmap
         }"
-        class="px-3 py-2 rounded-lg shadow-lg border transition-colors duration-200 flex items-center gap-2 hover-lift"
+        class="px-2 sm:px-3 py-2 rounded-lg shadow-lg border transition-colors duration-200 flex items-center gap-1 sm:gap-2 hover-lift text-xs sm:text-sm"
         title="Toggle Heatmap"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
@@ -26,10 +26,10 @@
           'bg-blue-600 text-white': showFiltersPanel,
           'bg-white text-gray-700 hover:bg-gray-50': !showFiltersPanel
         }"
-        class="px-3 py-2 rounded-lg shadow-lg border transition-all duration-200 flex items-center gap-2 hover-lift"
+        class="px-2 sm:px-3 py-2 rounded-lg shadow-lg border transition-all duration-200 flex items-center gap-1 sm:gap-2 hover-lift text-xs sm:text-sm"
         title="Toggle Filters"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
         </svg>
@@ -43,7 +43,7 @@
         'translate-x-0': showFiltersPanel,
         'translate-x-full': !showFiltersPanel
       }"
-      class="fixed top-0 right-0 h-full w-48 sm:w-48 md:w-48 lg:w-48 xl:w-48 max-w-full bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel"
+      class="fixed top-0 right-0 h-full w-64 sm:w-72 md:w-80 max-w-[90vw] bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel overflow-y-auto"
     >
       <!-- Panel header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">

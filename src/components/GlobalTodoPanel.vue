@@ -1,17 +1,35 @@
 <template>
   <div 
-    class="bg-white border-l border-gray-200 flex flex-col h-full shadow-lg transition-all duration-300 ease-in-out relative"
-    :class="isCollapsed ? 'w-12' : 'w-80'"
+    class="bg-white flex flex-col h-full shadow-lg transition-all duration-300 ease-in-out relative"
+    :class="isMobileFullscreen ? 'w-full' : (isCollapsed ? 'w-10 sm:w-12 border-l border-gray-200' : 'w-full sm:w-80 lg:w-80 border-l border-gray-200')"
   >
-    <!-- Header avec bouton de repliage -->
-    <div class="p-3 border-b border-gray-200 flex items-center bg-gray-50 flex-shrink-0">
+    <!-- Header mobile fullscreen -->
+    <div v-if="isMobileFullscreen" class="p-4 border-b border-gray-200 flex items-center bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+      <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      </div>
+      <div class="ml-3 flex-1">
+        <h2 class="text-xl font-bold text-gray-800">General Todo</h2>
+        <p class="text-sm text-gray-600">
+          {{ totalTodos }} tasks
+          <span v-if="overdueTodos > 0" class="text-red-600 font-medium ml-1">
+            • {{ overdueTodos }} overdue
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Header avec bouton de repliage (desktop uniquement) -->
+    <div v-else class="p-2 sm:p-3 border-b border-gray-200 flex items-center bg-gray-50 flex-shrink-0">
       <!-- Icône Todo toujours visible (cliquable) -->
       <div 
-        class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-600 transition-colors"
+        class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-blue-600 transition-colors"
         @click="togglePanel"
         title="Click to collapse/expand the Todo panel"
       >
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
       </div>
@@ -19,10 +37,10 @@
       <!-- Titre et stats (cachés si replié) -->
       <div 
         v-show="!isCollapsed"
-        class="ml-3 flex-1 transition-all duration-300"
+        class="ml-2 sm:ml-3 flex-1 transition-all duration-300 overflow-hidden"
       >
-        <h2 class="text-lg font-semibold text-gray-800">General Todo</h2>
-        <p class="text-sm text-gray-500">
+        <h2 class="text-base sm:text-lg font-semibold text-gray-800 truncate">General Todo</h2>
+        <p class="text-xs sm:text-sm text-gray-500 truncate">
           {{ totalTodos }} tasks
           <span v-if="overdueTodos > 0" class="text-red-600 font-medium ml-1">
             • {{ overdueTodos }} overdue
@@ -34,11 +52,11 @@
       <button
         @click="togglePanel"
         class="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
-        :class="isCollapsed ? 'ml-0' : 'ml-2'"
+        :class="isCollapsed ? 'ml-0' : 'ml-1 sm:ml-2'"
         :title="isCollapsed ? 'Expand Todo panel' : 'Collapse Todo panel'"
       >
         <svg 
-          class="h-4 w-4 transform transition-transform duration-200" 
+          class="h-3 w-3 sm:h-4 sm:w-4 transform transition-transform duration-200" 
           :class="{ 'rotate-180': !isCollapsed }"
           fill="none" 
           stroke="currentColor" 
@@ -49,9 +67,9 @@
       </button>
     </div>
 
-    <!-- Stats rapides (cachées si replié) -->
+    <!-- Stats rapides -->
     <div 
-      v-show="!isCollapsed" 
+      v-show="isMobileFullscreen || !isCollapsed" 
       class="px-4 py-2 bg-gray-50 border-b border-gray-100 flex-shrink-0"
     >
       <div class="flex justify-between text-xs">
@@ -60,9 +78,9 @@
       </div>
     </div>
 
-    <!-- Liste des todos (cachée si replié) -->
+    <!-- Liste des todos -->
     <div 
-      v-show="!isCollapsed"
+      v-show="isMobileFullscreen || !isCollapsed"
       class="flex-1 overflow-y-auto"
     >
       <div v-if="loading" class="p-4 text-center text-gray-500">
@@ -173,6 +191,10 @@ const props = defineProps({
   prospects: {
     type: Array,
     default: () => []
+  },
+  isMobileFullscreen: {
+    type: Boolean,
+    default: false
   }
 })
 

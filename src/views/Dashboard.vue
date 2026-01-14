@@ -3,53 +3,113 @@
     <!-- Bandeau Demo Mode -->
     <div 
       v-if="isDemoMode" 
-      class="bg-blue-100 border-b border-blue-300 px-4 py-2 flex items-center justify-between"
+      class="bg-blue-100 border-b border-blue-300 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between flex-wrap gap-1 sm:gap-0"
     >
-      <div class="flex items-center gap-2 text-sm text-blue-800">
-        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-800">
+        <svg class="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span class="font-semibold">Demo Mode</span>
-        <span class="text-blue-600">•</span>
-        <span class="text-blue-700">All changes are temporary and will be lost when you close your browser</span>
+        <span class="text-blue-600 hidden sm:inline">•</span>
+        <span class="text-blue-700 hidden md:inline">All changes are temporary and will be lost when you close your browser</span>
+        <span class="text-blue-700 md:hidden">Temporary changes</span>
       </div>
       <button
         @click="exitDemoMode"
-        class="text-blue-700 hover:text-blue-900 font-medium text-sm flex items-center gap-1"
+        class="text-blue-700 hover:text-blue-900 font-medium text-xs sm:text-sm flex items-center gap-1"
       >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
-        Exit Demo
+        <span class="hidden sm:inline">Exit Demo</span>
+        <span class="sm:hidden">Exit</span>
       </button>
     </div>
     
     <!-- Bandeau Read-Only Mode -->
     <div 
       v-else-if="isReadOnly" 
-      class="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center"
+      class="bg-orange-100 border-b border-orange-300 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-center"
     >
-      <div class="flex items-center gap-2 text-sm text-orange-800">
-        <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-orange-800">
+        <svg class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span class="font-medium">Read-Only Mode</span>
-        <span class="text-orange-600">•</span>
-        <span class="text-orange-700">View-only access - modifications disabled</span>
+        <span class="text-orange-600 hidden sm:inline">•</span>
+        <span class="text-orange-700 hidden sm:inline">View-only access - modifications disabled</span>
       </div>
     </div>
 
+    <!-- Mobile View Selector (only on mobile) -->
+    <div class="lg:hidden bg-white border-b border-gray-200 flex items-center justify-around p-2 gap-1">
+      <button
+        @click="mobileView = 'funnel'"
+        :class="{
+          'bg-blue-600 text-white': mobileView === 'funnel',
+          'bg-gray-100 text-gray-700 hover:bg-gray-200': mobileView !== 'funnel'
+        }"
+        class="flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 font-medium text-xs"
+      >
+        <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        Funnel
+      </button>
+      <button
+        @click="mobileView = 'map'"
+        :class="{
+          'bg-blue-600 text-white': mobileView === 'map',
+          'bg-gray-100 text-gray-700 hover:bg-gray-200': mobileView !== 'map'
+        }"
+        class="flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 font-medium text-xs"
+      >
+        <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+        Map
+      </button>
+      <button
+        @click="mobileView = 'todo'"
+        :class="{
+          'bg-blue-600 text-white': mobileView === 'todo',
+          'bg-gray-100 text-gray-700 hover:bg-gray-200': mobileView !== 'todo'
+        }"
+        class="flex-1 flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 font-medium text-xs"
+      >
+        <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        Todo
+      </button>
+      <!-- Settings Button -->
+      <button
+        @click="showSettingsMenu = !showSettingsMenu"
+        class="flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 font-medium text-xs bg-gray-100 text-gray-700 hover:bg-gray-200"
+      >
+        <svg class="h-5 w-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+    </div>
+
     <div class="flex flex-1 min-h-0">
-      <!-- Sidebar avec onglets -->
+      <!-- Sidebar avec onglets (Desktop only or Mobile Funnel view) -->
       <div 
+        v-show="!isMobile || mobileView === 'funnel'"
         class="bg-white border-r border-gray-200 flex flex-col flex-shrink-0"
-        :style="`width: ${sidebarWidth}px`"
+        :class="{
+          'fixed lg:static inset-0 z-30': isMobile && mobileView === 'funnel',
+          'lg:static': !isMobile
+        }"
+        :style="isMobile ? 'width: 100vw' : `width: ${sidebarWidth}px`"
       >
         <!-- Header -->
-        <div class="p-4 border-b border-gray-200">
+        <div class="p-3 lg:p-4 border-b border-gray-200">
         <div class="flex justify-between items-center">
-          <h1 class="text-2xl font-bold text-blue-600">Maplyo CRM</h1>
+          <h1 class="text-xl lg:text-2xl font-bold text-blue-600">Maplyo CRM</h1>
           <div class="flex items-center gap-2">
             <!-- Bouton engrenage avec menu déroulant -->
             <div class="relative">
@@ -175,30 +235,49 @@
       </div>
     </div>
 
-    <!-- Séparateur redimensionnable -->
+    <!-- Séparateur redimensionnable (desktop only) -->
     <div 
-      class="w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize relative group flex-shrink-0"
+      class="hidden lg:block w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize relative group flex-shrink-0"
       @mousedown="startResize"
     >
       <div class="absolute inset-y-0 left-0 w-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
     </div>
 
-    <!-- Global Todo Panel -->
-    <GlobalTodoPanel
-      :prospects="prospectsStore.prospects"
-      @view-prospect="viewProspectFromTodo"
-      @edit-prospect="editProspectFromTodo"
-    />
+    <!-- Content Area (map + todo panel) -->
+    <div class="flex-1 min-h-0 flex">
+      <!-- Map (Desktop always visible, Mobile only when selected) -->
+      <div 
+        v-show="!isMobile || mobileView === 'map'"
+        class="flex-1 min-h-0"
+        :class="{
+          'fixed inset-0 z-30': isMobile && mobileView === 'map',
+          'pt-14': isMobile && mobileView === 'map'
+        }"
+      >
+        <MapView
+          :prospects="filteredProspectsForMap"
+          :all-prospects="prospectsStore.prospects"
+          :selected-prospect="selectedProspect"
+          @select-prospect="selectProspect"
+          @open-company="openCompaniesModal"
+        />
+      </div>
 
-    <!-- Map -->
-    <div class="flex-1 min-h-0">
-      <MapView
-        :prospects="filteredProspectsForMap"
-        :all-prospects="prospectsStore.prospects"
-        :selected-prospect="selectedProspect"
-        @select-prospect="selectProspect"
-        @open-company="openCompaniesModal"
-      />
+      <!-- Global Todo Panel (Desktop always visible, Mobile only when selected) -->
+      <div 
+        v-show="!isMobile || mobileView === 'todo'"
+        :class="{
+          'fixed inset-0 z-30 pt-14': isMobile && mobileView === 'todo',
+          'flex-shrink-0': !isMobile
+        }"
+      >
+        <GlobalTodoPanel
+          :prospects="prospectsStore.prospects"
+          @view-prospect="viewProspectFromTodo"
+          @edit-prospect="editProspectFromTodo"
+          :is-mobile-fullscreen="isMobile && mobileView === 'todo'"
+        />
+      </div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -1041,6 +1120,8 @@ const currentTheme = ref('default') // 'default' or 'retro'
 const sidebarWidth = ref(400) // Largeur par défaut du sidebar
 const isResizing = ref(false)
 const modalKey = ref(0) // Pour forcer le re-rendu du modal
+const mobileView = ref('funnel') // Vue active sur mobile: 'funnel', 'map', 'todo'
+const isMobile = ref(false) // Détection mobile
 
 // Read-only mode check
 const isReadOnly = computed(() => authStore.isReadOnly)
@@ -2390,6 +2471,16 @@ const exitDemoMode = () => {
   router.push('/login')
 }
 
+// Détecter si on est sur mobile
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 1024 // lg breakpoint
+}
+
+// Gérer le changement de taille d'écran
+const handleResize = () => {
+  checkMobile()
+}
+
 onMounted(async () => {
   await prospectsStore.fetchProspects()
   
@@ -2404,12 +2495,17 @@ onMounted(async () => {
     currentTabId.value = tabsManager.value.activeTabId || 'default'
   }
   
+  // Détecter le mode mobile
+  checkMobile()
+  window.addEventListener('resize', handleResize)
+  
   // Ajouter l'écouteur pour fermer le menu
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

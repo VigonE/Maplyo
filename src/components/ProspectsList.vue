@@ -1,50 +1,51 @@
 <template>
   <div class="flex flex-col h-full">
     <!-- En-tête de l'onglet -->
-    <div class="p-4 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900">{{ tabName }}</h2>
-          <p class="text-sm text-gray-500">{{ visibleProspectsCount }} lead(s) • Weighted Total: {{ totalRevenue }}</p>
+    <div class="p-2 sm:p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base sm:text-lg font-semibold text-gray-900 truncate">{{ tabName }}</h2>
+          <p class="text-xs sm:text-sm text-gray-500 truncate">{{ visibleProspectsCount }} lead(s) • Weighted Total: {{ totalRevenue }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <!-- Bouton de bascule d'affichage -->
           <button
             @click="toggleViewMode"
-            class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             :title="viewMode === 'list' ? 'Switch to Funnel View' : 'Switch to List View'"
           >
-            <svg v-if="viewMode === 'list'" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="viewMode === 'list'" class="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2 2v-4a2 2 0 012-2h2a2 2 0 012 2zm0-10a2 2 0 112 2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V7z" />
             </svg>
-            <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-else class="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
-            {{ viewMode === 'list' ? 'Funnel' : 'List' }}
+            <span class="hidden sm:inline">{{ viewMode === 'list' ? 'Funnel' : 'List' }}</span>
           </button>
           <!-- Bouton Add seulement visible en mode liste -->
           <button
             v-if="viewMode === 'list' && !isReadOnly"
             @click="addProspectWithStatus('cold')"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium"
           >
-            Add
+            <span class="hidden sm:inline">Add</span>
+            <span class="sm:hidden">+</span>
           </button>
         </div>
       </div>
       
       <!-- Champ de recherche -->
-      <div class="mt-4 mb-4 px-4">
+      <div class="mt-2 sm:mt-4 mb-2 sm:mb-4 px-2 sm:px-4">
         <div class="relative">
           <input
             ref="searchInput"
             v-model="searchQuery"
             type="text"
             placeholder="Search leads by name, city, email..."
-            class="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 sm:px-4 py-2 pl-8 sm:pl-10 pr-3 sm:pr-4 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+            <svg class="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>

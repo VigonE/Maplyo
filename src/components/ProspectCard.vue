@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-all duration-200 cursor-pointer"
+    class="bg-white rounded-lg shadow-sm border border-gray-200 p-2 sm:p-3 hover:shadow-md transition-all duration-200 cursor-pointer"
     :class="{ 
       'ring-2 ring-blue-500 shadow-md': selectedProspect?.id === prospect.id,
       'opacity-75': prospect.tabId && prospect.tabId !== tabId
@@ -10,39 +10,40 @@
   >
     <div class="flex items-start justify-between">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-1">
-          <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600">
+        <div class="flex items-center gap-1 sm:gap-2 mb-1">
+          <div class="drag-handle cursor-move text-gray-400 hover:text-gray-600 hidden sm:block">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
             </svg>
           </div>
-          <h3 class="text-sm font-medium text-gray-900 truncate flex-1">
+          <h3 class="text-xs sm:text-sm font-medium text-gray-900 truncate flex-1">
             <span v-html="highlightSearchTerm(prospect.name, searchQuery)"></span>
           </h3>
           <!-- Badge d'onglet d'origine -->
           <button
             v-if="isAllLeadsView && getProspectTabName(prospect)"
             @click.stop="navigateToProspectTab(prospect)"
-            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 flex-shrink-0 transition-colors cursor-pointer"
+            class="inline-flex items-center px-1 sm:px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 flex-shrink-0 transition-colors cursor-pointer"
             :title="'Click to go to tab: ' + getProspectTabName(prospect)"
           >
-            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-2 h-2 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-            {{ getProspectTabName(prospect) }}
+            <span class="hidden sm:inline">{{ getProspectTabName(prospect) }}</span>
+            <span class="sm:hidden">{{ getProspectTabName(prospect).substring(0, 3) }}</span>
           </button>
         </div>
         
         <!-- Company name -->
-        <p v-if="prospect.company" class="text-xs text-purple-700 mb-1 truncate ml-6">
+        <p v-if="prospect.company" class="text-xs text-purple-700 mb-0.5 sm:mb-1 truncate ml-4 sm:ml-6">
           🏢 <span v-html="highlightSearchTerm(prospect.company, searchQuery)"></span>
         </p>
         
-        <p class="text-xs text-gray-500 mb-2 truncate">
+        <p class="text-xs text-gray-500 mb-1 sm:mb-2 truncate">
           📍 <span v-html="highlightSearchTerm(getFullAddress(prospect), searchQuery)"></span>
         </p>
         
-        <div class="space-y-2">
+        <div class="space-y-1 sm:space-y-2">
           <!-- Revenue Information -->
           <div v-if="!editingRevenue && !editingProbability && !editingDate" class="space-y-1">
             <div class="flex items-center justify-between">
