@@ -497,7 +497,6 @@ const formatDateForInput = (dateString) => {
 
 // Fonction pour formater la date d'affichage
 const formatEstimatedDate = (dateString) => {
-  console.log('formatEstimatedDate called with:', dateString) // Debug
   if (!dateString) return 'Non définie'
   
   const date = new Date(dateString)

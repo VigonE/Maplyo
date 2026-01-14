@@ -131,7 +131,6 @@ export const useProspectsStore = defineStore('prospects', () => {
     try {
       // Envoyer toutes les mises à jour en une seule requête
       await api.put('/prospects/batch-update', { updates })
-      console.log(`✅ Processed ${updates.length} updates in batch`)
     } catch (error) {
       console.error('❌ Error processing batch updates:', error)
       // Reload on error to ensure consistency
@@ -212,21 +211,7 @@ export const useProspectsStore = defineStore('prospects', () => {
         }
       }
       
-      console.log('📤 Sending prospect update to server:')
-      console.log('   - Prospect ID:', id)
-      console.log('   - Data being sent:', completeData)
-      console.log('   - Recurrence fields:', {
-        recurrence_months: completeData.recurrence_months,
-        next_followup_date: completeData.next_followup_date
-      })
-      
       const response = await prospectsAPI.update(id, completeData)
-      
-      console.log('✅ Server response:', response.data)
-      console.log('   - Returned recurrence fields:', {
-        recurrence_months: response.data.recurrence_months,
-        next_followup_date: response.data.next_followup_date
-      })
       
       // Mettre à jour avec les données du serveur
       // En mode démo, recharger depuis le demoStore
@@ -293,8 +278,6 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   async function reorderProspectsInCategory(status, newOrder) {
     try {
-      console.log('📋 Reordering prospects in category:', status, 'with order:', newOrder);
-      
       // Réorganiser localement d'abord pour une réactivité immédiate
       const prospectsInCategory = prospects.value.filter(p => p.status === status)
       const otherProspects = prospects.value.filter(p => p.status !== status)
@@ -310,7 +293,6 @@ export const useProspectsStore = defineStore('prospects', () => {
       
       const response = await api.put('/prospects/reorder-category', { status, order: newOrder })
       
-      console.log('✅ Prospects reordered successfully in category');
       return { success: true }
     } catch (error) {
       console.error('❌ Error reordering prospects in category:', error);
@@ -323,8 +305,6 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   async function reorderProspects(newOrder) {
     try {
-      console.log('📋 Reordering prospects:', newOrder);
-      
       // Réorganiser localement d'abord
       const reorderedProspects = newOrder.map(id => 
         prospects.value.find(p => p.id === id)
@@ -335,7 +315,6 @@ export const useProspectsStore = defineStore('prospects', () => {
       
       const response = await api.put('/prospects/reorder', { order: newOrder })
       
-      console.log('✅ Prospects reordered successfully');
       return { success: true }
     } catch (error) {
       console.error('❌ Error reordering prospects:', error);

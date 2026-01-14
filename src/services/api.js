@@ -23,13 +23,6 @@ api.interceptors.request.use(
     const authStore = useAuthStore()
     const demoStore = useDemoStore()
     
-    // Debug logging
-    console.log('📡 API Request:', config.url, {
-      token: authStore.token?.substring(0, 20) + '...',
-      demoStoreFlag: demoStore.isDemoMode,
-      tokenStartsWith: authStore.token?.startsWith('demo-token')
-    })
-    
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
@@ -39,8 +32,6 @@ api.interceptors.request.use(
     
     if (isDemoMode) {
       // En mode démo, intercepter la requête et retourner des données simulées
-      console.log('🎭 Demo mode: intercepting request to', config.url)
-      
       // Simuler un délai réseau
       await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100))
       
@@ -275,7 +266,6 @@ api.interceptors.response.use(
     const isDemoMode = demoStore.isDemoMode || (authStore.token && authStore.token.startsWith('demo-token'))
     
     if (isDemoMode && error.response?.status === 401) {
-      console.log('🎭 Demo mode: caught 401 error, returning mock data for', originalRequest.url)
       const mockResponse = createMockResponse(originalRequest, demoStore)
       return {
         data: mockResponse,

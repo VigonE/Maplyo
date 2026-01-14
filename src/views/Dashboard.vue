@@ -1089,30 +1089,18 @@ const passwordForm = ref({
 
 // Prospects visibles selon l'onglet actuel (fallback si pas de filtrage)
 const visibleProspects = computed(() => {
-  console.log('=== FILTERING PROSPECTS ===')
-  console.log('Current tab ID:', currentTabId.value)
-  console.log('Current tab NAME:', currentTabName.value)
-  console.log('Total prospects:', prospectsStore.prospects.length)
-  
   // Si on est sur "All Leads", retourner TOUS les prospects
   if (currentTabName.value === 'All Leads') {
-    console.log('🌟 ALL LEADS mode - returning ALL prospects without filtering')
-    // Debug: count hot prospects in store
-    const hotInStore = prospectsStore.prospects.filter(p => p.status === 'hot')
-    console.log('🔥 HOT in STORE:', hotInStore.length, hotInStore.map(p => ({ name: p.name, status: p.status, tab_id: p.tab_id })))
     return prospectsStore.prospects
   }
   
   // Sinon, filtrer par onglet spécifique
   if (currentTabId.value === 'default') {
-    console.log('Using default tab - returning all prospects')
     return prospectsStore.prospects
   } else {
     const filtered = prospectsStore.prospects.filter(p => {
-      console.log(`Prospect ${p.name}: tabId="${p.tabId}", tab_id="${p.tab_id}", comparing with "${currentTabId.value}"`)
       return p.tabId === currentTabId.value || p.tab_id === currentTabId.value
     })
-    console.log(`Filtered ${filtered.length} prospects for tab "${currentTabId.value}"`)
     return filtered
   }
 })
@@ -1148,12 +1136,10 @@ const currentTabName = computed(() => {
 const forecastProspects = computed(() => {
   // Si on est sur "All Leads", utiliser TOUS les prospects du système
   if (currentTabName.value === 'All Leads') {
-    console.log(`🌟 Prévisionnel "ALL LEADS": ${prospectsStore.prospects.length} prospects totaux`)
     return prospectsStore.prospects
   }
   
   // Sinon, utiliser UNIQUEMENT les prospects de l'onglet courant
-  console.log(`Prévisionnel pour l'onglet "${currentTabName.value}": ${visibleProspects.value.length} prospects`)
   return visibleProspects.value
 })
 
@@ -1164,10 +1150,6 @@ function onFilteredProspects(filteredProspects) {
 
 // Naviguer vers l'onglet d'origine d'un prospect
 function onNavigateToTab(tabId, prospectId) {
-  console.log('🎯 Navigate to tab:', tabId, 'for prospect:', prospectId)
-  console.log('🔍 tabsManager.value:', tabsManager.value)
-  console.log('🔍 tabsManager.value?.switchToTab:', tabsManager.value?.switchToTab)
-  
   if (!tabsManager.value) {
     console.error('❌ tabsManager.value is null or undefined')
     return
@@ -1183,13 +1165,11 @@ function onNavigateToTab(tabId, prospectId) {
   
   if (!navigationMethod) {
     console.error('❌ No navigation method available')
-    console.log('🔍 Available methods:', Object.keys(tabsManager.value))
     return
   }
   
   try {
     navigationMethod(tabId)
-    // TODO: Optionnellement, faire défiler vers le prospect spécifique
   } catch (error) {
     console.error('❌ Error calling navigation method:', error)
   }
@@ -1250,7 +1230,6 @@ watch(visibleProspects, (newProspects) => {
 
 function onTabChanged(tabId) {
   currentTabId.value = tabId
-  console.log('Tab changed to:', tabId) // Debug
   // Réinitialiser la carte avec tous les prospects du nouvel onglet
   filteredProspectsForMap.value = visibleProspects.value
   // Forcer le re-rendu du modal pour mettre à jour les onglets disponibles
@@ -1325,7 +1304,6 @@ async function scrollToProspectInList(prospect) {
     
     if (!navigationMethod) {
       console.error('❌ No navigation method available in scrollToProspectInList')
-      console.log('🔍 Available methods:', Object.keys(tabsManager.value))
       return
     }
     
@@ -1370,8 +1348,6 @@ function openAddModal(data) {
     return
   }
   
-  console.log('🔍 openAddModal called with:', data, typeof data)
-  
   // Gérer les deux formats : soit une string simple, soit un objet
   if (typeof data === 'string') {
     modalInitialStatus.value = data
@@ -1384,7 +1360,6 @@ function openAddModal(data) {
     modalInitialStatus.value = 'cold'
   }
   
-  console.log(`🆕 Opening add modal with status: ${modalInitialStatus.value}`)
   editingProspect.value = null
   showAddModal.value = true
 }
@@ -1609,17 +1584,6 @@ async function handleDatabaseImport(event) {
     } catch (parseError) {
       throw new Error('Invalid JSON format: ' + parseError.message)
     }
-
-    // Debug: log the structure of importData
-    console.log('📋 Import data structure:', {
-      hasProspects: !!importData.prospects,
-      prospectsCount: Array.isArray(importData.prospects) ? importData.prospects.length : 'not array',
-      hasTabs: !!importData.tabs,
-      tabsCount: Array.isArray(importData.tabs) ? importData.tabs.length : 'not array',
-      hasUsers: !!importData.users,
-      hasSettings: !!importData.settings,
-      topLevelKeys: Object.keys(importData || {})
-    })
 
     // More flexible validation - accept files with any of these structures
     if (!importData || typeof importData !== 'object') {

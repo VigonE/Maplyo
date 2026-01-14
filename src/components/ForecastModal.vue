@@ -4,25 +4,7 @@
     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
     style="z-index: 10000;"
   >
-    <div class="relative top-4 mx-auto p-5 border w-11/12 mconst generateForecast = () => {
-  console.log('=== GENERATING FORECAST ===')
-  console.log('Props prospects count:', props.prospects.length)
-  console.log('First prospect COMPLETE:', props.prospects[0])
-  console.log('All keys of first prospect:', props.prospects[0] ? Object.keys(props.prospects[0]) : 'No prospects')
-  console.log('Lead times:', props.leadTimes)
-  
-  // Debug: Let's check all prospects' status
-  console.log('🔍 STATUS ANALYSIS:')
-  const statusCount = {}
-  props.prospects.forEach(p => {
-    const status = p.status || 'unknown'
-    statusCount[status] = (statusCount[status] || 0) + 1
-  })
-  console.log('Status distribution:', statusCount)
-  
-  // Debug: Check hot prospects specifically
-  const hotProspects = props.prospects.filter(p => p.status === 'hot')
-  console.log('🔥 HOT PROSPECTS:', hotProspects.length, hotProspects.map(p => ({ name: p.name, status: p.status, revenue: p.revenue, tab_id: p.tab_id })))xl shadow-lg rounded-md bg-white" @click.stop>
+    <div class="relative top-4 mx-auto p-5 border w-11/12 xl shadow-lg rounded-md bg-white" @click.stop>
       <div class="mt-3">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">

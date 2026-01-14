@@ -187,12 +187,8 @@ async function initDatabase() {
         ALTER TABLE prospects 
         ADD COLUMN probability_coefficient DECIMAL(5, 2) DEFAULT 100.00
       `)
-      console.log('Added probability_coefficient column to prospects table')
     } catch (error) {
       // Column already exists or other error - ignore
-      if (!error.message.includes('Duplicate column name')) {
-        console.log('Column probability_coefficient may already exist:', error.message)
-      }
     }
 
     // Add estimated_completion_date column if it doesn't exist (migration for existing databases)
@@ -201,12 +197,8 @@ async function initDatabase() {
         ALTER TABLE prospects 
         ADD COLUMN estimated_completion_date DATE
       `)
-      console.log('Added estimated_completion_date column to prospects table')
     } catch (error) {
       // Column already exists or other error - ignore
-      if (!error.message.includes('Duplicate column name')) {
-        console.log('Column estimated_completion_date may already exist:', error.message)
-      }
     }
 
     // Migrate potential_revenue to revenue column if needed
@@ -215,7 +207,6 @@ async function initDatabase() {
         ALTER TABLE prospects 
         ADD COLUMN revenue DECIMAL(12, 2) DEFAULT 0
       `)
-      console.log('Added revenue column to prospects table')
       
       // Copy data from potential_revenue to revenue if potential_revenue exists
       try {
@@ -224,15 +215,11 @@ async function initDatabase() {
           SET revenue = potential_revenue 
           WHERE revenue IS NULL OR revenue = 0
         `)
-        console.log('Migrated data from potential_revenue to revenue')
       } catch (migrateError) {
-        console.log('Data migration skipped:', migrateError.message)
+        // Data migration skipped
       }
     } catch (error) {
       // Column already exists - ignore
-      if (!error.message.includes('Duplicate column name')) {
-        console.log('Column revenue may already exist:', error.message)
-      }
     }
 
     // Add missing columns for complete prospect data
@@ -251,12 +238,8 @@ async function initDatabase() {
           ALTER TABLE prospects 
           ADD COLUMN ${column.name} ${column.type}
         `)
-        console.log(`Added ${column.name} column to prospects table`)
       } catch (error) {
         // Column already exists - ignore
-        if (!error.message.includes('Duplicate column name')) {
-          console.log(`Column ${column.name} may already exist:`, error.message)
-        }
       }
     }
 
@@ -266,9 +249,8 @@ async function initDatabase() {
         ALTER TABLE prospects 
         MODIFY COLUMN status ENUM('cold', 'warm', 'hot', 'won', 'lost', 'recurring') DEFAULT 'cold'
       `)
-      console.log('Updated status column ENUM values')
     } catch (error) {
-      console.log('Status column update may have failed (this is normal for new tables):', error.message)
+      // Status column update may have failed (this is normal for new tables)
     }
 
     // Add recurrence_months column if it doesn't exist
@@ -277,11 +259,8 @@ async function initDatabase() {
         ALTER TABLE prospects 
         ADD COLUMN recurrence_months INT DEFAULT 12
       `)
-      console.log('Added recurrence_months column to prospects table')
     } catch (error) {
-      if (!error.message.includes('Duplicate column name')) {
-        console.log('Column recurrence_months may already exist:', error.message)
-      }
+      // Column already exists - ignore
     }
 
     // Add next_followup_date column if it doesn't exist
@@ -290,11 +269,8 @@ async function initDatabase() {
         ALTER TABLE prospects 
         ADD COLUMN next_followup_date DATE
       `)
-      console.log('Added next_followup_date column to prospects table')
     } catch (error) {
-      if (!error.message.includes('Duplicate column name')) {
-        console.log('Column next_followup_date may already exist:', error.message)
-      }
+      // Column already exists - ignore
     }
 
     return db

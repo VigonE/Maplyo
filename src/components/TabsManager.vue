@@ -453,7 +453,6 @@ export default {
     const onNavigateToTab = (tabId, prospectId) => {
       console.log('🎯 TabsManager: Navigate to tab:', tabId, 'for prospect:', prospectId)
       selectTab(tabId)
-      // TODO: Optionnellement, faire défiler vers le prospect spécifique
     }
 
     return {
