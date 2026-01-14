@@ -689,7 +689,7 @@ function createMarker(prospect, revenueStats) {
   const popupContent = `
     <div class="p-2">
       <h3 class="font-semibold text-lg">${prospect.name}</h3>
-      ${prospect.company ? `<p class="text-sm text-purple-700 mb-1">🏢 ${prospect.company}</p>` : ''}
+      ${prospect.company ? `<p class="text-sm text-purple-700 mb-1 hover:text-purple-900 hover:underline cursor-pointer company-link" data-company-id="${prospect.company_id}" title="Click to view company details">🏢 ${prospect.company}</p>` : ''}
       <p class="text-sm text-gray-600 mb-2">${prospect.address || 'No address'}</p>
       <div class="flex justify-between items-center">
         <div>
@@ -704,6 +704,20 @@ function createMarker(prospect, revenueStats) {
   
   marker.on('click', () => {
     emit('select-prospect', prospect)
+  })
+  
+  marker.on('popupopen', () => {
+    // Add click handler for company link in popup
+    const companyLink = document.querySelector('.company-link')
+    if (companyLink) {
+      companyLink.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const companyId = parseInt(companyLink.getAttribute('data-company-id'))
+        if (companyId) {
+          emit('open-company', companyId)
+        }
+      })
+    }
   })
 
   marker.addTo(map)

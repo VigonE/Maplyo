@@ -170,6 +170,7 @@
           @tab-changed="onTabChanged"
           @filtered-prospects="onFilteredProspects"
           @navigate-to-tab="onNavigateToTab"
+          @open-company="openCompaniesModal"
         />
       </div>
     </div>
@@ -196,6 +197,7 @@
         :all-prospects="prospectsStore.prospects"
         :selected-prospect="selectedProspect"
         @select-prospect="selectProspect"
+        @open-company="openCompaniesModal"
       />
     </div>
 
@@ -929,6 +931,7 @@
     <!-- Companies Management Modal -->
     <CompanyManagementModal
       :is-visible="showCompaniesModal"
+      :initial-company-id="selectedCompanyId"
       @close="closeCompaniesModal"
     />
     </div>
@@ -1076,6 +1079,7 @@ const showFunnelReportModal = ref(false)
 
 // Companies Management Modal
 const showCompaniesModal = ref(false)
+const selectedCompanyId = ref(null)
 
 // User profile and password management
 const userProfile = ref(null)
@@ -2132,13 +2136,15 @@ function closeFunnelReportModal() {
 }
 
 // Fonctions pour la gestion des entreprises
-function openCompaniesModal() {
+function openCompaniesModal(companyId = null) {
   showSettingsMenu.value = false
+  selectedCompanyId.value = companyId
   showCompaniesModal.value = true
 }
 
 function closeCompaniesModal() {
   showCompaniesModal.value = false
+  selectedCompanyId.value = null
 }
 
 function onCsvImported(results) {

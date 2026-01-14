@@ -103,6 +103,7 @@
         @reorder="$emit('reorder-prospects', $event)"
         @filtered-prospects="$emit('filtered-prospects', $event)"
         @navigate-to-tab="onNavigateToTab"
+        @open-company="$emit('open-company', $event)"
       />
     </div>
 

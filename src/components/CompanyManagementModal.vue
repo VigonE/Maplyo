@@ -722,6 +722,10 @@ const props = defineProps({
   isVisible: {
     type: Boolean,
     required: true
+  },
+  initialCompanyId: {
+    type: Number,
+    default: null
   }
 });
 
@@ -855,6 +859,17 @@ async function selectCompany(company) {
     alert('Error loading company details');
   }
 }
+
+// Auto-open company details when initialCompanyId is provided
+watch(() => [props.isVisible, props.initialCompanyId], async ([visible, companyId]) => {
+  if (visible && companyId) {
+    await loadCompanies();
+    const company = companies.value.find(c => c.id === companyId);
+    if (company) {
+      await selectCompany(company);
+    }
+  }
+});
 
 function closeCompanyDetailsModal() {
   showCompanyDetailsModal.value = false;
