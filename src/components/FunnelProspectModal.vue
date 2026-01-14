@@ -6,7 +6,7 @@
     @click="prospect ? closeModal : null"
   >
     <div 
-      class="relative top-8 mx-auto p-6 border w-11/12 max-w-5xl shadow-lg rounded-lg bg-white" 
+      class="relative top-24 mx-auto p-6 border w-11/12 max-w-5xl shadow-lg rounded-lg bg-white mb-8" 
       @click.stop
     >
       <!-- Header -->
