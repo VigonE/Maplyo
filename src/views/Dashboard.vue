@@ -3,7 +3,7 @@
     <!-- Bandeau Demo Mode -->
     <div 
       v-if="isDemoMode" 
-      class="bg-blue-100 border-b border-blue-300 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between flex-wrap gap-1 sm:gap-0"
+      class="bg-blue-100 border-b border-blue-300 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between flex-wrap gap-1 sm:gap-0 relative z-[60]"
     >
       <div class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-800">
         <svg class="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +252,8 @@
         class="flex-1 min-h-0"
         :class="{
           'fixed inset-0 z-20': isMobile && mobileView === 'map',
-          'pt-[60px]': isMobile && mobileView === 'map'
+          'pt-[100px]': isMobile && mobileView === 'map' && isDemoMode,
+          'pt-[60px]': isMobile && mobileView === 'map' && !isDemoMode
         }"
       >
         <MapView
@@ -268,7 +269,9 @@
       <div 
         v-show="!isMobile || mobileView === 'todo'"
         :class="{
-          'fixed inset-0 z-20 pt-[60px]': isMobile && mobileView === 'todo',
+          'fixed inset-0 z-20': isMobile && mobileView === 'todo',
+          'pt-[100px]': isMobile && mobileView === 'todo' && isDemoMode,
+          'pt-[60px]': isMobile && mobileView === 'todo' && !isDemoMode,
           'flex-shrink-0': !isMobile
         }"
       >

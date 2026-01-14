@@ -1,7 +1,7 @@
 <template>
   <div class="h-full relative">
     <!-- Buttons in top right corner (discrete) -->
-    <div class="absolute top-2 right-2 z-[15] flex gap-1">
+    <div class="absolute top-2 right-2 z-[30] flex gap-1">
       <!-- Heatmap Button -->
       <button
         @click="toggleHeatmap"
