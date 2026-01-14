@@ -43,7 +43,7 @@
     </div>
 
     <!-- Mobile View Selector (only on mobile) -->
-    <div class="lg:hidden bg-white border-b border-gray-200 flex items-center justify-around p-2 gap-1">
+    <div class="lg:hidden bg-white border-b border-gray-200 flex items-center justify-around p-2 gap-1 relative z-50">
       <button
         @click="mobileView = 'funnel'"
         :class="{
@@ -83,8 +83,9 @@
         </svg>
         Todo
       </button>
-      <!-- Settings Button -->
+      <!-- Settings Button (only visible in funnel view) -->
       <button
+        v-show="mobileView === 'funnel'"
         @click="showSettingsMenu = !showSettingsMenu"
         class="flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-200 font-medium text-xs bg-gray-100 text-gray-700 hover:bg-gray-200"
       >
@@ -101,7 +102,7 @@
         v-show="!isMobile || mobileView === 'funnel'"
         class="bg-white border-r border-gray-200 flex flex-col flex-shrink-0"
         :class="{
-          'fixed lg:static inset-0 z-30': isMobile && mobileView === 'funnel',
+          'fixed lg:static inset-0 z-20 pt-[60px]': isMobile && mobileView === 'funnel',
           'lg:static': !isMobile
         }"
         :style="isMobile ? 'width: 100vw' : `width: ${sidebarWidth}px`"
@@ -293,8 +294,8 @@
         v-show="!isMobile || mobileView === 'map'"
         class="flex-1 min-h-0"
         :class="{
-          'fixed inset-0 z-30': isMobile && mobileView === 'map',
-          'pt-14': isMobile && mobileView === 'map'
+          'fixed inset-0 z-20': isMobile && mobileView === 'map',
+          'pt-[60px]': isMobile && mobileView === 'map'
         }"
       >
         <MapView
@@ -310,7 +311,7 @@
       <div 
         v-show="!isMobile || mobileView === 'todo'"
         :class="{
-          'fixed inset-0 z-30 pt-14': isMobile && mobileView === 'todo',
+          'fixed inset-0 z-20 pt-[60px]': isMobile && mobileView === 'todo',
           'flex-shrink-0': !isMobile
         }"
       >
