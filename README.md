@@ -1,181 +1,73 @@
-# Maplyo - CRM Funnel with Interactive Map
+# Maplyo
 
-Maplyo is a modern CRM application that combines prospect management with interactive map visualization. Manage your prospects on a map, track their progress through the sales funnel, and optimize your territorial sales strategy.
+Maplyo is an open-source CRM sales funnel optimized for territory teams that need to visualize prospects directly on an interactive map. The core application tracks prospects from first contact to close, overlays sales intelligence on geographic data, and gives distributed teams a unified pipeline view.
 
-## ✨ Features
+## What is Maplyo?
+Maplyo combines a Vue.js single-page experience with an Express.js API and a MySQL data layer. Sales teams can geocode prospects, manage funnels, review forecasts, and collaborate on a shared map-driven workspace that stays performant even with large datasets.
 
-- **Interactive Map**: Visualize your prospects on a map with bubbles proportional to potential revenue
-- **Prospect Management**: Add, edit, and delete prospects easily
-- **Sales Funnel**: Track prospect evolution (Prospect → Quote → Order → Won/Lost)
-- **Geolocation**: Automatic address geocoding to GPS coordinates
-- **Drag & Drop**: Reorganize prospects by priority
-- **Custom Colors**: Assign colors to categorize your prospects
-- **Authentication**: Secure login system (each user has their own funnel)
-- **Responsive Design**: Adaptive interface for all screens
+## Open-core model
+This repository contains the AGPLv3 open-source core. Commercial extensions are developed separately and may add proprietary integrations, analytics, or industry-specific features without being part of this codebase.
 
-## 🛠 Technologies
+## Core features
+- Interactive map view with geocoded prospects, clustering, and revenue-weighted markers
+- Drag-and-drop sales funnel board with customizable stages and forecasting widgets
+- Prospect, company, and user management, including status history and todos
+- Secure authentication, basic RBAC, and audit-friendly change tracking
+- CSV import/export helpers plus REST APIs for automation
+- Built-in troubleshooting dashboards to highlight geocoding or data quality gaps
 
-### Frontend
-- **Vue.js 3** with Composition API
-- **Vue Router** for navigation
-- **Pinia** for state management
-- **Leaflet** for interactive mapping
-- **Tailwind CSS** for design
-- **Vite** as build tool
-
-### Backend
-- **Express.js** Node.js server
-- **MySQL** database
-- **JWT** authentication
-- **bcryptjs** password hashing
-- **node-geocoder** address geolocation
-
-## 🚀 Installation
-
+## Quickstart
 ### Prerequisites
+- Node.js 18+
+- npm 9+
+- MySQL 8+ with a database user that can create schemas
+- (Optional) Docker and Docker Compose if you plan to containerize later
 
-- Node.js (v16 or higher)
-- MySQL (v8 or higher)
-- npm or yarn
+### Local development (temporary steps)
+1. TODO: Document the authoritative `.env` template for both frontend and backend services.
+2. TODO: Provide an automated database migration workflow (scripts currently live under `/database/migrations`).
+3. TODO: Publish sample data seeding instructions for demo environments.
 
-### Database Configuration
-
-1. Create a MySQL database:
-```sql
-CREATE DATABASE maplyo;
-```
-
-2. Copy the environment file:
-```bash
-cp .env.example .env
-```
-
-3. Configure variables in `.env`:
-```env
-DB_HOST=localhost
-DB_USER=your_mysql_user
-DB_PASSWORD=your_mysql_password
-DB_NAME=maplyo
-JWT_SECRET=your_very_long_and_complex_secret_key
-```
-
-### Dependencies Installation
+While those TODOs are being finalized, you can run the core manually:
 
 ```bash
 # Install dependencies
+git clone https://github.com/Maplyo/Maplyo.git
+cd Maplyo
 npm install
+
+# Configure environment
+type .env.example > .env   # or copy manually and edit credentials
+
+# Start services (run in separate terminals)
+npm run server:dev   # Express API on http://localhost:3001
+npm run dev          # Vite dev server on http://localhost:3000
 ```
 
-### Application Launch
+### Docker Compose (coming soon)
+Docker Compose definitions are the recommended way to bootstrap Maplyo in development and staging. The reference compose file is under active construction and will cover the Vue frontend, Express backend, MySQL, seeded data, and optional observability sidecars. Until the file lands in this repository, please rely on the local development steps above.
 
-```bash
-# Start backend server (port 3001)
-npm run server:dev
+## Architecture overview
+- **Frontend (Vue 3 + Vite)**: SPA housed under `/src`, using Pinia for state, Leaflet for mapping, and Tailwind CSS for styling.
+- **Backend (Express.js)**: REST API entry point in `/server/index.cjs` plus supporting scripts under `/scripts` for provisioning and admin ops.
+- **Database (MySQL)**: Schema migrations stored under `/database/migrations`, designed for ACID transactions and geospatial queries.
+- **Geospatial services**: Map tiles and geocoding rely on Leaflet-compatible tile servers and Node Geocoder; swap providers through configuration.
+- **Authentication & authorization**: JWT-based sessions with role-aware endpoints and guard helpers in `/src/stores/auth.js`.
 
-# In another terminal, start frontend (port 3000)
-npm run dev
-```
+## Commercial extensions boundary
+The AGPL core exposes stable public REST endpoints, webhooks, and event hooks intended for extensions. The intended architecture keeps paid/closed extensions as separate processes or services that communicate over these APIs (HTTP, WebSocket, message bus, or other network boundaries). Because extensions run outside this repository and interact through published interfaces, they remain separate works while still respecting the AGPL obligations of the core.
 
-The application will be accessible at `http://localhost:3000`
+## Licensing
+Maplyo Core is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0-only). In plain language, you are free to run, study, modify, and redistribute the software, but if you offer a modified version of the core over a network you must make the corresponding source code available under the same license. See [LICENSE](LICENSE) for the full legal text.
 
-## 📊 Project Structure
+## Contributions
+Community contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the branching strategy, review expectations, Developer Certificate of Origin (DCO) sign-off requirements, and testing notes before opening a pull request.
 
-```
-maplyo/
-├── src/                    # Vue.js Frontend
-│   ├── components/         # Reusable Vue components
-│   ├── views/             # Main pages
-│   ├── stores/            # Pinia state management
-│   ├── services/          # API services
-│   └── router/            # Route configuration
-├── server/                # Express.js Backend
-│   └── index.cjs         # Main server
-├── public/               # Static assets
-└── ...
-```
+## Security
+Security vulnerabilities should be reported privately. Consult [SECURITY.md](SECURITY.md) for the current reporting process, contact details, and disclosure expectations.
 
-## 🎯 Usage
+## Support
+Maplyo Core is supported by the community through GitHub Issues and Discussions, while commercial support and proprietary extensions are offered separately. For more detail see [SUPPORT.md](SUPPORT.md).
 
-### 1. Login/Registration
-- Create an account or sign in
-- Each user has their own prospect space
-
-### 2. Prospect Management
-- **Add**: Click "Add Prospect"
-- **Edit**: Click the pencil icon
-- **Delete**: Click the trash icon
-- **Reorder**: Drag and drop prospects in the list
-
-### 3. Map Visualization
-- Prospects appear on the map with colored bubbles
-- Bubble size is proportional to potential revenue
-- Click on a bubble to see details
-- Map automatically adapts to display all prospects
-
-### 4. Funnel Tracking
-- **Prospect**: Initial contact
-- **Quote**: Quote sent
-- **Order 1M**: Order expected within 1 month
-- **Order 6M**: Order expected within 6 months
-- **Won**: Deal closed
-- **Lost**: Deal lost
-
-## 🔧 Advanced Configuration
-
-### Map Customization
-- Modify `src/components/MapView.vue` to change tile provider
-- Default: OpenStreetMap (free, no API key required)
-
-### Database
-- Tables are created automatically at startup
-- Performance-optimized structure
-- Index support for fast queries
-
-## 🐛 Troubleshooting
-
-### Geolocation Issues
-- Check that addresses are complete and correct
-- Service uses OpenStreetMap Nominatim (free but rate-limited)
-
-### Database Issues
-```bash
-# Check MySQL connection
-mysql -u root -p
-USE maplyo;
-SHOW TABLES;
-```
-
-### Permission Issues
-```bash
-# Check Node.js permissions
-node --version
-npm --version
-```
-
-## 🚀 Deployment
-
-### Production
-1. Configure environment variables
-2. Build frontend: `npm run build`
-3. Start server: `npm run server`
-
-### Docker (optional)
-A Dockerfile will be provided in a future version.
-
-## 📝 Development
-
-### Architecture
-- **Frontend**: Vue.js SPA with client-side routing
-- **Backend**: REST API with JWT authentication
-- **Database**: SQLite with optimized schema
-
-### Contributions
-Contributions are welcome! Check GitHub issues for planned improvements.
-
-## 📄 License
-
-MIT License - See LICENSE file for details.
-
----
-
-**Maplyo** - Transform your sales strategy with the power of mapping! 🗺️💼
+## Trademark / branding
+“Maplyo” is used here purely as a project name; no trademark rights are granted by this repository.
