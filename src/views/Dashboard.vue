@@ -205,6 +205,7 @@
       :prospect="editingProspect"
       :current-tab-id="currentTabId"
       :initial-status="modalInitialStatus"
+      :lead-times="closingLeadTimes"
       :key="modalKey"
       @close="closeModal"
       @save="closeModal"

@@ -555,6 +555,15 @@ const props = defineProps({
   initialStatus: {
     type: String,
     default: 'cold'
+  },
+  leadTimes: {
+    type: Object,
+    default: () => ({
+      coldProbability: 0,
+      warmProbability: 45,
+      hotProbability: 80,
+      recurringProbability: 30
+    })
   }
 })
 
@@ -794,6 +803,44 @@ onUnmounted(() => {
   window.removeEventListener('tabsChanged', handleTabsChanged)
 })
 
+// Helper function pour obtenir la probabilité par défaut selon le status
+const getDefaultProbability = (status) => {
+  console.log('🎯 getDefaultProbability called with status:', status)
+  console.log('🎯 leadTimes:', props.leadTimes)
+  
+  if (!props.leadTimes) {
+    console.log('⚠️ No leadTimes, returning 100')
+    return 100
+  }
+  
+  let probability = 100
+  switch (status) {
+    case 'cold':
+      probability = props.leadTimes.coldProbability !== undefined ? props.leadTimes.coldProbability : 0
+      break
+    case 'warm':
+      probability = props.leadTimes.warmProbability !== undefined ? props.leadTimes.warmProbability : 45
+      break
+    case 'hot':
+      probability = props.leadTimes.hotProbability !== undefined ? props.leadTimes.hotProbability : 80
+      break
+    case 'recurring':
+      probability = props.leadTimes.recurringProbability !== undefined ? props.leadTimes.recurringProbability : 30
+      break
+    case 'won':
+      probability = 100
+      break
+    case 'lost':
+      probability = 0
+      break
+    default:
+      probability = 100
+  }
+  
+  console.log(`✅ Returning probability ${probability}% for status '${status}'`)
+  return probability
+}
+
 // Form data
 const form = reactive({
   name: '',
@@ -804,7 +851,7 @@ const form = reactive({
   address: '',
   status: props.initialStatus || 'cold',
   revenue: 0,
-  probability_coefficient: 100,
+  probability_coefficient: getDefaultProbability(props.initialStatus || 'cold'),
   notes: '',
   notes_last_updated: null,
   estimated_completion_date: '',
@@ -854,6 +901,8 @@ watch(() => props.prospect, (newProspect) => {
     })
   } else {
     // Reset form for new prospect
+    const status = props.initialStatus || 'cold'
+    
     Object.assign(form, {
       name: '',
       email: '',
@@ -861,9 +910,9 @@ watch(() => props.prospect, (newProspect) => {
       company: '',
       contact: '',
       address: '',
-      status: props.initialStatus || 'cold',
+      status: status,
       revenue: 0,
-      probability_coefficient: 100,
+      probability_coefficient: getDefaultProbability(status),
       notes: '',
       notes_last_updated: null,
       estimated_completion_date: '',
@@ -883,8 +932,19 @@ watch(() => props.prospect, (newProspect) => {
 watch(() => props.initialStatus, (newStatus) => {
   if (!props.prospect && newStatus) {
     form.status = newStatus
+    form.probability_coefficient = getDefaultProbability(newStatus)
   }
 }, { immediate: true })
+
+// Watch for leadTimes changes to update probability for new prospects
+watch(() => props.leadTimes, (newLeadTimes) => {
+  console.log('🔄 leadTimes changed:', newLeadTimes)
+  if (!props.prospect && form.status) {
+    const newProbability = getDefaultProbability(form.status)
+    console.log(`🔄 Updating probability from ${form.probability_coefficient}% to ${newProbability}%`)
+    form.probability_coefficient = newProbability
+  }
+}, { deep: true })
 
 // Watch pour currentTabId
 watch(() => props.currentTabId, (newTabId) => {
@@ -1008,7 +1068,9 @@ function closeModal() {
 // Create new prospect
 async function createProspect() {
   try {
-    console.log('🆕 Creating new prospect with data:', form)
+    console.log('🆕 Creating new prospect with form data:', form)
+    console.log('🎯 Current probability_coefficient:', form.probability_coefficient)
+    console.log('🎯 Current status:', form.status)
     
     const prospectData = {
       name: form.name,
@@ -1027,6 +1089,9 @@ async function createProspect() {
       next_followup_date: form.next_followup_date,
       tabId: form.tabId || (availableTabsRef.value.length > 0 ? availableTabsRef.value[0].id : '')
     }
+    
+    console.log('📤 Sending prospectData to API:', prospectData)
+    console.log('📤 Probability being sent:', prospectData.probability_coefficient)
 
     const result = await prospectsStore.createProspect(prospectData)
     
