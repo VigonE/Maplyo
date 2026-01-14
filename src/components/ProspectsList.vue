@@ -644,6 +644,7 @@
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                   <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
@@ -756,6 +757,7 @@
                   @click="openProspectModal(prospect)"
                 >
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                   <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
@@ -869,6 +871,7 @@
                 >
                   <!-- Mini carte prospect pour funnel -->
                   <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                  <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                   <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                   
                   <!-- Affichage du followup si configuré -->
@@ -993,6 +996,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                       <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between mb-2">
                         <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
@@ -1114,6 +1118,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                       <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-green-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
@@ -1215,6 +1220,7 @@
                       @click="openProspectModal(prospect)"
                     >
                       <div class="text-sm font-medium text-gray-900 mb-1">{{ prospect.name }}</div>
+                      <div v-if="prospect.company" class="text-xs text-purple-700 mb-1">🏢 {{ prospect.company }}</div>
                       <div class="text-xs text-gray-500 mb-2">🏙️ {{ extractCityFromAddress(prospect.address) || 'No city' }}</div>
                       <div class="flex items-center justify-between">
                         <span class="text-sm font-bold text-red-600">{{ formatCurrency(prospect.revenue || 0) }}</span>
