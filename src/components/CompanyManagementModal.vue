@@ -33,6 +33,21 @@
         </div>
       </div>
 
+      <!-- Search Bar -->
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search companies by name, industry, email..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="flex-1 flex items-center justify-center">
         <div class="text-center">
@@ -43,7 +58,15 @@
 
       <!-- Companies List -->
       <div v-else class="flex-1 overflow-auto p-6">
-        <div v-if="companies.length === 0" class="text-center py-12">
+        <div v-if="filteredCompanies.length === 0 && searchQuery" class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mt-4">No results found</h3>
+          <p class="text-gray-500 mt-2">Try different keywords</p>
+        </div>
+
+        <div v-else-if="companies.length === 0" class="text-center py-12">
           <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
@@ -53,7 +76,7 @@
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
-            v-for="company in companies"
+            v-for="company in filteredCompanies"
             :key="company.id"
             class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
             @click="selectCompany(company)"
@@ -802,6 +825,27 @@ const editingCompany = ref(null);
 const selectedCompany = ref(null);
 const editingContact = ref(null);
 const allProspects = ref([]);
+const searchQuery = ref('');
+
+// Computed pour filtrer les companies selon la recherche
+const filteredCompanies = computed(() => {
+  if (!searchQuery.value) {
+    return companies.value;
+  }
+  
+  const query = searchQuery.value.toLowerCase();
+  return companies.value.filter(company => {
+    return (
+      company.name?.toLowerCase().includes(query) ||
+      company.industry?.toLowerCase().includes(query) ||
+      company.email?.toLowerCase().includes(query) ||
+      company.phone?.toLowerCase().includes(query) ||
+      company.address?.toLowerCase().includes(query) ||
+      company.city?.toLowerCase().includes(query) ||
+      company.country?.toLowerCase().includes(query)
+    );
+  });
+});
 
 // Computed pour filtrer les leads de la company sélectionnée
 const companyProspects = computed(() => {
