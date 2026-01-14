@@ -652,6 +652,7 @@ function createMarker(prospect, revenueStats) {
   const tooltipContent = `
     <div class="text-sm">
       <div class="font-bold text-gray-900 mb-1">${prospect.name}</div>
+      ${prospect.company ? `<div class="text-purple-700 text-xs mb-1">🏢 ${prospect.company}</div>` : ''}
       <div class="text-gray-600 text-xs mb-1">📍 ${getCity(prospect.address)}</div>
       <div class="text-green-700 font-semibold mb-1">
         ${revenueDisplay}
@@ -688,6 +689,7 @@ function createMarker(prospect, revenueStats) {
   const popupContent = `
     <div class="p-2">
       <h3 class="font-semibold text-lg">${prospect.name}</h3>
+      ${prospect.company ? `<p class="text-sm text-purple-700 mb-1">🏢 ${prospect.company}</p>` : ''}
       <p class="text-sm text-gray-600 mb-2">${prospect.address || 'No address'}</p>
       <div class="flex justify-between items-center">
         <div>

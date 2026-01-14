@@ -19,6 +19,14 @@
           <h3 class="text-sm font-medium text-gray-900 truncate">
             <span v-html="highlightSearchTerm(prospect.name, searchQuery)"></span>
           </h3>
+          <!-- Company name badge -->
+          <span
+            v-if="prospect.company"
+            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 flex-shrink-0"
+            :title="'Company: ' + prospect.company"
+          >
+            🏢 {{ prospect.company }}
+          </span>
           <!-- Badge d'onglet d'origine -->
           <button
             v-if="isAllLeadsView && getProspectTabName(prospect)"
