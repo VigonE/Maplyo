@@ -1,7 +1,7 @@
 <template>
   <div class="h-full relative">
     <!-- Buttons in top right corner (discrete) -->
-    <div class="absolute top-2 right-2 z-[500] flex gap-1">
+    <div class="absolute top-2 right-2 z-[15] flex gap-1">
       <!-- Heatmap Button -->
       <button
         @click="toggleHeatmap"
@@ -41,7 +41,7 @@
         'translate-x-0': showFiltersPanel,
         'translate-x-full': !showFiltersPanel
       }"
-      class="fixed top-0 right-0 h-full w-64 sm:w-72 md:w-80 max-w-[90vw] bg-white shadow-2xl z-[1000] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel overflow-y-auto"
+      class="fixed top-0 right-0 h-full w-64 sm:w-72 md:w-80 max-w-[90vw] bg-white shadow-2xl z-[25] transform transition-transform duration-300 ease-in-out border-l border-gray-200 filters-panel overflow-y-auto"
     >
       <!-- Panel header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -219,11 +219,11 @@
     <div 
       v-if="showFiltersPanel"
       @click="showFiltersPanel = false"
-      class="fixed inset-0 bg-black bg-opacity-25 z-[999] transition-opacity duration-300"
+      class="fixed inset-0 bg-black bg-opacity-25 z-[24] transition-opacity duration-300"
     ></div>
     
     <!-- Color intensity slider -->
-    <div v-if="showHeatmap" class="absolute top-20 right-4 z-[1000] bg-white rounded-lg shadow-lg border p-3 min-w-[200px]">
+    <div v-if="showHeatmap" class="absolute top-20 right-4 z-[15] bg-white rounded-lg shadow-lg border p-3 min-w-[200px]">
       <div class="text-sm font-medium text-gray-700 mb-2">Color Intensity</div>
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-500">Low</span>
@@ -334,6 +334,37 @@ onMounted(async () => {
   
   // Listen for prospect creation events to refresh map immediately
   window.addEventListener('prospectCreated', handleProspectCreated)
+  
+  // Fix Leaflet map size when becoming visible (mobile view switching)
+  const observer = new ResizeObserver(() => {
+    if (map && mapContainer.value) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        map.invalidateSize()
+        console.log('🗺️ Map resized')
+      }, 100)
+    }
+  })
+  
+  if (mapContainer.value) {
+    observer.observe(mapContainer.value)
+  }
+  
+  // Also watch for visibility changes
+  const visibilityObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && map) {
+        setTimeout(() => {
+          map.invalidateSize()
+          console.log('🗺️ Map became visible, resized')
+        }, 150)
+      }
+    })
+  }, { threshold: 0.1 })
+  
+  if (mapContainer.value) {
+    visibilityObserver.observe(mapContainer.value)
+  }
 })
 
 onUnmounted(() => {
@@ -413,6 +444,7 @@ function initMap() {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map)
 
+  console.log('🗺️ Map initialized with', filteredProspects.value.length, 'prospects')
   updateMarkers(filteredProspects.value)
 }
 
@@ -551,12 +583,22 @@ function clearMarkers() {
 }
 
 function updateMarkers(prospects) {
-  if (!map || showHeatmap.value) return
+  if (!map || showHeatmap.value) {
+    console.log('⚠️ Cannot update markers:', !map ? 'map not initialized' : 'heatmap is active')
+    return
+  }
+
+  console.log('🔄 Updating markers:', prospects?.length || 0, 'prospects')
 
   // Clear existing markers
   clearMarkers()
 
-  if (!prospects?.length) return
+  if (!prospects?.length) {
+    console.log('⚠️ No prospects to display')
+    return
+  }
+
+  console.log('📍 Sample prospect:', prospects[0]?.company_name, prospects[0]?.latitude, prospects[0]?.longitude)
 
   // Calculate weighted revenue statistics once for all markers
   // For recurring prospects, use annualized amount
@@ -571,6 +613,8 @@ function updateMarkers(prospects) {
       createMarker(prospect, revenueStats)
     }
   })
+
+  console.log('✅ Markers created:', markers.size, 'markers')
 
   // Fit map to show all markers if we have any
   if (markers.size > 0) {
