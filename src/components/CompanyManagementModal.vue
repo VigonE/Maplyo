@@ -963,6 +963,9 @@ async function saveCompany() {
       await api.updateCompany(editingCompany.value.id, companyForm.value);
     } else {
       await api.createCompany(companyForm.value);
+      // Émettre un événement global pour notifier les autres composants
+      console.log('🏢 Company created, emitting companiesChanged event');
+      window.dispatchEvent(new CustomEvent('companiesChanged'));
     }
     await loadCompanies();
     closeCompanyModal();

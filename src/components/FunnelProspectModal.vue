@@ -606,6 +606,12 @@ const handleTabsChanged = () => {
   loadAvailableTabs()
 }
 
+// Écouter les changements de companies
+const handleCompaniesChanged = () => {
+  console.log('🏢 FunnelProspectModal: Received companiesChanged event, reloading companies')
+  loadCompanies()
+}
+
 // Computed pour les onglets disponibles
 const availableTabs = computed(() => availableTabsRef.value)
 
@@ -806,6 +812,7 @@ onMounted(async () => {
   loadAvailableTabs()
   await loadCompanies()
   window.addEventListener('tabsChanged', handleTabsChanged)
+  window.addEventListener('companiesChanged', handleCompaniesChanged)
   
   // Initialize search queries if in edit mode
   if (props.prospect) {
@@ -816,6 +823,15 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('tabsChanged', handleTabsChanged)
+  window.removeEventListener('companiesChanged', handleCompaniesChanged)
+})
+
+// Recharger les companies quand la modal s'ouvre
+watch(() => props.show, async (newShow) => {
+  if (newShow) {
+    console.log('🔄 Modal opened, reloading companies...')
+    await loadCompanies()
+  }
 })
 
 // Helper function pour obtenir la probabilité par défaut selon le status
