@@ -706,18 +706,24 @@ function createMarker(prospect, revenueStats) {
     emit('select-prospect', prospect)
   })
   
-  marker.on('popupopen', () => {
+  marker.on('popupopen', (e) => {
     // Add click handler for company link in popup
-    const companyLink = document.querySelector('.company-link')
-    if (companyLink) {
-      companyLink.addEventListener('click', (e) => {
-        e.stopPropagation()
-        const companyId = parseInt(companyLink.getAttribute('data-company-id'))
-        if (companyId) {
-          emit('open-company', companyId)
+    setTimeout(() => {
+      const popup = e.popup.getElement()
+      if (popup) {
+        const companyLink = popup.querySelector('.company-link')
+        if (companyLink) {
+          companyLink.addEventListener('click', (clickEvent) => {
+            clickEvent.stopPropagation()
+            const companyId = parseInt(companyLink.getAttribute('data-company-id'))
+            if (companyId) {
+              console.log('🏢 Opening company modal for company ID:', companyId)
+              emit('open-company', companyId)
+            }
+          })
         }
-      })
-    }
+      }
+    }, 0)
   })
 
   marker.addTo(map)
