@@ -1019,6 +1019,26 @@ watch(() => props.isVisible, async (visible) => {
   }
 });
 
+// Recharger les prospects périodiquement quand la modal company details est ouverte
+let prospectsRefreshInterval = null;
+
+watch(showCompanyDetailsModal, (isOpen) => {
+  if (isOpen) {
+    // Rafraîchir toutes les 2 secondes quand la modal est ouverte
+    prospectsRefreshInterval = setInterval(async () => {
+      if (showCompanyDetailsModal.value && selectedCompany.value) {
+        await loadProspects();
+      }
+    }, 2000);
+  } else {
+    // Nettoyer l'intervalle quand la modal se ferme
+    if (prospectsRefreshInterval) {
+      clearInterval(prospectsRefreshInterval);
+      prospectsRefreshInterval = null;
+    }
+  }
+});
+
 async function loadProspects() {
   try {
     const response = await api.get('/prospects');

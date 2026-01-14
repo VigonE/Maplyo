@@ -213,6 +213,7 @@
       @save="closeModal"
       @edit="editProspect"
       @delete="deleteProspect"
+      @company-changed="handleCompanyChanged"
     />
 
     <!-- CSV Import Modal -->
@@ -2152,6 +2153,13 @@ function openProspectFromCompany(prospect) {
   // Ouvrir la modal du prospect en mode édition
   editingProspect.value = { ...prospect }
   showEditModal.value = true
+}
+
+function handleCompanyChanged(data) {
+  // Propager l'événement vers CompanyManagementModal via un ref
+  console.log('🔄 Dashboard: Company changed for prospect', data)
+  // Le store prospectsStore a déjà été mis à jour par saveField dans FunnelProspectModal
+  // On pourrait forcer un rafraîchissement si nécessaire
 }
 
 function onCsvImported(results) {

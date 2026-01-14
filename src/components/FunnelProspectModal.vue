@@ -1042,6 +1042,9 @@ async function saveField(field) {
     const result = await prospectsStore.updateProspect(props.prospect.id, updateData)
     
     if (result.success) {
+      // Détecte si company_id a changé
+      const companyChanged = field === 'company_id' || (props.prospect.company_id !== form.company_id)
+      
       // Update the original prospect object
       Object.assign(props.prospect, form)
       editing[field] = false
@@ -1055,6 +1058,16 @@ async function saveField(field) {
       // Log spécial pour les champs de récurrence
       if (field === 'recurrence_months' || field === 'next_followup_date') {
         console.log(`✅ Successfully saved recurring field '${field}':`, form[field])
+      }
+      
+      // Émet un événement si la company a changé
+      if (companyChanged) {
+        console.log('🔄 Company changed, emitting company-changed event')
+        emit('company-changed', {
+          prospectId: props.prospect.id,
+          oldCompanyId: props.prospect.company_id,
+          newCompanyId: form.company_id
+        })
       }
       
       console.log(`✅ Updated ${field} for ${props.prospect.name}`)
