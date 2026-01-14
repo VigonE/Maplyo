@@ -1145,45 +1145,45 @@ export const useDemoStore = defineStore('demo', () => {
       }
     ];
 
-    // Demo companies (35 companies - including European companies)
+    // Demo companies (35 companies - including European companies with addresses)
     demoCompanies.value = [
-      { id: 1, name: 'TechVision Inc', industry: 'Enterprise Software', size: '50-200', website: 'www.techvision.com', created_at: '2025-12-20T10:00:00Z' },
-      { id: 2, name: 'InnovateSoft LLC', industry: 'SaaS Startup', size: '10-50', website: 'www.innovatesoft.com', created_at: '2025-12-10T09:00:00Z' },
-      { id: 3, name: 'GlobalTech Solutions', industry: 'IT Consulting', size: '200-500', website: 'www.globaltech.com', created_at: '2025-11-15T08:00:00Z' },
-      { id: 4, name: 'CloudFirst Corp', industry: 'Cloud Services', size: '50-200', website: 'www.cloudfirst.com', created_at: '2025-11-01T10:30:00Z' },
-      { id: 5, name: 'DataDrive Systems', industry: 'Data Analytics', size: '10-50', website: 'www.datadrive.com', created_at: '2025-12-05T14:00:00Z' },
-      { id: 6, name: 'Apex Industries', industry: 'Manufacturing', size: '500+', website: 'www.apexind.com', created_at: '2026-01-03T09:00:00Z' },
-      { id: 7, name: 'NextGen Technologies', industry: 'Software Development', size: '50-200', website: 'www.nextgentech.com', created_at: '2025-01-15T11:00:00Z' },
-      { id: 8, name: 'FinTech Solutions Group', industry: 'Financial Technology', size: '200-500', website: 'www.fintechsg.com', created_at: '2025-11-20T08:30:00Z' },
-      { id: 9, name: 'MediCare Plus', industry: 'Healthcare', size: '200-500', website: 'www.medicareplus.com', created_at: '2025-12-15T13:00:00Z' },
-      { id: 10, name: 'RetailMax Corporation', industry: 'Retail', size: '500+', website: 'www.retailmax.com', created_at: '2026-01-07T11:00:00Z' },
-      { id: 11, name: 'EduTech Solutions', industry: 'Education Technology', size: '50-200', website: 'www.edutech.com', created_at: '2025-12-01T09:30:00Z' },
-      { id: 12, name: 'GreenEnergy Corp', industry: 'Renewable Energy', size: '200-500', website: 'www.greenenergy.com', created_at: '2025-11-25T10:00:00Z' },
-      { id: 13, name: 'LogiFlow Systems', industry: 'Logistics', size: '50-200', website: 'www.logiflow.com', created_at: '2026-01-04T14:00:00Z' },
-      { id: 14, name: 'DesignWorks Studio', industry: 'Creative Agency', size: '10-50', website: 'www.designworks.com', created_at: '2025-12-18T11:00:00Z' },
-      { id: 15, name: 'SecureNet Inc', industry: 'Cybersecurity', size: '50-200', website: 'www.securenet.com', created_at: '2025-10-20T09:00:00Z' },
-      { id: 16, name: 'FoodChain Distributors', industry: 'Food Distribution', size: '200-500', website: 'www.foodchain.com', created_at: '2026-01-05T15:00:00Z' },
-      { id: 17, name: 'AutoTech Industries', industry: 'Automotive', size: '500+', website: 'www.autotech.com', created_at: '2025-11-10T10:00:00Z' },
-      { id: 18, name: 'CloudStream Media', industry: 'Media Streaming', size: '50-200', website: 'www.cloudstream.com', created_at: '2024-02-10T09:00:00Z' },
-      { id: 19, name: 'PropTech Ventures', industry: 'Real Estate Technology', size: '10-50', website: 'www.proptech.com', created_at: '2025-12-08T13:00:00Z' },
-      { id: 20, name: 'HealthFirst Analytics', industry: 'Healthcare Analytics', size: '200-500', website: 'www.healthfirst.com', created_at: '2025-11-05T08:00:00Z' },
-      { id: 21, name: 'BioMed Research Corp', industry: 'Biotechnology', size: '200-500', website: 'www.biomed.com', created_at: '2025-12-20T14:00:00Z' },
-      { id: 22, name: 'TechStart Accelerator', industry: 'Startup Accelerator', size: '10-50', website: 'www.techstart.com', created_at: '2025-12-28T09:00:00Z' },
-      { id: 23, name: 'Maritime Logistics Inc', industry: 'Shipping & Logistics', size: '200-500', website: 'www.maritime.com', created_at: '2026-01-08T10:00:00Z' },
-      { id: 24, name: 'SmartHome Solutions', industry: 'IoT Technology', size: '50-200', website: 'www.smarthome.com', created_at: '2025-06-30T11:00:00Z' },
-      { id: 25, name: 'ConsultPro Group', industry: 'Management Consulting', size: '200-500', website: 'www.consultpro.com', created_at: '2025-12-18T13:00:00Z' },
+      { id: 1, name: 'TechVision Inc', industry: 'Enterprise Software', size: '50-200', website: 'www.techvision.com', address: '350 5th Avenue, New York, NY 10118', latitude: 40.7484, longitude: -73.9857, created_at: '2025-12-20T10:00:00Z' },
+      { id: 2, name: 'InnovateSoft LLC', industry: 'SaaS Startup', size: '10-50', website: 'www.innovatesoft.com', address: '1 Market Street, San Francisco, CA 94105', latitude: 37.7938, longitude: -122.3953, created_at: '2025-12-10T09:00:00Z' },
+      { id: 3, name: 'GlobalTech Solutions', industry: 'IT Consulting', size: '200-500', website: 'www.globaltech.com', address: '233 S Wacker Drive, Chicago, IL 60606', latitude: 41.8786, longitude: -87.6363, created_at: '2025-11-15T08:00:00Z' },
+      { id: 4, name: 'CloudFirst Corp', industry: 'Cloud Services', size: '50-200', website: 'www.cloudfirst.com', address: '2001 Ross Avenue, Dallas, TX 75201', latitude: 32.7876, longitude: -96.7988, created_at: '2025-11-01T10:30:00Z' },
+      { id: 5, name: 'DataDrive Systems', industry: 'Data Analytics', size: '10-50', website: 'www.datadrive.com', address: '1100 Peachtree Street NE, Atlanta, GA 30309', latitude: 33.7866, longitude: -84.3838, created_at: '2025-12-05T14:00:00Z' },
+      { id: 6, name: 'Apex Industries', industry: 'Manufacturing', size: '500+', website: 'www.apexind.com', address: '200 Clarendon Street, Boston, MA 02116', latitude: 42.3495, longitude: -71.0754, created_at: '2026-01-03T09:00:00Z' },
+      { id: 7, name: 'NextGen Technologies', industry: 'Software Development', size: '50-200', website: 'www.nextgentech.com', address: '1918 8th Avenue, Seattle, WA 98101', latitude: 47.6154, longitude: -122.3371, created_at: '2025-01-15T11:00:00Z' },
+      { id: 8, name: 'FinTech Solutions Group', industry: 'Financial Technology', size: '200-500', website: 'www.fintechsg.com', address: '1301 Fannin Street, Houston, TX 77002', latitude: 29.7536, longitude: -95.3675, created_at: '2025-11-20T08:30:00Z' },
+      { id: 9, name: 'MediCare Plus', industry: 'Healthcare', size: '200-500', website: 'www.medicareplus.com', address: '1600 JFK Boulevard, Philadelphia, PA 19103', latitude: 39.9538, longitude: -75.1677, created_at: '2025-12-15T13:00:00Z' },
+      { id: 10, name: 'RetailMax Corporation', industry: 'Retail', size: '500+', website: 'www.retailmax.com', address: '11921 Rockville Pike, Rockville, MD 20852', latitude: 39.0595, longitude: -77.1212, created_at: '2026-01-07T11:00:00Z' },
+      { id: 11, name: 'EduTech Solutions', industry: 'Education Technology', size: '50-200', website: 'www.edutech.com', address: '98 San Jacinto Boulevard, Austin, TX 78701', latitude: 30.2688, longitude: -97.7425, created_at: '2025-12-01T09:30:00Z' },
+      { id: 12, name: 'GreenEnergy Corp', industry: 'Renewable Energy', size: '200-500', website: 'www.greenenergy.com', address: '1999 Broadway, Denver, CO 80202', latitude: 39.7475, longitude: -104.9888, created_at: '2025-11-25T10:00:00Z' },
+      { id: 13, name: 'LogiFlow Systems', industry: 'Logistics', size: '50-200', website: 'www.logiflow.com', address: '1200 Smith Street, Houston, TX 77002', latitude: 29.7520, longitude: -95.3688, created_at: '2026-01-04T14:00:00Z' },
+      { id: 14, name: 'DesignWorks Studio', industry: 'Creative Agency', size: '10-50', website: 'www.designworks.com', address: '301 Congress Avenue, Austin, TX 78701', latitude: 30.2649, longitude: -97.7426, created_at: '2025-12-18T11:00:00Z' },
+      { id: 15, name: 'SecureNet Inc', industry: 'Cybersecurity', size: '50-200', website: 'www.securenet.com', address: '1455 Market Street, San Francisco, CA 94103', latitude: 37.7756, longitude: -122.4177, created_at: '2025-10-20T09:00:00Z' },
+      { id: 16, name: 'FoodChain Distributors', industry: 'Food Distribution', size: '200-500', website: 'www.foodchain.com', address: '200 E Randolph Street, Chicago, IL 60601', latitude: 41.8848, longitude: -87.6213, created_at: '2026-01-05T15:00:00Z' },
+      { id: 17, name: 'AutoTech Industries', industry: 'Automotive', size: '500+', website: 'www.autotech.com', address: '100 Renaissance Center, Detroit, MI 48243', latitude: 42.3293, longitude: -83.0398, created_at: '2025-11-10T10:00:00Z' },
+      { id: 18, name: 'CloudStream Media', industry: 'Media Streaming', size: '50-200', website: 'www.cloudstream.com', address: '5800 Sunset Boulevard, Los Angeles, CA 90028', latitude: 34.0979, longitude: -118.3265, created_at: '2024-02-10T09:00:00Z' },
+      { id: 19, name: 'PropTech Ventures', industry: 'Real Estate Technology', size: '10-50', website: 'www.proptech.com', address: '1 World Trade Center, New York, NY 10007', latitude: 40.7127, longitude: -74.0134, created_at: '2025-12-08T13:00:00Z' },
+      { id: 20, name: 'HealthFirst Analytics', industry: 'Healthcare Analytics', size: '200-500', website: 'www.healthfirst.com', address: '100 Federal Street, Boston, MA 02110', latitude: 42.3554, longitude: -71.0532, created_at: '2025-11-05T08:00:00Z' },
+      { id: 21, name: 'BioMed Research Corp', industry: 'Biotechnology', size: '200-500', website: 'www.biomed.com', address: '9500 Gilman Drive, La Jolla, CA 92093', latitude: 32.8801, longitude: -117.2340, created_at: '2025-12-20T14:00:00Z' },
+      { id: 22, name: 'TechStart Accelerator', industry: 'Startup Accelerator', size: '10-50', website: 'www.techstart.com', address: '535 Mission Street, San Francisco, CA 94105', latitude: 37.7887, longitude: -122.3980, created_at: '2025-12-28T09:00:00Z' },
+      { id: 23, name: 'Maritime Logistics Inc', industry: 'Shipping & Logistics', size: '200-500', website: 'www.maritime.com', address: '1000 2nd Avenue, Seattle, WA 98104', latitude: 47.6050, longitude: -122.3346, created_at: '2026-01-08T10:00:00Z' },
+      { id: 24, name: 'SmartHome Solutions', industry: 'IoT Technology', size: '50-200', website: 'www.smarthome.com', address: '2600 Campus Drive, San Mateo, CA 94403', latitude: 37.5376, longitude: -122.2995, created_at: '2025-06-30T11:00:00Z' },
+      { id: 25, name: 'ConsultPro Group', industry: 'Management Consulting', size: '200-500', website: 'www.consultpro.com', address: '1166 Avenue of the Americas, New York, NY 10036', latitude: 40.7576, longitude: -73.9810, created_at: '2025-12-18T13:00:00Z' },
       
       // European Companies
-      { id: 26, name: 'DigiTech Industries France', industry: 'Industrial Automation', size: '500+', website: 'www.digitech-industries.fr', created_at: '2025-11-28T09:00:00Z' },
-      { id: 27, name: 'AutoVision Systems GmbH', industry: 'Automotive Technology', size: '500+', website: 'www.autovision-systems.de', created_at: '2025-12-05T10:00:00Z' },
-      { id: 28, name: 'FinTech London Ltd', industry: 'Financial Technology', size: '50-200', website: 'www.fintechlondon.co.uk', created_at: '2025-12-12T11:00:00Z' },
-      { id: 29, name: 'Barcelona Innovation Hub', industry: 'Smart City Solutions', size: '200-500', website: 'www.bcn-innovation.es', created_at: '2025-12-18T14:00:00Z' },
-      { id: 30, name: 'Milano Fashion Tech', industry: 'Luxury Retail', size: '50-200', website: 'www.milanofashion.it', created_at: '2025-12-20T09:00:00Z' },
-      { id: 31, name: 'Amsterdam HealthTech', industry: 'Healthcare Technology', size: '200-500', website: 'www.ams-health.nl', created_at: '2025-12-22T10:00:00Z' },
-      { id: 32, name: 'Zurich FinServe AG', industry: 'Private Banking', size: '500+', website: 'www.zurich-finserve.ch', created_at: '2025-12-08T08:00:00Z' },
-      { id: 33, name: 'Nordic Energy Solutions', industry: 'Renewable Energy', size: '200-500', website: 'www.nordic-energy.dk', created_at: '2025-02-15T09:00:00Z' },
-      { id: 34, name: 'Dublin Tech Innovators', industry: 'SaaS Platform', size: '10-50', website: 'www.dublin-tech.ie', created_at: '2025-12-28T11:00:00Z' },
-      { id: 35, name: 'Brussels EU Consulting', industry: 'EU Consulting', size: '50-200', website: 'www.eu-consulting.be', created_at: '2026-01-05T13:00:00Z' }
+      { id: 26, name: 'DigiTech Industries France', industry: 'Industrial Automation', size: '500+', website: 'www.digitech-industries.fr', address: '35 Rue Joseph Monier, Rueil-Malmaison, 92500, France', latitude: 48.8766, longitude: 2.1833, created_at: '2025-11-28T09:00:00Z' },
+      { id: 27, name: 'AutoVision Systems GmbH', industry: 'Automotive Technology', size: '500+', website: 'www.autovision-systems.de', address: 'Petuelring 130, Munich, 80788, Germany', latitude: 48.1775, longitude: 11.5582, created_at: '2025-12-05T10:00:00Z' },
+      { id: 28, name: 'FinTech London Ltd', industry: 'Financial Technology', size: '50-200', website: 'www.fintechlondon.co.uk', address: '1 Canada Square, Canary Wharf, London, E14 5AB, UK', latitude: 51.5049, longitude: -0.0197, created_at: '2025-12-12T11:00:00Z' },
+      { id: 29, name: 'Barcelona Innovation Hub', industry: 'Smart City Solutions', size: '200-500', website: 'www.bcn-innovation.es', address: 'Avinguda Diagonal 682, Barcelona, 08034, Spain', latitude: 41.3954, longitude: 2.1408, created_at: '2025-12-18T14:00:00Z' },
+      { id: 30, name: 'Milano Fashion Tech', industry: 'Luxury Retail', size: '50-200', website: 'www.milanofashion.it', address: 'Via Montenapoleone 8, Milan, 20121, Italy', latitude: 45.4685, longitude: 9.1943, created_at: '2025-12-20T09:00:00Z' },
+      { id: 31, name: 'Amsterdam HealthTech', industry: 'Healthcare Technology', size: '200-500', website: 'www.ams-health.nl', address: 'Gustav Mahlerlaan 10, Amsterdam, 1082 PP, Netherlands', latitude: 52.3380, longitude: 4.8720, created_at: '2025-12-22T10:00:00Z' },
+      { id: 32, name: 'Zurich FinServe AG', industry: 'Private Banking', size: '500+', website: 'www.zurich-finserve.ch', address: 'Bahnhofstrasse 45, Zurich, 8001, Switzerland', latitude: 47.3709, longitude: 8.5400, created_at: '2025-12-08T08:00:00Z' },
+      { id: 33, name: 'Nordic Energy Solutions', industry: 'Renewable Energy', size: '200-500', website: 'www.nordic-energy.dk', address: 'Dampfaergevej 27-29, Copenhagen, 2100, Denmark', latitude: 55.7030, longitude: 12.5608, created_at: '2025-02-15T09:00:00Z' },
+      { id: 34, name: 'Dublin Tech Innovators', industry: 'SaaS Platform', size: '10-50', website: 'www.dublin-tech.ie', address: 'Grand Canal Quay, Dublin 2, D02 H210, Ireland', latitude: 53.3382, longitude: -6.2397, created_at: '2025-12-28T11:00:00Z' },
+      { id: 35, name: 'Brussels EU Consulting', industry: 'EU Consulting', size: '50-200', website: 'www.eu-consulting.be', address: 'Avenue Louise 480, Brussels, 1050, Belgium', latitude: 50.8263, longitude: 4.3617, created_at: '2026-01-05T13:00:00Z' }
     ];
 
     // Demo contacts (48 contacts - multiple per company)
@@ -1438,14 +1438,17 @@ export const useDemoStore = defineStore('demo', () => {
 
   // Méthodes CRUD pour les prospects en mode démo
   function getDemoProspects() {
-    // Enrichir chaque prospect avec le nom de la company
+    // Enrichir chaque prospect avec le nom, adresse et coordonnées de la company
     return demoProspects.value.map(prospect => {
       if (prospect.company_id) {
         const company = demoCompanies.value.find(c => c.id === prospect.company_id);
         if (company) {
           return {
             ...prospect,
-            company: company.name
+            company: company.name,
+            address: company.address || prospect.address,
+            latitude: company.latitude || prospect.latitude,
+            longitude: company.longitude || prospect.longitude
           };
         }
       }
@@ -1457,13 +1460,16 @@ export const useDemoStore = defineStore('demo', () => {
     const prospect = demoProspects.value.find(p => p.id === id);
     if (!prospect) return null;
     
-    // Enrichir avec le nom de la company
+    // Enrichir avec le nom, adresse et coordonnées de la company
     if (prospect.company_id) {
       const company = demoCompanies.value.find(c => c.id === prospect.company_id);
       if (company) {
         return {
           ...prospect,
-          company: company.name
+          company: company.name,
+          address: company.address || prospect.address,
+          latitude: company.latitude || prospect.latitude,
+          longitude: company.longitude || prospect.longitude
         };
       }
     }
@@ -1482,13 +1488,16 @@ export const useDemoStore = defineStore('demo', () => {
     demoProspects.value.push(newProspect);
     saveToSessionStorage();
     
-    // Retourner avec le nom de company enrichi
+    // Retourner avec le nom, adresse et coordonnées de company enrichis
     if (newProspect.company_id) {
       const company = demoCompanies.value.find(c => c.id === newProspect.company_id);
       if (company) {
         return {
           ...newProspect,
-          company: company.name
+          company: company.name,
+          address: company.address || newProspect.address,
+          latitude: company.latitude || newProspect.latitude,
+          longitude: company.longitude || newProspect.longitude
         };
       }
     }
@@ -1507,13 +1516,16 @@ export const useDemoStore = defineStore('demo', () => {
       
       const updatedProspect = demoProspects.value[index];
       
-      // Retourner avec le nom de company enrichi
+      // Retourner avec le nom, adresse et coordonnées de company enrichis
       if (updatedProspect.company_id) {
         const company = demoCompanies.value.find(c => c.id === updatedProspect.company_id);
         if (company) {
           return {
             ...updatedProspect,
-            company: company.name
+            company: company.name,
+            address: company.address || updatedProspect.address,
+            latitude: company.latitude || updatedProspect.latitude,
+            longitude: company.longitude || updatedProspect.longitude
           };
         }
       }

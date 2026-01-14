@@ -234,25 +234,30 @@
               <!-- Address -->
               <div class="flex items-center">
                 <label class="w-20 text-sm font-medium text-gray-600">Address:</label>
-                <div class="flex-1 flex items-center">
-                  <span v-if="!editing.address && prospect" class="text-gray-900">{{ form.address || 'No address' }}</span>
-                  <textarea 
-                    v-if="editing.address || !prospect"
-                    v-model="form.address"
-                    rows="2"
-                    placeholder="Complete address for geolocation"
-                    class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @blur="prospect ? saveField('address') : null"
-                  ></textarea>
-                  <button 
-                    v-if="prospect"
-                    @click="toggleEdit('address')"
-                    class="ml-2 p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
+                <div class="flex-1 flex flex-col">
+                  <div class="flex items-center">
+                    <span v-if="!editing.address && prospect" class="text-gray-900 flex-1">{{ form.address || 'No address' }}</span>
+                    <textarea 
+                      v-if="editing.address || !prospect"
+                      v-model="form.address"
+                      rows="2"
+                      :placeholder="selectedCompany?.address ? 'Company address (editable)' : 'Complete address for geolocation'"
+                      class="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      @blur="prospect ? saveField('address') : null"
+                    ></textarea>
+                    <button 
+                      v-if="prospect"
+                      @click="toggleEdit('address')"
+                      class="ml-2 p-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <span v-if="selectedCompany?.address && (editing.address || !prospect)" class="text-xs text-gray-500 mt-1">
+                    📍 From company: {{ selectedCompany.name }}
+                  </span>
                 </div>
               </div>
 
@@ -667,8 +672,8 @@ const selectCompany = async (company) => {
   companySearchQuery.value = company.name
   showCompanyDropdown.value = false
   
-  // Auto-fill address from company
-  if (company.address && !form.address) {
+  // Auto-fill address from company (ALWAYS override with company address)
+  if (company.address) {
     form.address = company.address
   }
   
@@ -781,6 +786,12 @@ watch(companies, async (newCompanies) => {
     if (matchedCompany) {
       selectedCompany.value = matchedCompany
       companySearchQuery.value = matchedCompany.name
+      
+      // If prospect doesn't have an address but company does, use company address
+      if (!props.prospect.address && matchedCompany.address) {
+        form.address = matchedCompany.address
+      }
+      
       await loadCompanyContacts(matchedCompany.id)
     }
   }
