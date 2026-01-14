@@ -356,6 +356,8 @@ function initializeDatabase() {
       city TEXT,
       country TEXT,
       postal_code TEXT,
+      latitude REAL,
+      longitude REAL,
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -1214,11 +1216,17 @@ app.post('/api/prospects', authenticateToken, requireWriteAccess, async (req, re
       longitude = providedLongitude;
       console.log('📍 PROSPECT CREATION - Using provided coordinates:', { latitude, longitude });
     } else if (address && address.trim()) {
-      // Géocodage de l'adresse si elle est fournie avec fonction robuste
+      // Construire l'adresse complète pour le géocodage
+      let fullAddress = address.trim();
+      if (city && city.trim()) fullAddress += ', ' + city.trim();
+      if (postal_code && postal_code.trim()) fullAddress += ', ' + postal_code.trim();
+      if (country && country.trim()) fullAddress += ', ' + country.trim();
+      
+      // Géocodage de l'adresse complète avec fonction robuste
       try {
-        console.log('🗺️ PROSPECT CREATION - Starting geocoding for address:', address);
+        console.log('🗺️ PROSPECT CREATION - Starting geocoding for full address:', fullAddress);
         console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');
-        const geoResult = await geocodeAddressSafely(address, 20000); // 20 secondes pour Render
+        const geoResult = await geocodeAddressSafely(fullAddress, 20000); // 20 secondes pour Render
         if (geoResult) {
           latitude = geoResult.latitude;
           longitude = geoResult.longitude;
@@ -1403,11 +1411,17 @@ app.put('/api/prospects/:id', authenticateToken, requireWriteAccess, async (req,
           longitude = providedLongitude;
           console.log('📍 PROSPECT UPDATE - Using provided coordinates:', { latitude, longitude });
         } else if (address && address.trim()) {
-          // Géocodage de l'adresse si elle est fournie avec fonction robuste
+          // Construire l'adresse complète pour le géocodage
+          let fullAddress = address.trim();
+          if (city && city.trim()) fullAddress += ', ' + city.trim();
+          if (postal_code && postal_code.trim()) fullAddress += ', ' + postal_code.trim();
+          if (country && country.trim()) fullAddress += ', ' + country.trim();
+          
+          // Géocodage de l'adresse complète avec fonction robuste
           try {
-            console.log('🗺️ PROSPECT UPDATE - Starting geocoding for address:', address);
+            console.log('🗺️ PROSPECT UPDATE - Starting geocoding for full address:', fullAddress);
             console.log('🌍 Environment:', process.env.NODE_ENV, '| Timeout: 20 seconds');
-            const geoResult = await geocodeAddressSafely(address, 20000); // 20 secondes pour Render
+            const geoResult = await geocodeAddressSafely(fullAddress, 20000); // 20 secondes pour Render
             if (geoResult) {
               latitude = geoResult.latitude;
               longitude = geoResult.longitude;
@@ -3767,17 +3781,43 @@ app.get('/api/companies/:id', authenticateToken, (req, res) => {
 });
 
 // Create a new company
-app.post('/api/companies', authenticateToken, requireWriteAccess, (req, res) => {
+app.post('/api/companies', authenticateToken, requireWriteAccess, async (req, res) => {
   const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
   
   if (!name) {
     return res.status(400).json({ error: 'Company name is required' });
   }
   
+  // Geocoding de l'adresse complète
+  let latitude = null;
+  let longitude = null;
+  
+  if (address && address.trim()) {
+    try {
+      // Construire l'adresse complète
+      let fullAddress = address.trim();
+      if (city && city.trim()) fullAddress += ', ' + city.trim();
+      if (postal_code && postal_code.trim()) fullAddress += ', ' + postal_code.trim();
+      if (country && country.trim()) fullAddress += ', ' + country.trim();
+      
+      console.log('🗺️ COMPANY CREATION - Geocoding full address:', fullAddress);
+      const geoResult = await geocodeAddressSafely(fullAddress, 20000);
+      if (geoResult) {
+        latitude = geoResult.latitude;
+        longitude = geoResult.longitude;
+        console.log('📍 COMPANY CREATION - Geocoding successful:', { latitude, longitude });
+      } else {
+        console.log('⚠️ COMPANY CREATION - Geocoding returned no results');
+      }
+    } catch (geoError) {
+      console.warn('⚠️ COMPANY CREATION - Geocoding failed:', geoError.message);
+    }
+  }
+  
   db.run(
-    `INSERT INTO companies (name, industry, website, phone, email, address, city, country, postal_code, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, industry, website, phone, email, address, city, country, postal_code, notes],
+    `INSERT INTO companies (name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes],
     function(err) {
       if (err) {
         console.error('Error creating company:', err);
@@ -3796,6 +3836,8 @@ app.post('/api/companies', authenticateToken, requireWriteAccess, (req, res) => 
         city,
         country,
         postal_code,
+        latitude,
+        longitude,
         notes,
         contacts: []
       });
@@ -3804,7 +3846,7 @@ app.post('/api/companies', authenticateToken, requireWriteAccess, (req, res) => 
 });
 
 // Update a company
-app.put('/api/companies/:id', authenticateToken, requireWriteAccess, (req, res) => {
+app.put('/api/companies/:id', authenticateToken, requireWriteAccess, async (req, res) => {
   const companyId = req.params.id;
   const { name, industry, website, phone, email, address, city, country, postal_code, notes } = req.body;
   
@@ -3812,13 +3854,39 @@ app.put('/api/companies/:id', authenticateToken, requireWriteAccess, (req, res) 
     return res.status(400).json({ error: 'Company name is required' });
   }
   
+  // Geocoding de l'adresse complète
+  let latitude = null;
+  let longitude = null;
+  
+  if (address && address.trim()) {
+    try {
+      // Construire l'adresse complète
+      let fullAddress = address.trim();
+      if (city && city.trim()) fullAddress += ', ' + city.trim();
+      if (postal_code && postal_code.trim()) fullAddress += ', ' + postal_code.trim();
+      if (country && country.trim()) fullAddress += ', ' + country.trim();
+      
+      console.log('🗺️ COMPANY UPDATE - Geocoding full address:', fullAddress);
+      const geoResult = await geocodeAddressSafely(fullAddress, 20000);
+      if (geoResult) {
+        latitude = geoResult.latitude;
+        longitude = geoResult.longitude;
+        console.log('📍 COMPANY UPDATE - Geocoding successful:', { latitude, longitude });
+      } else {
+        console.log('⚠️ COMPANY UPDATE - Geocoding returned no results');
+      }
+    } catch (geoError) {
+      console.warn('⚠️ COMPANY UPDATE - Geocoding failed:', geoError.message);
+    }
+  }
+  
   db.run(
     `UPDATE companies 
      SET name = ?, industry = ?, website = ?, phone = ?, email = ?, 
-         address = ?, city = ?, country = ?, postal_code = ?, notes = ?,
+         address = ?, city = ?, country = ?, postal_code = ?, latitude = ?, longitude = ?, notes = ?,
          updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [name, industry, website, phone, email, address, city, country, postal_code, notes, companyId],
+    [name, industry, website, phone, email, address, city, country, postal_code, latitude, longitude, notes, companyId],
     function(err) {
       if (err) {
         console.error('Error updating company:', err);

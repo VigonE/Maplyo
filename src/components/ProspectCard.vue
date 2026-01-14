@@ -39,7 +39,7 @@
         </p>
         
         <p class="text-xs text-gray-500 mb-2 truncate">
-          📍 <span v-html="highlightSearchTerm(prospect.address || 'No address', searchQuery)"></span>
+          📍 <span v-html="highlightSearchTerm(getFullAddress(prospect), searchQuery)"></span>
         </p>
         
         <div class="space-y-2">
@@ -361,6 +361,19 @@ const dateInput = ref(null)
 // Notes modal
 const showNotesModal = ref(false)
 const tempNotes = ref('')
+
+// Fonction pour construire l'adresse complète
+const getFullAddress = (prospect) => {
+  if (!prospect) return 'No address'
+  
+  const parts = []
+  if (prospect.address && prospect.address.trim()) parts.push(prospect.address.trim())
+  if (prospect.city && prospect.city.trim()) parts.push(prospect.city.trim())
+  if (prospect.postal_code && prospect.postal_code.trim()) parts.push(prospect.postal_code.trim())
+  if (prospect.country && prospect.country.trim()) parts.push(prospect.country.trim())
+  
+  return parts.length > 0 ? parts.join(', ') : 'No address'
+}
 
 // Fonction pour calculer le revenu pondéré
 const getWeightedRevenue = (prospect) => {

@@ -236,7 +236,7 @@
                 <label class="w-20 text-sm font-medium text-gray-600">Address:</label>
                 <div class="flex-1 flex flex-col">
                   <div class="flex items-center">
-                    <span v-if="!editing.address && prospect" class="text-gray-900 flex-1">{{ form.address || 'No address' }}</span>
+                    <span v-if="!editing.address && prospect" class="text-gray-900 flex-1">{{ getFullAddress }}</span>
                     <textarea 
                       v-if="editing.address || !prospect"
                       v-model="form.address"
@@ -668,6 +668,16 @@ const filteredContacts = computed(() => {
     (c.email && c.email.toLowerCase().includes(query)) ||
     (c.position && c.position.toLowerCase().includes(query))
   )
+})
+
+// Get full address for display
+const getFullAddress = computed(() => {
+  const parts = []
+  if (form.address && form.address.trim()) parts.push(form.address.trim())
+  if (form.city && form.city.trim()) parts.push(form.city.trim())
+  if (form.postal_code && form.postal_code.trim()) parts.push(form.postal_code.trim())
+  if (form.country && form.country.trim()) parts.push(form.country.trim())
+  return parts.length > 0 ? parts.join(', ') : 'No address'
 })
 
 // Select a company
