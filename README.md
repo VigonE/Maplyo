@@ -23,26 +23,24 @@ This repository contains the AGPLv3 open-source core. Commercial extensions are 
 - MySQL 8+ with a database user that can create schemas
 - (Optional) Docker and Docker Compose if you plan to containerize later
 
-### Local development (temporary steps)
-1. TODO: Document the authoritative `.env` template for both frontend and backend services.
-2. TODO: Provide an automated database migration workflow (scripts currently live under `/database/migrations`).
-3. TODO: Publish sample data seeding instructions for demo environments.
-
-While those TODOs are being finalized, you can run the core manually:
+### Quick setup
 
 ```bash
-# Install dependencies
+# Clone and install
 git clone https://github.com/Maplyo/Maplyo.git
 cd Maplyo
 npm install
 
 # Configure environment
-type .env.example > .env   # or copy manually and edit credentials
+cp .env.example .env
+# ⚠️ IMPORTANT: Edit .env and set a secure JWT_SECRET (see INSTALL.md)
 
 # Start services (run in separate terminals)
 npm run server:dev   # Express API on http://localhost:3001
 npm run dev          # Vite dev server on http://localhost:3000
 ```
+
+📖 **For detailed installation instructions, security setup, and troubleshooting, see [INSTALL.md](INSTALL.md)**
 
 ### Docker Compose (coming soon)
 Docker Compose definitions are the recommended way to bootstrap Maplyo in development and staging. The reference compose file is under active construction and will cover the Vue frontend, Express backend, MySQL, seeded data, and optional observability sidecars. Until the file lands in this repository, please rely on the local development steps above.

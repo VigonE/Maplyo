@@ -569,7 +569,11 @@ io.on('connection', (socket) => {
   // Authentification via Socket.IO
   socket.on('authenticate', (token) => {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      if (!process.env.JWT_SECRET) {
+        console.error('❌ JWT_SECRET not configured!');
+        return res.status(500).json({ error: 'Server configuration error' });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.userId = decoded.userId;
       userSockets.set(decoded.userId, socket);
       console.log(`✅ Socket authenticated for user ${decoded.userId}`);
@@ -601,7 +605,11 @@ function authenticateToken(req, res, next) {
     });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+  if (!process.env.JWT_SECRET) {
+    console.error('❌ JWT_SECRET not configured!');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       console.warn('❌ Token verification failed for:', req.path, 'Error:', err.message);
       
@@ -752,7 +760,7 @@ app.post('/api/register', async (req, res) => {
                 name: name,
                 role: userRole
               },
-              process.env.JWT_SECRET || 'your-secret-key',
+              process.env.JWT_SECRET,
               { expiresIn: '365d' }
             );
 
@@ -819,6 +827,10 @@ app.post('/api/login', async (req, res) => {
         }
 
         // Créer le token JWT (persistant 1 an)
+        if (!process.env.JWT_SECRET) {
+          console.error('❌ JWT_SECRET not configured!');
+          return res.status(500).json({ error: 'Server configuration error' });
+        }
         const token = jwt.sign(
           { 
             userId: user.id, 
@@ -826,7 +838,7 @@ app.post('/api/login', async (req, res) => {
             name: user.name,
             role: user.role || 'user'
           },
-          process.env.JWT_SECRET || 'your-secret-key',
+          process.env.JWT_SECRET,
           { expiresIn: '365d' }
         );
 
@@ -4162,7 +4174,7 @@ server.listen(PORT, () => {
   console.log(`🔌 WebSocket: http://localhost:${PORT}`);
   console.log(`💾 Database: SQLite (${dbPath})`);
   console.log(`🗺️ Geocoding: OpenStreetMap with enhanced error handling`);
-  console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? 'Set' : 'Using default (not secure for production)'}`);
+  console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? '✅ Configured' : '❌ NOT SET - Server will not work!'}`);
   console.log(`📡 Network: Testing connectivity on startup`);
   
   // Test final de la configuration
